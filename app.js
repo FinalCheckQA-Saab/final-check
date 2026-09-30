@@ -185,6 +185,8 @@
       if (!ok) {
         _adminSessionPass = null; // รหัสผ่านที่เก็บไว้ผิด/หมดอายุ — ล้างทิ้งให้ถามใหม่รอบหน้า
         toast('รหัสผ่าน Admin ไม่ถูกต้อง — บันทึกขึ้น Supabase ไม่สำเร็จ', 'ng');
+      } else {
+        await pushSectionsToSupabase(pass, cat);
       }
     } catch (e) {
       console.error('pushCatalogToSupabase error:', e);
@@ -196,16 +198,48 @@
     }
   }
 
+  // 🆕 ส่งรายการแผนกขึ้น Supabase (RPC แยก 'sync_sections' — ไม่แตะ sync_catalog เดิม)
+  // ถ้ายังไม่ได้รัน SQL สร้างตาราง/ฟังก์ชัน จะแค่เตือนใน console ไม่ทำให้การบันทึกส่วนอื่นพัง
+  async function pushSectionsToSupabase(pass, cat) {
+    try {
+      if (!cat.sections || !cat.sections.length) return;
+      const { data: ok, error } = await sb.rpc('sync_sections', {
+        p_password: pass,
+        p_sections: cat.sections.map((x, i) => ({ id: x.id, name: x.name, sortOrder: x.sortOrder ?? i })),
+      });
+      if (error) console.warn('sync_sections ไม่สำเร็จ (ยังไม่ได้รัน add_sections_table.sql?):', error.message || error);
+      else if (!ok) console.warn('sync_sections: รหัสผ่านไม่ถูกต้อง');
+    } catch (e) { console.warn('pushSectionsToSupabase error:', e); }
+  }
+
+  async function deleteSectionFromSupabase(id) {
+    if (!sb) return;
+    const pass = getAdminPass();
+    if (!pass) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อลบข้อมูล', 'ng'); return; }
+    _syncing = true;
+    try {
+      const { data: ok, error } = await sb.rpc('delete_section', { p_password: pass, p_id: id });
+      if (error) throw error;
+      if (!ok) { _adminSessionPass = null; toast('รหัสผ่าน Admin ไม่ถูกต้อง — ลบแผนกบน Supabase ไม่สำเร็จ', 'ng'); }
+    } catch (e) {
+      console.error('deleteSectionFromSupabase error:', e);
+      toast('ลบแผนกออกจาก Supabase ไม่สำเร็จ อาจเด้งกลับมาใหม่: ' + (e.message || e), 'ng');
+    } finally {
+      setTimeout(() => { _syncing = false; }, 1500);
+    }
+  }
+
   // ── ดึง Catalog จาก Supabase กลับมาประกอบเป็น object เดิม ──
   async function pullCatalogFromSupabase() {
     if (!sb) return null;
     try {
-      const [d, l, j, c, t] = await Promise.all([
+      const [d, l, j, c, t, sc] = await Promise.all([
         sb.from('departments').select('*'),
         sb.from('lines').select('*'),
         sb.from('jigs').select('*'),
         sb.from('checkpoints').select('*'),
         sb.from('templates').select('*'),
+        sb.from('sections').select('*'), // 🆕 แผนก — ถ้าตารางยังไม่ได้สร้าง (ยังไม่รัน SQL) ไม่ถือเป็น error หลัก
       ]);
       const err = d.error || l.error || j.error || c.error || t.error;
       if (err) throw err;
@@ -242,8 +276,10 @@
       const lines = (l.data || []).map(row => ({ id: row.id, deptId: row.dept_id, name: row.name, sortOrder: row.sort_order ?? undefined }));
       const templates = (t.data || []).map(row => ({ id: row.id, name: row.name, items: row.items || [] }));
 
+      const sections = (sc && !sc.error ? (sc.data || []) : []).map(r => ({ id: r.id, name: r.name, sortOrder: r.sort_order ?? undefined }));
+
       if (!depts.length && !jigs.length) return null; // ยังไม่เคย sync ขึ้นเลย — ใช้ข้อมูล local ต่อไป
-      return { depts, lines, jigs, templates };
+      return { depts, lines, jigs, templates, sections };
     } catch (e) {
       console.warn('pullCatalogFromSupabase error (ใช้ข้อมูล local แทน):', e);
       return null;
@@ -546,7 +582,7 @@
   /* ══════════════════════════════════════
      STATE
   ══════════════════════════════════════ */
-  let catalog = { depts: [], lines: [], jigs: [], templates: [] };
+  let catalog = { depts: [], lines: [], jigs: [], templates: [], sections: [] };
   // 🆕 แยกสถานะ "กำลังโหลด" ออกจาก "โหลดเสร็จแล้วแต่ไม่มีข้อมูลจริงๆ" — กันไม่ให้ข้อความ
   // "ยังไม่มี Line" ขึ้นพร่ำเพรื่อระหว่างรอข้อมูลจาก Supabase ตอนเปิดแอปครั้งแรก
   let catalogLoading = true;
@@ -560,10 +596,11 @@
   let selectedSection = null;
   const DEFAULT_SECTION_NAME = 'Final Check';
   const deptSection = d => ((d && d.section) || '').trim() || DEFAULT_SECTION_NAME;
-  function getSections() {
-    const seen = [];
-    (catalog.depts || []).forEach(d => { const n = deptSection(d); if (!seen.includes(n)) seen.push(n); });
-    return seen;
+  // รายชื่อแผนกตามลำดับที่ Admin จัดไว้ (catalog.sections ถูก normalize ให้มีครบทุกแผนกที่ Line อ้างถึงแล้ว)
+  function getSections() { return (catalog.sections || []).map(x => x.name); }
+  function newSectionId(name) {
+    const base = 'SEC_' + String(name).trim().toLowerCase().replace(/\s+/g, '_');
+    return (catalog.sections || []).some(x => x.id === base) ? base + '_' + Date.now().toString(36) : base;
   }
   let _submitInProgress = false; // 🆕 กันกดปุ่ม "บันทึกผลการตรวจ" ซ้ำรัวๆ ระหว่างที่ยังรอ GPS/ส่งขึ้นระบบอยู่ — ต้นเหตุที่ทำให้ประวัติซ้ำกัน
   let jigSearchTerm = ''; // filters the Level-3 Part chip list
@@ -611,6 +648,26 @@
 
   function normalizeCatalogOrder() {
     if (!catalog) return;
+    // 🆕 แผนก: กันชื่อซ้ำ + ให้มีครบทุกแผนกที่ Line อ้างถึง (รวมแผนกเริ่มต้น) แล้วเรียงตาม sortOrder
+    if (!Array.isArray(catalog.sections)) catalog.sections = [];
+    const seenNames = new Set();
+    catalog.sections = catalog.sections.filter(x => {
+      const k = String(x.name || '').trim().toLowerCase();
+      if (!k || seenNames.has(k)) return false;
+      seenNames.add(k); return true;
+    });
+    (catalog.depts || []).forEach(d => {
+      const n = deptSection(d);
+      if (!seenNames.has(n.toLowerCase())) {
+        seenNames.add(n.toLowerCase());
+        catalog.sections.push({ id: newSectionId(n), name: n });
+      }
+    });
+    catalog.sections = catalog.sections
+      .map((x, i) => ({ x, k: x.sortOrder != null ? x.sortOrder : 1000 + i, i }))
+      .sort((a, b) => a.k - b.k || a.i - b.i)
+      .map(o => o.x);
+    catalog.sections.forEach((x, i) => { x.sortOrder = i; }); // ตรึงลำดับให้ทุกแผนก (กันแผนกที่เพิ่มใหม่กระโดดไปก่อนแผนกที่สร้างอัตโนมัติ)
     const deptIdx = id => Math.max(0, (catalog.depts || []).findIndex(d => d.id === id));
     const rank = (item, defaultRank, origIdx) =>
       item.sortOrder != null ? item.sortOrder : (defaultRank != null ? defaultRank : 1000 + origIdx);
@@ -633,6 +690,19 @@
   /* เลื่อน Model / Part ขึ้น-ลง ภายในกลุ่มเดียวกัน (Model ใน Line เดียวกัน, Part ใน Model เดียวกัน)
      แล้วกำหนด sortOrder 0..n-1 ให้ทั้งกลุ่ม เพื่อให้ลำดับที่จัดคงอยู่ถาวรและ sync ขึ้น Supabase */
   function moveCatalogItem(type, id, dir) {
+    if (type === 'section') {
+      const arr = catalog.sections;
+      const idx = arr.findIndex(x => x.id === id);
+      const ni = idx + dir;
+      if (idx < 0 || ni < 0 || ni >= arr.length) return;
+      [arr[idx], arr[ni]] = [arr[ni], arr[idx]];
+      arr.forEach((x, i) => { x.sortOrder = i; });
+      normalizeCatalogOrder();
+      saveCatalog();
+      renderAdminLists();
+      renderFilter();
+      return;
+    }
     const isLine = type === 'line';
     const all = isLine ? catalog.lines : catalog.jigs;
     const item = all.find(x => x.id === id);
@@ -784,16 +854,32 @@
     e.stopPropagation();
     const { etype, id } = btn.dataset;
     
-    if (etype === 'dept') {
+    if (etype === 'section') {
+      const sec = catalog.sections.find(x => x.id === id);
+      if (!sec) return;
+      const newName = prompt('แก้ไขชื่อแผนก:', sec.name);
+      if (newName === null) return;
+      const nn = newName.trim();
+      if (!nn) { toast('ชื่อห้ามว่าง', 'ng'); return; }
+      if (catalog.sections.some(x => x.id !== sec.id && x.name.toLowerCase() === nn.toLowerCase())) { toast(`มีแผนก "${nn}" แล้ว`, 'ng'); return; }
+      const oldName = sec.name;
+      // Line ที่อยู่ในแผนกนี้ (รวมที่ยังไม่ระบุแผนกแต่ตกอยู่ใต้ชื่อเดิม) ย้ายตามชื่อใหม่ทั้งหมด
+      catalog.depts.forEach(d => { if (deptSection(d) === oldName) d.section = nn; });
+      sec.name = nn;
+      if (selectedSection === oldName) selectedSection = nn;
+    } else if (etype === 'dept') {
       const d = catalog.depts.find(x => x.id === id);
       if (!d) return;
       const newName = prompt('แก้ไขชื่อ Line:', d.name);
       if (newName === null) return;
       if (!newName.trim()) { toast('ชื่อห้ามว่าง', 'ng'); return; }
-      const newSection = prompt('แผนกของ Line นี้ (พิมพ์ชื่อแผนก เช่น Final Check):', deptSection(d));
+      const secNames = getSections();
+      const newSection = prompt(`แผนกของ Line นี้ — พิมพ์ชื่อให้ตรงกับแผนกที่มีอยู่:\n${secNames.join(', ')}`, deptSection(d));
       if (newSection === null) return;
+      const match = secNames.find(n => n.toLowerCase() === newSection.trim().toLowerCase());
+      if (!match) { toast(`ไม่พบแผนก "${newSection.trim()}" — เพิ่มแผนกก่อนที่ส่วน "เพิ่มแผนก"`, 'ng'); return; }
       d.name = newName.trim();
-      d.section = newSection.trim();
+      d.section = match;
       if (selectedSection && !getSections().includes(selectedSection)) selectedSection = null;
     } else if (etype === 'line') {
       const l = catalog.lines.find(x => x.id === id);
@@ -965,6 +1051,26 @@
     
     e.stopPropagation();
     const { dtype, id } = btn.dataset;
+
+    if (dtype === 'section') {
+      const sec = catalog.sections.find(x => x.id === id);
+      if (!sec) return;
+      const n = catalog.depts.filter(d => deptSection(d) === sec.name).length;
+      if (n > 0) {
+        // กันลบพลาด: การลบแผนกที่มี Line อยู่จะพาข้อมูล Model/Part/ประวัติหายตามไปด้วย — ให้ย้ายหรือลบ Line เองก่อน
+        toast(`แผนก "${sec.name}" ยังมี ${n} Line — ย้าย Line ไปแผนกอื่น (ปุ่มแก้ไขที่ Line) หรือลบ Line ก่อน`, 'ng');
+        return;
+      }
+      (async () => {
+        if (!(await showConfirmModal(`ลบแผนก "${sec.name}" หรือไม่?`, { confirmLabel: 'ลบแผนก', danger: true }))) return;
+        catalog.sections = catalog.sections.filter(x => x.id !== id);
+        if (selectedSection === sec.name) { selectedSection = null; selection = { deptId: null, lineId: null, jigId: null }; }
+        saveCatalog(); renderAdminLists(); renderFilter();
+        deleteSectionFromSupabase(id);
+        toast('ลบแผนกสำเร็จ', 'ok');
+      })();
+      return;
+    }
     
     if (dtype === 'dept') {
       catalog.lines = catalog.lines.filter(l => l.deptId !== id);
@@ -2822,12 +2928,25 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       }
     });
 
+    /* 🆕 Add แผนก */
+    if ($('btn-adm-section')) $('btn-adm-section').addEventListener('click', () => {
+      const name = $('adm-section-name').value.trim();
+      if (!name) { toast('กรุณากรอกชื่อแผนก', 'ng'); return; }
+      if (catalog.sections.some(x => x.name.toLowerCase() === name.toLowerCase())) { toast(`มีแผนก "${name}" แล้ว`, 'ng'); return; }
+      catalog.sections.push({ id: newSectionId(name), name, sortOrder: catalog.sections.length });
+      saveCatalog();
+      $('adm-section-name').value = '';
+      renderAdminLists(); renderFilter();
+      toast(`เพิ่มแผนก "${name}" สำเร็จ`, 'ok');
+    });
+
     /* Add Dept */
     $('btn-adm-dept').addEventListener('click', () => {
       const id   = $('adm-dept-id').value.trim().toUpperCase();
       const name = $('adm-dept-name').value.trim();
       const secEl = $('adm-dept-section');
       const section = secEl ? secEl.value.trim() : '';
+      if (!section) { toast('กรุณาเลือกแผนกก่อน (ถ้ายังไม่มี ให้เพิ่มแผนกที่ส่วน "เพิ่มแผนก")', 'ng'); return; }
       if (!id || !name) { toast('กรุณากรอกรหัสและชื่อ Line', 'ng'); return; }
       if (catalog.depts.find(d => d.id === id)) { toast(`รหัส ${id} มีแล้ว`, 'ng'); return; }
       catalog.depts.push({ id, name, section });
@@ -3600,9 +3719,35 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 
   function renderAdminLists() {
 
-    /* Datalist ชื่อแผนกที่มีอยู่ — ให้ช่อง "แผนก" ตอนเพิ่ม Line เลือกซ้ำได้ ไม่ต้องพิมพ์ใหม่ */
-    const secList = $('adm-section-datalist');
-    if (secList) secList.innerHTML = getSections().map(n => `<option value="${escHtml(n)}"></option>`).join('');
+    /* 🆕 แผนก list + dropdown เลือกแผนกตอนเพิ่ม Line */
+    const secListEl = $('adm-section-list');
+    if (secListEl) {
+      const secs = catalog.sections || [];
+      secListEl.innerHTML = secs.length
+        ? secs.map((sec, i) => {
+            const lineCnt = catalog.depts.filter(d => deptSection(d) === sec.name).length;
+            return `<div class="adm-item">
+              <div class="adm-item-info">
+                <div>${escHtml(sec.name)}</div>
+                <div class="adm-item-code">${lineCnt} Line</div>
+              </div>
+              <div class="adm-order-col">
+                <button class="adm-item-order" data-otype="section" data-id="${escHtml(sec.id)}" data-dir="-1" title="เลื่อนขึ้น" ${i === 0 ? 'disabled' : ''}>▲</button>
+                <button class="adm-item-order" data-otype="section" data-id="${escHtml(sec.id)}" data-dir="1" title="เลื่อนลง" ${i === secs.length - 1 ? 'disabled' : ''}>▼</button>
+              </div>
+              <button class="adm-item-edit" data-etype="section" data-id="${escHtml(sec.id)}" title="แก้ไขชื่อแผนก">${ico(ICO_EDIT_P)}</button>
+              <button class="adm-item-del" data-dtype="section" data-id="${escHtml(sec.id)}" title="ลบแผนก">${ico(ICO_TRASH_P)}</button>
+            </div>`;
+          }).join('')
+        : '<div class="adm-item" style="color:var(--text-muted);font-style:italic">ยังไม่มีแผนก</div>';
+    }
+    const secSel = $('adm-dept-section');
+    if (secSel) {
+      const cur = secSel.value;
+      secSel.innerHTML = '<option value="">เลือกแผนก</option>' +
+        getSections().map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
+      if (getSections().includes(cur)) secSel.value = cur;
+    }
 
     /* Dept list */
     $('adm-dept-list').innerHTML = catalog.depts.length

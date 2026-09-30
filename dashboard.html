@@ -782,14 +782,23 @@
       <div class="admin-list admin-list-scroll" id="adm-login-log-list" style="margin-top:8px;"></div>
     </div>
 
+    <!-- 🆕 Add แผนก -->
+    <div class="admin-section">
+      <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 21v-4h6v4"/><path d="M8 7h.01M12 7h.01M16 7h.01M8 11h.01M12 11h.01M16 11h.01"/></svg> เพิ่มแผนก</div>
+      <div class="admin-input-row">
+        <input type="text" id="adm-section-name" placeholder="ชื่อแผนก (เช่น Final Check)">
+        <button class="btn-adm-add" id="btn-adm-section">เพิ่ม</button>
+      </div>
+      <div class="admin-list" id="adm-section-list"></div>
+    </div>
+
     <!-- Add Line -->
     <div class="admin-section">
       <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V11l5 3v-3l5 3V8l5 3v10z"/><path d="M3 21h18"/></svg> เพิ่ม Line</div>
       <div class="admin-input-row">
         <input type="text" id="adm-dept-id" placeholder="รหัส (เช่น LINE1)">
         <input type="text" id="adm-dept-name" placeholder="ชื่อ Line (เช่น Exhaust)">
-        <input type="text" id="adm-dept-section" list="adm-section-datalist" placeholder="แผนก (เช่น Final Check)">
-        <datalist id="adm-section-datalist"></datalist>
+        <select id="adm-dept-section" class="adm-sel"><option value="">เลือกแผนก</option></select>
         <button class="btn-adm-add" id="btn-adm-dept">เพิ่ม</button>
       </div>
       <div class="admin-list" id="adm-dept-list"></div>
@@ -1110,7 +1119,7 @@
 <!-- 🆕 ใส่เลขเวอร์ชันต่อท้าย ?v=... เพื่อบังคับให้เบราว์เซอร์ (โดยเฉพาะ Safari บน iPhone ซึ่งแคชไฟล์ .js
      ค้างนานผิดปกติ) โหลด app.js ก้อนใหม่ทุกครั้งที่มีการอัปเดตโค้ด — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ app.js
      แล้ว push ขึ้นใหม่ ไม่งั้นเครื่องที่เคยเข้าเว็บมาก่อนจะยังใช้ไฟล์เก่าจากแคชอยู่ -->
-<script src="app.js?v=fc-order2"></script>
+<script src="app.js?v=fc-order3"></script>
 <script>
 (function () {
   var collapseBtn = document.getElementById('sidebar-collapse-toggle');
