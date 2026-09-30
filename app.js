@@ -164,7 +164,7 @@
     try {
       const payload = {
         p_password: pass,
-        p_departments: cat.depts?.length ? cat.depts.map(d => ({ id: d.id, name: d.name })) : null,
+        p_departments: cat.depts?.length ? cat.depts.map(d => ({ id: d.id, name: d.name, section: d.section ?? null })) : null,
         p_lines: cat.lines?.length ? cat.lines.map(l => ({ id: l.id, deptId: l.deptId, name: l.name, sortOrder: l.sortOrder ?? null })) : null,
         p_jigs: cat.jigs?.length ? cat.jigs.map(j => ({
           id: j.id, lineId: j.lineId, name: j.name, docNo: j.docNo || '', bgImage: j.bgImage || null,
@@ -238,7 +238,7 @@
         issueDateOverride: row.issue_date_override || '',
         checkpoints: (cpByJig[row.id] || []).sort((a, b) => a.id - b.id),
       }));
-      const depts = (d.data || []).map(row => ({ id: row.id, name: row.name }));
+      const depts = (d.data || []).map(row => ({ id: row.id, name: row.name, section: row.section || '' })); // section = แผนก
       const lines = (l.data || []).map(row => ({ id: row.id, deptId: row.dept_id, name: row.name, sortOrder: row.sort_order ?? undefined }));
       const templates = (t.data || []).map(row => ({ id: row.id, name: row.name, items: row.items || [] }));
 
@@ -554,6 +554,17 @@
   // 🆕 companyNameTh/En/Logo — เว้นว่าง = ใช้ค่า default ของระบบ (ดู DEFAULT_COMPANY_* ด้านล่าง) เพื่อไม่ให้ deployment เดิม (Summit) พังตอนยังไม่ได้ตั้งค่า
   let appSettings = { docNo: 'DDM4-2-002', formRevLevel: 'Rev.01', revLevel: 'Rev.00', revDate: '', issueDate: '', companyNameTh: '', companyNameEn: '', companyLogo: '', companies: [] };
   let selection = { deptId: null, lineId: null, jigId: null };
+  // 🆕 ระดับ "แผนก" (ระดับบนสุด ตามแผนผังพี่บี: แผนก → Line → Model → Part)
+  // เก็บเป็นชื่อแผนก (string) — แต่ละ Line (catalog.depts) มีฟิลด์ section บอกว่าอยู่แผนกไหน
+  // Line ที่ยังไม่ได้ระบุแผนก จะถูกจัดไว้ใต้ DEFAULT_SECTION_NAME (Admin แก้ได้ที่ปุ่มแก้ไข Line)
+  let selectedSection = null;
+  const DEFAULT_SECTION_NAME = 'Final Check';
+  const deptSection = d => ((d && d.section) || '').trim() || DEFAULT_SECTION_NAME;
+  function getSections() {
+    const seen = [];
+    (catalog.depts || []).forEach(d => { const n = deptSection(d); if (!seen.includes(n)) seen.push(n); });
+    return seen;
+  }
   let _submitInProgress = false; // 🆕 กันกดปุ่ม "บันทึกผลการตรวจ" ซ้ำรัวๆ ระหว่างที่ยังรอ GPS/ส่งขึ้นระบบอยู่ — ต้นเหตุที่ทำให้ประวัติซ้ำกัน
   let jigSearchTerm = ''; // filters the Level-3 Part chip list
   let checkState = [];  // current inspection items
@@ -779,7 +790,11 @@
       const newName = prompt('แก้ไขชื่อ Line:', d.name);
       if (newName === null) return;
       if (!newName.trim()) { toast('ชื่อห้ามว่าง', 'ng'); return; }
+      const newSection = prompt('แผนกของ Line นี้ (พิมพ์ชื่อแผนก เช่น Final Check):', deptSection(d));
+      if (newSection === null) return;
       d.name = newName.trim();
+      d.section = newSection.trim();
+      if (selectedSection && !getSections().includes(selectedSection)) selectedSection = null;
     } else if (etype === 'line') {
       const l = catalog.lines.find(x => x.id === id);
       if (!l) return;
@@ -1293,21 +1308,51 @@
      3-LEVEL FILTER
   ══════════════════════════════════════ */
   function renderFilter() {
+    renderSectionChips();
     renderDeptChips();
     renderLineChips();
     renderJigChips();
     updateBreadcrumb();
   }
 
-  function renderDeptChips() {
-    const container = $('chips-dept');
+  /* ── ระดับ 1: แผนก ── */
+  function renderSectionChips() {
+    const container = $('chips-section');
+    if (!container) return;
     if (!catalog.depts.length) {
       container.innerHTML = catalogLoading
         ? '<span class="chip-loading"><span class="chip-loading-spinner"></span>กำลังโหลดข้อมูล...</span>'
-        : '<span class="chip-empty">ยังไม่มี Line — ไปที่ Admin Panel เพื่อเพิ่ม หรือกด "โหลดข้อมูลทดสอบ"</span>';
+        : '<span class="chip-empty">ยังไม่มีแผนก — ไปที่ Admin Panel เพื่อเพิ่ม Line (ระบุแผนกได้ตอนเพิ่ม) หรือกด "โหลดข้อมูลทดสอบ"</span>';
       return;
     }
-    container.innerHTML = catalog.depts.map(d => {
+    container.innerHTML = getSections().map(name => {
+      const deptIds = catalog.depts.filter(d => deptSection(d) === name).map(d => d.id);
+      const lineCount = catalog.lines.filter(l => deptIds.includes(l.deptId)).length;
+      const jigCount = catalog.jigs.filter(j => { const line = catalog.lines.find(l => l.id === j.lineId); return line && deptIds.includes(line.deptId); }).length;
+      const sel = selectedSection === name ? 'selected' : '';
+      return `<button class="chip ${sel}" data-section="${escHtml(name)}">
+        ${escHtml(name)}
+        <span class="chip-code">${deptIds.length} Line · ${lineCount} Model</span>
+        <span class="chip-count">${jigCount} Part</span>
+      </button>`;
+    }).join('');
+    container.querySelectorAll('.chip').forEach(btn => {
+      btn.addEventListener('click', () => selectSection(btn.dataset.section));
+    });
+  }
+
+  /* ── ระดับ 2: Line (ตาราง departments เดิม) — โชว์เฉพาะ Line ที่อยู่ในแผนกที่เลือก ── */
+  function renderDeptChips() {
+    const levelEl = $('level-dept');
+    const container = $('chips-dept');
+    if (!selectedSection) { levelEl.classList.add('hidden'); return; }
+    levelEl.classList.remove('hidden');
+    const depts = catalog.depts.filter(d => deptSection(d) === selectedSection);
+    if (!depts.length) {
+      container.innerHTML = '<span class="chip-empty">ยังไม่มี Line ในแผนกนี้</span>';
+      return;
+    }
+    container.innerHTML = depts.map(d => {
       const lineCount = catalog.lines.filter(l => l.deptId === d.id).length;
       const jigCount  = catalog.jigs.filter(j => {
         const line = catalog.lines.find(l => l.id === j.lineId);
@@ -1463,7 +1508,7 @@
       const dept = catalog.depts.find(d => d.id === selection.deptId);
       if (jig) {
         $('sb-jig-name').textContent = `${jig.name}`;
-        $('sb-jig-meta').textContent = `${jig.docNo || jig.id}  ·  ${dept ? dept.name : ''}  >  ${line ? line.name : ''}`;
+        $('sb-jig-meta').textContent = `${jig.docNo || jig.id}  ·  ${dept ? deptSection(dept) + '  >  ' + dept.name : ''}  >  ${line ? line.name : ''}`;
         banner.classList.remove('hidden');
         $('svg-jig-label').textContent = `${jig.name} — ${jig.id}${jig.docNo ? '  ·  ' + jig.docNo : ''}`;
         $('header-sub').textContent = `${jig.docNo || jig.id}  ·  ${dept ? dept.name : ''}  /  ${line ? line.name : ''}`;
@@ -1498,6 +1543,15 @@
   }
 
   /* ── Selection handlers ── */
+  function selectSection(name) {
+    if (selectedSection === name) { selectedSection = null; }
+    else { selectedSection = name; }
+    selection = { deptId: null, lineId: null, jigId: null };
+    resetJigSearch();
+    hideInspectionCards();
+    renderFilter();
+  }
+
   function selectDept(id) {
     if (selection.deptId === id) {
       selection = { deptId: null, lineId: null, jigId: null };
@@ -1530,17 +1584,18 @@
   function updateBreadcrumb() {
     const bc = $('breadcrumb');
     let parts = [{ label: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> เริ่มต้น', level: 0 }];
+    if (selectedSection) parts.push({ label: escHtml(selectedSection), level: 1 });
     if (selection.deptId) {
       const d = catalog.depts.find(x => x.id === selection.deptId);
-      if (d) parts.push({ label: escHtml(d.name), level: 1 });
+      if (d) parts.push({ label: escHtml(d.name), level: 2 });
     }
     if (selection.lineId) {
       const l = catalog.lines.find(x => x.id === selection.lineId);
-      if (l) parts.push({ label: escHtml(l.name), level: 2 });
+      if (l) parts.push({ label: escHtml(l.name), level: 3 });
     }
     if (selection.jigId) {
       const j = catalog.jigs.find(x => x.id === selection.jigId);
-      if (j) parts.push({ label: escHtml(j.name), level: 3 });
+      if (j) parts.push({ label: escHtml(j.name), level: 4 });
     }
     bc.innerHTML = parts.map((p, i) => {
       const active = i === parts.length - 1 ? 'active' : '';
@@ -1551,9 +1606,10 @@
     bc.querySelectorAll('.bc-item').forEach(el => {
       el.addEventListener('click', () => {
         const lv = parseInt(el.dataset.level);
-        if (lv === 0) { selection = { deptId: null, lineId: null, jigId: null }; }
-        else if (lv === 1) { selection.lineId = null; selection.jigId = null; }
-        else if (lv === 2) { selection.jigId = null; }
+        if (lv === 0) { selectedSection = null; selection = { deptId: null, lineId: null, jigId: null }; }
+        else if (lv === 1) { selection = { deptId: null, lineId: null, jigId: null }; }
+        else if (lv === 2) { selection.lineId = null; selection.jigId = null; }
+        else if (lv === 3) { selection.jigId = null; }
         hideInspectionCards();
         renderFilter();
       });
@@ -2405,7 +2461,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         // รีโหลดข้อมูลเข้า memory และ re-render
         if (typeof refreshCatalogGlobal === 'function') await refreshCatalogGlobal();
         if (typeof refreshHistoryGlobal === 'function') await refreshHistoryGlobal();
-        selection = { deptId: null, lineId: null, jigId: null };
+        selectedSection = null; selection = { deptId: null, lineId: null, jigId: null };
         hideInspectionCards(); renderAdminLists(); renderFilter(); refreshDashboard();
         toast(`✅ Import สำเร็จ — ${cat.jigs.length} Part, ${hist.length} ประวัติ`, 'ok');
       } catch (err) {
@@ -2770,11 +2826,13 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     $('btn-adm-dept').addEventListener('click', () => {
       const id   = $('adm-dept-id').value.trim().toUpperCase();
       const name = $('adm-dept-name').value.trim();
+      const secEl = $('adm-dept-section');
+      const section = secEl ? secEl.value.trim() : '';
       if (!id || !name) { toast('กรุณากรอกรหัสและชื่อ Line', 'ng'); return; }
       if (catalog.depts.find(d => d.id === id)) { toast(`รหัส ${id} มีแล้ว`, 'ng'); return; }
-      catalog.depts.push({ id, name });
+      catalog.depts.push({ id, name, section });
       saveCatalog();
-      $('adm-dept-id').value = ''; $('adm-dept-name').value = '';
+      $('adm-dept-id').value = ''; $('adm-dept-name').value = ''; if (secEl) secEl.value = '';
       renderAdminLists(); renderFilter();
       toast(`เพิ่ม Line "${name}" สำเร็จ`, 'ok');
     });
@@ -3542,13 +3600,17 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 
   function renderAdminLists() {
 
+    /* Datalist ชื่อแผนกที่มีอยู่ — ให้ช่อง "แผนก" ตอนเพิ่ม Line เลือกซ้ำได้ ไม่ต้องพิมพ์ใหม่ */
+    const secList = $('adm-section-datalist');
+    if (secList) secList.innerHTML = getSections().map(n => `<option value="${escHtml(n)}"></option>`).join('');
+
     /* Dept list */
     $('adm-dept-list').innerHTML = catalog.depts.length
       ? catalog.depts.map(d => `
           <div class="adm-item">
             <div class="adm-item-info">
               <div>${escHtml(d.name)}</div>
-              <div class="adm-item-code">${escHtml(d.id)}</div>
+              <div class="adm-item-code">${escHtml(d.id)} · แผนก: ${escHtml(deptSection(d))}</div>
             </div>
             <button class="adm-item-edit" data-etype="dept" data-id="${escHtml(d.id)}" title="แก้ไข">${ico(ICO_EDIT_P)}</button>
             <button class="adm-item-del" data-dtype="dept" data-id="${escHtml(d.id)}" title="ลบ">${ico(ICO_TRASH_P)}</button>

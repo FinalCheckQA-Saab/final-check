@@ -307,19 +307,28 @@
         </span>
       </div>
 
-      <!-- Level 1: Line -->
-      <div class="filter-level" id="level-dept">
+      <!-- Level 1: แผนก -->
+      <div class="filter-level" id="level-section">
         <div class="level-label">
           <span class="level-num">1</span>
-          <span>เลือก <strong>Line</strong></span>
+          <span>เลือก <strong>แผนก</strong></span>
         </div>
-        <div class="filter-chips" id="chips-dept"><span class="chip-loading"><span class="chip-loading-spinner"></span>กำลังโหลดข้อมูล...</span></div>
+        <div class="filter-chips" id="chips-section"><span class="chip-loading"><span class="chip-loading-spinner"></span>กำลังโหลดข้อมูล...</span></div>
       </div>
 
-      <!-- Level 2: Model -->
-      <div class="filter-level hidden" id="level-line">
+      <!-- Level 2: Line -->
+      <div class="filter-level hidden" id="level-dept">
         <div class="level-label">
           <span class="level-num">2</span>
+          <span>เลือก <strong>Line</strong></span>
+        </div>
+        <div class="filter-chips" id="chips-dept"></div>
+      </div>
+
+      <!-- Level 3: Model -->
+      <div class="filter-level hidden" id="level-line">
+        <div class="level-label">
+          <span class="level-num">3</span>
           <span>เลือก <strong>Model</strong></span>
         </div>
         <div class="filter-chips line-chips-grid" id="chips-line"></div>
@@ -328,7 +337,7 @@
       <!-- Level 3: Part -->
       <div class="filter-level hidden" id="level-jig">
         <div class="level-label">
-          <span class="level-num">3</span>
+          <span class="level-num">4</span>
           <span>เลือก <strong>Part</strong> ที่ต้องการตรวจ</span>
         </div>
         <div class="jig-search-wrap">
@@ -778,7 +787,9 @@
       <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V11l5 3v-3l5 3V8l5 3v10z"/><path d="M3 21h18"/></svg> เพิ่ม Line</div>
       <div class="admin-input-row">
         <input type="text" id="adm-dept-id" placeholder="รหัส (เช่น LINE1)">
-        <input type="text" id="adm-dept-name" placeholder="ชื่อ Line (เช่น Final Check)">
+        <input type="text" id="adm-dept-name" placeholder="ชื่อ Line (เช่น Exhaust)">
+        <input type="text" id="adm-dept-section" list="adm-section-datalist" placeholder="แผนก (เช่น Final Check)">
+        <datalist id="adm-section-datalist"></datalist>
         <button class="btn-adm-add" id="btn-adm-dept">เพิ่ม</button>
       </div>
       <div class="admin-list" id="adm-dept-list"></div>
@@ -1099,7 +1110,7 @@
 <!-- 🆕 ใส่เลขเวอร์ชันต่อท้าย ?v=... เพื่อบังคับให้เบราว์เซอร์ (โดยเฉพาะ Safari บน iPhone ซึ่งแคชไฟล์ .js
      ค้างนานผิดปกติ) โหลด app.js ก้อนใหม่ทุกครั้งที่มีการอัปเดตโค้ด — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ app.js
      แล้ว push ขึ้นใหม่ ไม่งั้นเครื่องที่เคยเข้าเว็บมาก่อนจะยังใช้ไฟล์เก่าจากแคชอยู่ -->
-<script src="app.js?v=fc-order1"></script>
+<script src="app.js?v=fc-order2"></script>
 <script>
 (function () {
   var collapseBtn = document.getElementById('sidebar-collapse-toggle');
