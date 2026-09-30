@@ -165,9 +165,10 @@
       const payload = {
         p_password: pass,
         p_departments: cat.depts?.length ? cat.depts.map(d => ({ id: d.id, name: d.name })) : null,
-        p_lines: cat.lines?.length ? cat.lines.map(l => ({ id: l.id, deptId: l.deptId, name: l.name })) : null,
+        p_lines: cat.lines?.length ? cat.lines.map(l => ({ id: l.id, deptId: l.deptId, name: l.name, sortOrder: l.sortOrder ?? null })) : null,
         p_jigs: cat.jigs?.length ? cat.jigs.map(j => ({
           id: j.id, lineId: j.lineId, name: j.name, docNo: j.docNo || '', bgImage: j.bgImage || null,
+          sortOrder: j.sortOrder ?? null, // ลำดับการแสดงผล (ตามแผนผังลำดับเลือก Part)
           // 🆕 ค่าเอกสารเฉพาะ Part นี้ — เว้นว่าง = ใช้ค่ากลาง (appSettings) ตอนสร้าง PDF
           docNoOverride: j.docNoOverride || '',
           formRevLevelOverride: j.formRevLevelOverride || '',
@@ -228,6 +229,7 @@
       const jigs = (j.data || []).map(row => ({
         id: row.id, lineId: row.line_id, name: row.name, docNo: row.doc_no,
         bgImage: row.bg_image || undefined,
+        sortOrder: row.sort_order ?? undefined, // ลำดับการแสดงผล
         // 🆕 ค่าเอกสารเฉพาะ Part นี้ — เว้นว่าง = ใช้ค่ากลาง (appSettings)
         docNoOverride: row.doc_no_override || '',
         formRevLevelOverride: row.form_rev_level_override || '',
@@ -237,7 +239,7 @@
         checkpoints: (cpByJig[row.id] || []).sort((a, b) => a.id - b.id),
       }));
       const depts = (d.data || []).map(row => ({ id: row.id, name: row.name }));
-      const lines = (l.data || []).map(row => ({ id: row.id, deptId: row.dept_id, name: row.name }));
+      const lines = (l.data || []).map(row => ({ id: row.id, deptId: row.dept_id, name: row.name, sortOrder: row.sort_order ?? undefined }));
       const templates = (t.data || []).map(row => ({ id: row.id, name: row.name, items: row.items || [] }));
 
       if (!depts.length && !jigs.length) return null; // ยังไม่เคย sync ขึ้นเลย — ใช้ข้อมูล local ต่อไป
@@ -567,6 +569,73 @@
       if (raw) catalog = JSON.parse(raw);
     } catch (e) { catalog = { depts: [], lines: [], jigs: [], templates: [] }; }
     if (!Array.isArray(catalog.templates)) catalog.templates = []; // migration: เทมเพลตหัวข้อตรวจสอบ (ใหม่)
+    normalizeCatalogOrder();
+  }
+
+  /* ══════════════════════════════════════
+     ลำดับการแสดงผล Model / Part (ตามแผนผัง "ลำดับการเลือก Part" ของพี่บี)
+     เลือกแผนก → เลือก Line → เลือก Model → Part
+       RG14 : 897848 9670 → 897848 9680 → 897265 7640
+       RG16 : 755226 9310
+     - ถ้า Admin เคยจัดลำดับเอง (sortOrder) → ใช้ค่านั้นก่อนเสมอ
+     - ถ้ายังไม่เคยจัด → ใช้ DEFAULT_FLOW_ORDER นี้ (จับคู่จากชื่อ Model และเลข Part No. ในชื่อ/รหัส Part)
+     - ที่ไม่อยู่ในรายการ → ต่อท้าย เรียงตามลำดับเดิม
+     มี Model/Part ใหม่ → เพิ่มเลขลงรายการนี้ หรือกดปุ่ม ▲▼ ใน Admin Panel ได้เลย
+  ══════════════════════════════════════ */
+  const DEFAULT_FLOW_ORDER = {
+    models: ['RG14', 'RG16'],
+    parts: ['8978489670', '8978489680', '8972657640', '7552269310'],
+  };
+  const _flowKey = v => String(v || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+
+  function _defaultModelRank(l) {
+    const i = DEFAULT_FLOW_ORDER.models.findIndex(m => _flowKey(m) === _flowKey(l.name) || _flowKey(m) === _flowKey(l.id));
+    return i >= 0 ? i : null;
+  }
+  function _defaultPartRank(j) {
+    const hay = _flowKey(`${j.name} ${j.id} ${j.docNo || ''}`);
+    const i = DEFAULT_FLOW_ORDER.parts.findIndex(p => hay.includes(_flowKey(p)));
+    return i >= 0 ? i : null;
+  }
+
+  function normalizeCatalogOrder() {
+    if (!catalog) return;
+    const deptIdx = id => Math.max(0, (catalog.depts || []).findIndex(d => d.id === id));
+    const rank = (item, defaultRank, origIdx) =>
+      item.sortOrder != null ? item.sortOrder : (defaultRank != null ? defaultRank : 1000 + origIdx);
+
+    if (Array.isArray(catalog.lines)) {
+      catalog.lines = catalog.lines
+        .map((l, i) => ({ l, k: rank(l, _defaultModelRank(l), i), i }))
+        .sort((a, b) => deptIdx(a.l.deptId) - deptIdx(b.l.deptId) || a.k - b.k || a.i - b.i)
+        .map(x => x.l);
+    }
+    if (Array.isArray(catalog.jigs)) {
+      const lineIdx = id => Math.max(0, (catalog.lines || []).findIndex(l => l.id === id));
+      catalog.jigs = catalog.jigs
+        .map((j, i) => ({ j, k: rank(j, _defaultPartRank(j), i), i }))
+        .sort((a, b) => lineIdx(a.j.lineId) - lineIdx(b.j.lineId) || a.k - b.k || a.i - b.i)
+        .map(x => x.j);
+    }
+  }
+
+  /* เลื่อน Model / Part ขึ้น-ลง ภายในกลุ่มเดียวกัน (Model ใน Line เดียวกัน, Part ใน Model เดียวกัน)
+     แล้วกำหนด sortOrder 0..n-1 ให้ทั้งกลุ่ม เพื่อให้ลำดับที่จัดคงอยู่ถาวรและ sync ขึ้น Supabase */
+  function moveCatalogItem(type, id, dir) {
+    const isLine = type === 'line';
+    const all = isLine ? catalog.lines : catalog.jigs;
+    const item = all.find(x => x.id === id);
+    if (!item) return;
+    const group = all.filter(x => isLine ? x.deptId === item.deptId : x.lineId === item.lineId);
+    const idx = group.findIndex(x => x.id === id);
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= group.length) return;
+    [group[idx], group[newIdx]] = [group[newIdx], group[idx]];
+    group.forEach((x, i) => { x.sortOrder = i; });
+    normalizeCatalogOrder();
+    saveCatalog();
+    renderAdminLists();
+    renderFilter();
   }
   function saveCatalog() {
     try {
@@ -690,6 +759,13 @@
      This prevents memory leak by using event delegation instead of
      creating a new listener for each admin item.
   ══════════════════════════════════════ */
+  function handleAdminReorder(e) {
+    const btn = e.target.closest('.adm-item-order[data-otype]');
+    if (!btn || btn.disabled) return;
+    e.stopPropagation();
+    moveCatalogItem(btn.dataset.otype, btn.dataset.id, parseInt(btn.dataset.dir, 10));
+  }
+
   function handleAdminEdit(e) {
     const btn = e.target.closest('.adm-item-edit');
     if (!btn) return;
@@ -2090,14 +2166,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     if (!window.XLSX) { toast('โหลด Excel library ไม่สำเร็จ', 'ng'); return; }
     if (!catalog.jigs.length) { toast('ยังไม่มี Part ในระบบ', 'ng'); return; }
 
-    const jigsSorted = [...catalog.jigs].sort((a, b) => {
-      const la = catalog.lines.find(l => l.id === a.lineId);
-      const lb = catalog.lines.find(l => l.id === b.lineId);
-      const da = catalog.depts.find(d => d.id === (la && la.deptId));
-      const db = catalog.depts.find(d => d.id === (lb && lb.deptId));
-      return `${da ? da.name : ''}${la ? la.name : ''}`.localeCompare(`${db ? db.name : ''}${lb ? lb.name : ''}`, 'th')
-          || a.name.localeCompare(b.name, 'th');
-    });
+    // เรียงตามลำดับเดียวกับหน้าเลือก Part (catalog ถูก normalize ตามแผนผังแล้ว)
+    const jigsSorted = [...catalog.jigs];
 
     const rows = jigsSorted.map((j, i) => {
       const line = catalog.lines.find(l => l.id === j.lineId);
@@ -2717,7 +2787,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       if (!deptId) { toast('กรุณาเลือก Line', 'ng'); return; }
       if (!id || !name) { toast('กรุณากรอกรหัสและชื่อ Model', 'ng'); return; }
       if (catalog.lines.find(l => l.id === id)) { toast(`รหัส ${id} มีแล้ว`, 'ng'); return; }
-      catalog.lines.push({ id, deptId, name });
+      catalog.lines.push({ id, deptId, name, sortOrder: catalog.lines.filter(x => x.deptId === deptId).length });
       saveCatalog();
       $('adm-line-id').value = ''; $('adm-line-name').value = '';
       renderAdminLists(); renderFilter();
@@ -2734,7 +2804,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       if (!lineId) { toast('กรุณาเลือก Model', 'ng'); return; }
       if (!id || !name) { toast('กรุณากรอกรหัสและชื่อชิ้นงาน', 'ng'); return; }
       if (catalog.jigs.find(j => j.id === id)) { toast(`รหัส ${id} มีแล้ว`, 'ng'); return; }
-      catalog.jigs.push({ id, lineId, name, docNo, bgImage: null, checkpoints: [] });
+      catalog.jigs.push({ id, lineId, name, docNo, bgImage: null, checkpoints: [], sortOrder: catalog.jigs.filter(x => x.lineId === lineId).length });
       saveCatalog();
       $('adm-jig-id').value = ''; $('adm-jig-name').value = ''; $('adm-jig-docno').value = '';
       renderAdminLists(); renderFilter();
@@ -3489,10 +3559,16 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     $('adm-line-list').innerHTML = catalog.lines.length
       ? catalog.lines.map(l => {
           const dept = catalog.depts.find(d => d.id === l.deptId);
+          const sib = catalog.lines.filter(x => x.deptId === l.deptId);
+          const si = sib.findIndex(x => x.id === l.id);
           return `<div class="adm-item">
             <div class="adm-item-info">
               <div>${escHtml(l.name)}</div>
               <div class="adm-item-code">${escHtml(l.id)} · ${escHtml(dept ? dept.name : l.deptId)}</div>
+            </div>
+            <div class="adm-order-col">
+              <button class="adm-item-order" data-otype="line" data-id="${escHtml(l.id)}" data-dir="-1" title="เลื่อนขึ้น" ${si === 0 ? 'disabled' : ''}>▲</button>
+              <button class="adm-item-order" data-otype="line" data-id="${escHtml(l.id)}" data-dir="1" title="เลื่อนลง" ${si === sib.length - 1 ? 'disabled' : ''}>▼</button>
             </div>
             <button class="adm-item-edit" data-etype="line" data-id="${escHtml(l.id)}" title="แก้ไข">${ico(ICO_EDIT_P)}</button>
             <button class="adm-item-del" data-dtype="line" data-id="${escHtml(l.id)}" title="ลบ">${ico(ICO_TRASH_P)}</button>
@@ -3503,11 +3579,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     if (!catalog.jigs.length) {
       $('adm-jig-list').innerHTML = '<div class="adm-item" style="color:var(--text-muted);font-style:italic">ยังไม่มี Part</div>';
     } else {
-      const jigsSorted = [...catalog.jigs].sort((a, b) => {
-        const la = catalog.lines.find(l => l.id === a.lineId);
-        const lb = catalog.lines.find(l => l.id === b.lineId);
-        return (la ? la.name : 'ไม่ระบุ Model').localeCompare(lb ? lb.name : 'ไม่ระบุ Model', 'th');
-      });
+      // ใช้ลำดับตาม catalog (Model ตามลำดับที่จัด → Part ตามลำดับที่จัด) แทนการเรียงตามตัวอักษร
+      const jigsSorted = [...catalog.jigs];
       let html = '', lastLineId = '\u0000';
       jigsSorted.forEach(j => {
         const line = catalog.lines.find(l => l.id === j.lineId);
@@ -3516,6 +3589,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           html += `<div class="adm-group-header" data-group="${escHtml(groupKey)}">${ico(ICO_PIN_P)} ${escHtml(line ? line.name : 'ไม่ระบุ Model')}</div>`;
           lastLineId = groupKey;
         }
+        const jigSib = catalog.jigs.filter(x => x.lineId === j.lineId);
+        const jigPos = jigSib.findIndex(x => x.id === j.id);
         const searchText = `${j.name} ${j.id} ${j.docNo || ''} ${line ? line.name : ''}`.toLowerCase();
         html += `<div class="adm-item" data-group="${escHtml(groupKey)}" data-search="${escHtml(searchText)}">
           <div class="adm-item-main">
@@ -3526,6 +3601,10 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
               <div>${ico(ICO_WRENCH_P)} ${escHtml(j.name)}</div>
               <div class="adm-item-code">${escHtml(j.id)}${j.docNo ? ' · ' + escHtml(j.docNo) : ''} · ${escHtml(line ? line.name : j.lineId)}</div>
             </div>
+          </div>
+          <div class="adm-order-col">
+            <button class="adm-item-order" data-otype="jig" data-id="${escHtml(j.id)}" data-dir="-1" title="เลื่อนขึ้น" ${jigPos === 0 ? 'disabled' : ''}>▲</button>
+            <button class="adm-item-order" data-otype="jig" data-id="${escHtml(j.id)}" data-dir="1" title="เลื่อนลง" ${jigPos === jigSib.length - 1 ? 'disabled' : ''}>▼</button>
           </div>
           <button class="adm-item-runno" data-dtype="jig" data-id="${escHtml(j.id)}" title="แก้ไข Run No. อย่างเดียว (ไม่ต้องผ่านรหัส/ชื่อ)">${ico(ICO_TAG_P)}</button>
           <button class="adm-item-edit" data-etype="jig" data-id="${escHtml(j.id)}" title="แก้ไข">${ico(ICO_EDIT_P)}</button>
@@ -3540,6 +3619,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
        ไม่ต้องสร้าง listeners ทีละปุ่ม แล้วใช้ event.target.closest() ตรวจจับ
        เพื่อป้องกัน memory leak ของ listeners ที่สะสมกันเรื่อยๆ */
     if (!_editHandlerAttached) {
+      document.addEventListener('click', handleAdminReorder); // ปุ่ม ▲▼ จัดลำดับ Model/Part
       document.addEventListener('click', handleAdminEdit);
       document.addEventListener('click', handleAdminRunNoEdit);
       _editHandlerAttached = true;
