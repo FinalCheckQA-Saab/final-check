@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#16324f">
+<title>ควบคุมเอกสาร — Master List</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+  <link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --navy: #1e3a5f;
+    --navy-light: #2d5586;
+    --accent: #2f6fd1;
+    --gold: #b8903a;
+    --ok: #16a34a;
+    --ok-bg: #dcfce7;
+    --ng: #dc2626;
+    --ng-bg: #fee2e2;
+    --pending: #d97706;
+    --pending-bg: #fef3c7;
+    --obsolete: #6b7280;
+    --obsolete-bg: #f3f4f6;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --bg: #f3f4f6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Noto Sans Thai', 'Sarabun', Tahoma, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding-bottom: 40px;
+  }
+  header { position: relative; }
+
+  /* ─── Login Gate ─── */
+  .docs-login-overlay {
+    position: fixed; inset: 0; z-index: 999;
+    background: linear-gradient(135deg, #0f2137, #1e3a5f);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .docs-login-overlay.hidden { display: none; }
+  .docs-login-box {
+    width: 100%; max-width: 340px;
+    background: #fff; border-radius: 16px;
+    padding: 28px 24px; text-align: center;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  }
+  .docs-login-logo {
+    width: 52px; height: 52px; border-radius: 12px;
+    background: var(--bg, #f3f4f6); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 12px;
+  }
+  .docs-login-box h2 { margin: 0 0 4px; font-size: 16px; color: var(--text); }
+  .docs-login-box p { margin: 0 0 18px; font-size: 12.5px; color: var(--muted); }
+  .docs-login-field { text-align: left; margin-bottom: 12px; }
+  .docs-login-field label { display: block; font-size: 11.5px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
+  .docs-login-field input {
+    width: 100%; box-sizing: border-box;
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 12px; font-size: 14px; font-family: inherit;
+  }
+  .docs-login-field input:focus { outline: none; border-color: var(--accent); }
+  .docs-login-msg { min-height: 16px; font-size: 12px; color: var(--ng); margin-bottom: 8px; text-align: left; }
+  .docs-login-btn {
+    width: 100%; border: none; border-radius: 12px; padding: 13px;
+    background: var(--navy); color: #fff; font-size: 14.5px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+  }
+  .docs-login-btn:disabled { opacity: 0.6; cursor: default; }
+  .header-actions-row {
+    position: absolute; top: 16px; right: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .header-back-link {
+    display: flex; align-items: center; gap: 5px;
+    padding: 6px 11px; border-radius: 999px;
+    background: hsla(0,0%,100%,0.12); border: 1px solid hsla(0,0%,100%,0.25);
+    color: #fff; font-size: 11.5px; font-weight: 600; text-decoration: none;
+    white-space: nowrap; font-family: inherit; cursor: pointer;
+  }
+  .header-back-link:hover { background: hsla(0,0%,100%,0.2); }
+  .header-logout-btn {
+    background: hsla(0, 75%, 60%, 0.18); border-color: hsla(0, 75%, 60%, 0.4);
+  }
+  .header-logout-btn:hover { background: hsla(0, 75%, 60%, 0.3); }
+  header {
+    background: linear-gradient(120deg, var(--navy), var(--navy-light));
+    color: #fff;
+    padding: 20px 16px;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(15,33,55,0.25);
+  }
+  header::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, var(--gold) 18%, var(--gold) 82%, transparent 100%);
+    opacity: 0.85;
+  }
+  header h1 { margin: 0; font-size: 17px; font-weight: 700; }
+  header p { margin: 4px 0 0; font-size: 12px; opacity: 0.85; }
+  .header-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    max-width: 720px;
+    margin: 0 auto;
+    text-align: left;
+  }
+  .header-logo {
+    width: 52px; height: 52px; flex-shrink: 0;
+    background: hsla(0,0%,100%,0.14);
+    border: 1px solid hsla(0,0%,100%,0.28);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  }
+  .header-company { margin: 2px 0 0; font-size: 13px; font-weight: 600; opacity: 0.95; }
+  .header-company-en { margin: 1px 0 0; font-size: 11px; font-weight: 500; opacity: 0.8; letter-spacing: 0.2px; }
+
+  .wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+
+  .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .filter-row select, .filter-row input[type=text] {
+    flex: 1 1 140px; border: 1px solid var(--border); border-radius: 10px;
+    padding: 9px 10px; font-family: inherit; font-size: 13px; color: var(--text);
+    background: #fafafa;
+  }
+
+  .btn {
+    width: 100%; border: none; border-radius: 12px; padding: 14px;
+    font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+    margin-top: 6px;
+  }
+  .btn-primary { background: var(--navy); color: #fff; }
+  .btn-approve { background: var(--ok); color: #fff; }
+  .btn-approve:disabled, .btn-primary:disabled { background: #9ca3af; cursor: default; }
+  .btn-ghost {
+    width: auto; background: none; border: 1px solid var(--border); color: var(--text);
+    border-radius: 10px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-danger-ghost {
+    width: auto; background: none; border: 1px solid var(--ng); color: var(--ng);
+    border-radius: 10px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+
+  .doc-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 12px 4px; border-bottom: 1px solid var(--border);
+    text-decoration: none; color: inherit; cursor: pointer;
+  }
+  .doc-row:last-child { border-bottom: none; }
+  .doc-no { font-size: 12px; color: var(--accent); font-weight: 700; }
+  .doc-name { font-size: 14px; font-weight: 600; margin-top: 2px; }
+  .doc-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .doc-rev-badge {
+    flex: 0 0 auto; font-size: 11px; font-weight: 700; padding: 4px 10px;
+    border-radius: 999px; background: var(--pending-bg); color: var(--pending); white-space: nowrap;
+  }
+  .doc-status-obsolete {
+    flex: 0 0 auto; font-size: 10px; font-weight: 700; padding: 3px 8px;
+    border-radius: 999px; background: var(--obsolete-bg); color: var(--obsolete); margin-left: 6px;
+  }
+  .doc-arrow { font-size: 18px; color: var(--muted); flex: 0 0 auto; }
+  /* ── ข้อมูลแก้ไขล่าสุด (วันที่/ผู้แก้ไข/ผู้อนุมัติ) ที่โชว์ในหน้ารายการ ── */
+  .doc-rev-info {
+    font-size: 11px; color: var(--muted); margin-top: 4px;
+    display: flex; flex-wrap: wrap; gap: 2px 10px;
+  }
+  .doc-rev-info b { color: var(--text); font-weight: 600; }
+  .doc-rev-detail {
+    font-size: 11px; color: var(--muted); margin-top: 3px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+  }
+  .doc-rev-empty { font-size: 11px; color: var(--muted); margin-top: 4px; font-style: italic; }
+  .btn-edit-rev {
+    border: none; background: none; color: var(--accent); font-size: 11px; font-weight: 600;
+    cursor: pointer; padding: 0 2px; font-family: inherit;
+  }
+  .btn-edit-rev:hover { text-decoration: underline; }
+
+  .back-link {
+    display: inline-block; font-size: 13px; font-weight: 600; color: var(--navy);
+    text-decoration: none; padding: 10px 4px; margin-bottom: 4px;
+  }
+  .back-link:hover { text-decoration: underline; }
+
+  .doc-title { font-size: 18px; font-weight: 700; margin: 0 0 2px; }
+  .doc-sub { font-size: 12px; color: var(--muted); margin: 0 0 12px; }
+  .meta-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px;
+    font-size: 13px; margin-bottom: 4px;
+  }
+  .meta-grid div span { color: var(--muted); }
+
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    margin-top: 10px;
+  }
+  .status-active { background: var(--ok-bg); color: var(--ok); }
+  .status-obsolete { background: var(--obsolete-bg); color: var(--obsolete); }
+
+  .rev-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+  .rev-table th {
+    text-align: left; font-size: 11px; color: var(--muted); font-weight: 600;
+    padding: 6px 4px; border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  .rev-table td { padding: 8px 4px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .rev-table tr:last-child td { border-bottom: none; }
+  .rev-no-cell { font-weight: 700; color: var(--navy); }
+
+  textarea, input[type=text], input[type=date], input[type=password] {
+    width: 100%; border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 12px; font-family: inherit; font-size: 14px; color: var(--text);
+    background: #fafafa;
+  }
+  textarea { min-height: 60px; resize: vertical; }
+  label.field-label { font-size: 12px; color: var(--muted); display: block; margin: 10px 0 4px; }
+
+  .section-title { font-size: 13px; font-weight: 700; color: var(--navy); margin: 0 0 10px; display: flex; justify-content: space-between; align-items: center; }
+
+  /* ── หัวกลุ่ม กลุ่มชิ้นงาน ในหน้ารายการเอกสาร ── */
+  .line-group { margin-top: 18px; }
+  .line-group:first-child { margin-top: 0; }
+  .line-group-header {
+    font-size: 12px; font-weight: 700; color: #fff; background: var(--navy);
+    padding: 7px 12px; border-radius: 8px; margin-bottom: 4px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .line-group-count {
+    font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.2);
+    padding: 2px 8px; border-radius: 999px;
+  }
+
+  .center-msg { text-align: center; padding: 40px 16px; color: var(--muted); font-size: 14px; }
+  .spinner {
+    width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .form-msg { font-size: 12px; margin-top: 8px; }
+  .form-msg.err { color: var(--ng); }
+  .form-msg.ok { color: var(--ok); }
+
+  /* 🆕 Generic Confirm Modal — แทนที่ confirm() ของเบราว์เซอร์ในหน้านี้ (Promise-based) */
+  .doc-confirm-overlay {
+    position: fixed; inset: 0; z-index: 1200;
+    background: rgba(15, 23, 42, 0.55);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .doc-confirm-overlay.hidden { display: none; }
+  .doc-confirm-box {
+    background: #fff; border-radius: 16px; padding: 28px 24px 22px;
+    width: min(380px, 90vw); text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  }
+  .doc-confirm-icon {
+    width: 52px; height: 52px; margin: 0 auto 14px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: rgba(47,111,209,0.12); color: var(--accent);
+  }
+  .doc-confirm-message { font-size: 13.5px; color: var(--text); margin-bottom: 20px; line-height: 1.6; white-space: pre-line; }
+  .doc-confirm-actions { display: flex; gap: 10px; }
+  .doc-confirm-actions button {
+    flex: 1; padding: 10px 14px; border-radius: 10px;
+    font-size: 13.5px; font-weight: 600; font-family: inherit;
+    cursor: pointer; border: none;
+  }
+  .doc-confirm-cancel { background: #f1f5f9; color: var(--text); border: 1px solid var(--border) !important; }
+  .doc-confirm-cancel:hover { background: #e2e8f0; }
+  .doc-confirm-ok { background: var(--navy); color: #fff; }
+  .doc-confirm-ok:hover { filter: brightness(1.1); }
+</style>
+</head>
+<body>
+  <!-- 🆕 GENERIC CONFIRM MODAL — แทนที่ confirm() ของเบราว์เซอร์ในหน้านี้ (Promise-based ผ่าน showConfirmModal()) -->
+  <div id="doc-confirm-overlay" class="doc-confirm-overlay hidden">
+    <div class="doc-confirm-box">
+      <div class="doc-confirm-icon">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <p class="doc-confirm-message" id="doc-confirm-message"></p>
+      <div class="doc-confirm-actions">
+        <button id="btn-doc-confirm-cancel" class="doc-confirm-cancel">ยกเลิก</button>
+        <button id="btn-doc-confirm-ok" class="doc-confirm-ok">ยืนยัน</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── LOGIN GATE ─── -->
+  <div id="docs-login-overlay" class="docs-login-overlay">
+    <div class="docs-login-box">
+      <div class="docs-login-logo">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#1e3a5f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h2>เข้าสู่ระบบควบคุมเอกสาร</h2>
+      <p>กรุณาเข้าสู่ระบบก่อนเข้าใช้งานหน้านี้</p>
+      <div class="docs-login-field">
+        <label for="docs-login-user">ชื่อผู้ใช้</label>
+        <input type="text" id="docs-login-user" autocomplete="username" placeholder="ชื่อผู้ใช้">
+      </div>
+      <div class="docs-login-field">
+        <label for="docs-login-pass">รหัสผ่าน</label>
+        <input type="password" id="docs-login-pass" autocomplete="current-password" placeholder="รหัสผ่าน">
+      </div>
+      <div id="docs-login-msg" class="docs-login-msg"></div>
+      <button id="docs-login-submit" class="docs-login-btn">เข้าสู่ระบบ</button>
+    </div>
+  </div>
+
+  <header>
+    <div class="header-brand">
+      <div class="header-logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+      <div>
+        <h1><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:5px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>ควบคุมเอกสาร — Master List / Amendment Record</h1>
+        <p>ทะเบียนเอกสารแม่บทและประวัติการแก้ไข</p>
+      </div>
+      <div class="header-actions-row">
+        <a href="index.html" class="header-back-link" title="กลับไปหน้าตรวจสอบหลัก">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          <span>หน้าหลัก</span>
+        </a>
+        <button id="btn-docs-logout" class="header-back-link header-logout-btn" title="ออกจากระบบ">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span>ออกจากระบบ</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div id="app">
+      <div class="center-msg"><div class="spinner"></div>กำลังโหลดข้อมูล...</div>
+    </div>
+  </div>
+
+<script>
+  const SUPABASE_URL = 'https://YOUR-NEW-PROJECT.supabase.co'; // ⚠️ ใส่ URL ของ Supabase project ใหม่ (Final Check) — ห้ามใช้ของ Check Jig
+  const SUPABASE_ANON_KEY = 'YOUR-NEW-ANON-KEY'; // ⚠️ ใส่ anon key ของ project ใหม่
+  const SUPABASE_CONFIGURED = (SUPABASE_URL.startsWith('https://') && !SUPABASE_URL.includes('YOUR-NEW-PROJECT'));
+    if (!SUPABASE_CONFIGURED) console.warn('[Final Check] ยังไม่ได้ตั้งค่า Supabase');
+    const sb = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+  // 🆕 Generic Confirm Modal — แทนที่ confirm() ของเบราว์เซอร์ในหน้านี้ (Promise-based)
+  //    ใช้แบบ: if (!(await showConfirmModal('ข้อความ'))) return;
+  let _docConfirmResolve = null;
+  function showConfirmModal(message, opts = {}) {
+    return new Promise((resolve) => {
+      _docConfirmResolve = resolve;
+      document.getElementById('doc-confirm-message').textContent = message;
+      document.getElementById('btn-doc-confirm-ok').textContent = opts.confirmLabel || 'ยืนยัน';
+      document.getElementById('btn-doc-confirm-cancel').textContent = opts.cancelLabel || 'ยกเลิก';
+      document.getElementById('doc-confirm-overlay').classList.remove('hidden');
+    });
+  }
+  function hideConfirmModal(result) {
+    document.getElementById('doc-confirm-overlay').classList.add('hidden');
+    if (_docConfirmResolve) { _docConfirmResolve(result); _docConfirmResolve = null; }
+  }
+  document.getElementById('btn-doc-confirm-cancel').addEventListener('click', () => hideConfirmModal(false));
+  document.getElementById('btn-doc-confirm-ok').addEventListener('click', () => hideConfirmModal(true));
+  document.getElementById('doc-confirm-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'doc-confirm-overlay') hideConfirmModal(false); // แตะพื้นหลังนอกกล่อง = ยกเลิก
+  });
+
+  let COMPANIES = [
+    'บริษัท ซัมมิท โอโต บอดี้ อินดัสตรี จำกัด',
+    'บริษัท ซัมมิท โอโต บอดี้ อินดัสตรี จำกัด (สาขาอยุธยา)',
+    'บริษัท ซัมมิท แหลมฉบัง โอโต บอดี้ เวิร์ค จำกัด',
+    'บริษัท ซัมมิท แหลมฉบัง โอโต บอดี้ เวิร์ค จำกัด (สาขาระยอง)',
+  ]; // 🆕 ค่าเริ่มต้น (Summit) — ถ้า Admin Panel ตั้งรายชื่อนิติบุคคลเองไว้ใน app_settings จะถูกแทนที่ตอน loadCompaniesFromSettings()
+
+  // 🆕 ดึงรายชื่อนิติบุคคลจาก app_settings (ตั้งค่าได้ที่ Admin Panel > ตราสัญลักษณ์/ชื่อบริษัท) — ถ้ายังไม่เคยตั้งค่า ใช้ค่าเริ่มต้น Summit ด้านบนต่อไป
+  async function loadCompaniesFromSettings() {
+    try {
+      const { data, error } = await sb.from('app_settings').select('key, value').eq('key', 'companies_json').maybeSingle();
+      if (error) throw error; // ตาราง/คอลัมน์ยังไม่มี หรือยังไม่เคยตั้งค่า — ใช้ค่าเริ่มต้นต่อไป
+      if (data && data.value) {
+        const arr = JSON.parse(data.value);
+        if (Array.isArray(arr) && arr.length) COMPANIES = arr;
+      }
+    } catch (e) { /* เงียบไว้ — ใช้ค่าเริ่มต้น Summit ต่อไปถ้าดึงไม่ได้ */ }
+  }
+
+  // ✅ จำ PIN ไว้ชั่วคราวระหว่างเปิดหน้านี้ — ไม่ต้องพิมพ์ซ้ำทุกครั้ง (แยกจาก PIN ของระบบ Part)
+  let _rememberedPin = null;
+  function clearRememberedPin() { _rememberedPin = null; }
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+  function escAttr(s) { return esc(s).replace(/"/g, '&quot;'); }
+  function fmtDate(d) {
+    if (!d) return '-';
+    try { return new Date(d).toLocaleDateString('th-TH'); } catch (e) { return d; }
+  }
+
+  const app = document.getElementById('app');
+  const params = new URLSearchParams(window.location.search);
+
+  let allDocs = [];
+  let latestRevByDoc = {}; // document_id -> แถวประวัติแก้ไขล่าสุด (rev_no สูงสุด) — ใช้โชว์สรุปในหน้ารายการ
+  let lineNameByJigId = {}; // source_jig_id (ของ master_documents) -> ชื่อ กลุ่มชิ้นงาน — ใช้จัดกลุ่มในหน้ารายการ
+  let filters = { company: params.get('company') || '', department: params.get('department') || '', line: params.get('line') || '', q: '' };
+  let currentDocId = params.get('doc') || null;
+  let editingRevDocId = null;   // ← document_id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายการ"
+  let editingRevIdDetail = null; // ← revision id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายละเอียด"
+
+  async function loadAll() {
+    const { data, error } = await sb.from('master_documents').select('*').order('doc_no', { ascending: true });
+    if (error) {
+      app.innerHTML = `<div class="center-msg">โหลดข้อมูลไม่สำเร็จ: ${esc(error.message)}</div>`;
+      return;
+    }
+    allDocs = data || [];
+
+    // ── ดึงประวัติแก้ไขล่าสุดของทุกเอกสารมาด้วย (ใช้โชว์ วันที่/รายละเอียด/ผู้แก้ไข/ผู้อนุมัติ ในหน้ารายการ) ──
+    // ดึงมาทั้งหมดแล้วหา rev_no สูงสุดของแต่ละเอกสารฝั่ง client (จำนวนแถวไม่เยอะ ไม่ต้องทำ view/RPC แยก)
+    const { data: revs, error: revErr } = await sb.from('document_revisions')
+      .select('id, document_id, rev_no, rev_date, amendment_detail, prepared_by, approved_by')
+      .order('rev_no', { ascending: false });
+    latestRevByDoc = {};
+    if (!revErr && revs) {
+      revs.forEach(r => {
+        if (!latestRevByDoc[r.document_id]) latestRevByDoc[r.document_id] = r; // เจอตัวแรก = rev_no สูงสุด (เรียง desc ไว้แล้ว)
+      });
+    }
+
+    // ── ดึงข้อมูล กลุ่มชิ้นงาน มาด้วย เพื่อจัดกลุ่มรายการเอกสารตาม กลุ่มชิ้นงาน ──
+    // master_documents.source_jig_id -> jigs.id -> jigs.line_id -> lines.name
+    const [{ data: jigs, error: jigErr }, { data: lines, error: lineErr }] = await Promise.all([
+      sb.from('jigs').select('id, line_id'),
+      sb.from('lines').select('id, name'),
+    ]);
+    lineNameByJigId = {};
+    if (!jigErr && !lineErr && jigs && lines) {
+      const lineNameById = {};
+      lines.forEach(l => { lineNameById[l.id] = l.name; });
+      jigs.forEach(j => { lineNameByJigId[j.id] = lineNameById[j.line_id] || null; });
+    }
+
+    render();
+  }
+
+  function render() {
+    if (currentDocId) {
+      renderDetail(currentDocId);
+    } else {
+      renderList();
+    }
+  }
+
+  function departmentsFor(company) {
+    const set = new Set();
+    allDocs.filter(d => !company || d.company === company).forEach(d => set.add(d.department));
+    return [...set].sort();
+  }
+
+  // ── รายชื่อ กลุ่มชิ้นงาน ที่มีให้เลือกในตัวกรอง (คำนวณจากเอกสารที่ผ่านตัวกรอง บริษัท/Model อยู่แล้ว ไม่รวมตัวกรอง กลุ่มชิ้นงาน เอง) ──
+  function linesFor(company, department) {
+    const set = new Set();
+    allDocs
+      .filter(d => (!company || d.company === company) && (!department || d.department === department))
+      .forEach(d => set.add(lineNameFor(d)));
+    const arr = [...set].sort((a, b) => {
+      if (a === NO_LINE_LABEL) return 1;
+      if (b === NO_LINE_LABEL) return -1;
+      return a.localeCompare(b, 'th');
+    });
+    return arr;
+  }
+
+  // ── markup ของแถวเอกสาร 1 รายการ (แยกเป็นฟังก์ชันเพื่อใช้ซ้ำได้ทั้งตอนจัดกลุ่มตาม กลุ่มชิ้นงาน) ──
+  function renderDocRow(d) {
+    const rev = latestRevByDoc[d.id];
+    const isEditing = rev && editingRevDocId === d.id;
+    return `
+      <div class="doc-row" data-id="${escAttr(d.id)}">
+        <div style="flex:1; min-width:0;">
+          <div class="doc-no">${esc(d.doc_no)}</div>
+          <div class="doc-name">${esc(d.doc_name)}</div>
+          <div class="doc-meta">${esc(d.department)} · ${esc(d.company)}</div>
+          ${rev ? `
+            <div class="doc-rev-info">
+              <span>🕐 <b>${fmtDate(rev.rev_date)}</b></span>
+              <span>✏️ ผู้แก้ไข: <b>${esc(rev.prepared_by || '-')}</b></span>
+              <span>✅ ผู้อนุมัติ: <b>${esc(rev.approved_by || '-')}</b></span>
+              <button class="btn-edit-rev" type="button" data-edit-id="${escAttr(d.id)}" title="แก้ไขข้อมูล Rev ล่าสุด">✏️ แก้ไข</button>
+            </div>
+            <div class="doc-rev-detail" title="${escAttr(rev.amendment_detail || '')}">📝 ${esc(rev.amendment_detail || '-')}</div>
+          ` : `<div class="doc-rev-empty">ยังไม่มีประวัติการแก้ไข</div>`}
+        </div>
+        <div style="display:flex; align-items:center;">
+          <span class="doc-rev-badge">REV ${d.current_rev_no ?? 0}</span>
+          ${d.status === 'obsolete' ? `<span class="doc-status-obsolete">ยกเลิกใช้</span>` : ''}
+        </div>
+        <div class="doc-arrow">›</div>
+      </div>
+      ${isEditing ? renderEditRevForm(d, rev) : ''}
+    `;
+  }
+
+  const NO_LINE_LABEL = 'ไม่ระบุ กลุ่มชิ้นงาน';
+
+  function lineNameFor(d) {
+    return (d.source_jig_id && lineNameByJigId[d.source_jig_id]) || NO_LINE_LABEL;
+  }
+
+  // ── จัดกลุ่มรายการเอกสารตาม กลุ่มชิ้นงาน (เอกสารที่ไม่มี กลุ่มชิ้นงาน ระบุ จะถูกจัดไว้กลุ่มท้ายสุด) ──
+  function groupByLine(docs) {
+    const groups = {};
+    docs.forEach(d => {
+      const key = lineNameFor(d);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(d);
+    });
+    const orderedKeys = Object.keys(groups).sort((a, b) => {
+      if (a === NO_LINE_LABEL) return 1;
+      if (b === NO_LINE_LABEL) return -1;
+      return a.localeCompare(b, 'th');
+    });
+    return orderedKeys.map(key => ({ line: key, docs: groups[key] }));
+  }
+
+  function renderList() {
+    const departments = departmentsFor(filters.company);
+    const lineOptions = linesFor(filters.company, filters.department);
+    let filtered = allDocs.filter(d => {
+      if (filters.company && d.company !== filters.company) return false;
+      if (filters.department && d.department !== filters.department) return false;
+      if (filters.line && lineNameFor(d) !== filters.line) return false;
+      if (filters.q) {
+        const q = filters.q.toLowerCase();
+        if (!(d.doc_no || '').toLowerCase().includes(q) && !(d.doc_name || '').toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+    const grouped = groupByLine(filtered);
+
+    app.innerHTML = `
+      <div class="card">
+        <div class="section-title">
+          <span>🔍 ค้นหา / กรองเอกสาร</span>
+        </div>
+        <div class="filter-row">
+          <select id="f-company">
+            <option value="">ทุกบริษัท</option>
+            ${COMPANIES.map(c => `<option value="${escAttr(c)}" ${filters.company === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
+          </select>
+          <select id="f-department">
+            <option value="">ทุก Model</option>
+            ${departments.map(dp => `<option value="${escAttr(dp)}" ${filters.department === dp ? 'selected' : ''}>${esc(dp)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="filter-row">
+          <select id="f-line">
+            <option value="">🏭 ทุก กลุ่มชิ้นงาน</option>
+            ${lineOptions.map(l => `<option value="${escAttr(l)}" ${filters.line === l ? 'selected' : ''}>${esc(l)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="filter-row">
+          <input type="text" id="f-search" placeholder="ค้นหาเลขที่เอกสาร หรือ ชื่อเอกสาร..." value="${escAttr(filters.q)}">
+        </div>
+        <button class="btn btn-primary" id="btn-add-doc" type="button">➕ เพิ่มเอกสารใหม่</button>
+        <!-- 🚫 ซ่อนไว้: ไม่ต้องใช้แล้ว เพราะ Part ทุกตัว sync เข้ามาอัตโนมัติผ่าน trigger ในฐานข้อมูลแล้ว -->
+        <button class="btn-ghost" id="btn-import-excel" type="button" style="width:100%; margin-top:8px; box-sizing:border-box; display:none;">📥 นำเข้าจาก Excel (Master List Part)</button>
+        <input type="file" id="import-file-input" accept=".xlsx,.xls" style="display:none">
+      </div>
+
+      <div id="add-doc-form"></div>
+      <div id="import-preview"></div>
+
+      <div class="card">
+        <div class="section-title"><span>📋 รายการเอกสาร (${filtered.length})</span></div>
+        ${grouped.length ? grouped.map(g => `
+          <div class="line-group">
+            <div class="line-group-header">
+              <span>🏭 LINE: ${esc(g.line)}</span>
+              <span class="line-group-count">${g.docs.length}</span>
+            </div>
+            ${g.docs.map(d => renderDocRow(d)).join('')}
+          </div>
+        `).join('') : `<div class="center-msg" style="padding:16px 0;">ไม่พบเอกสารตามเงื่อนไขที่กรอง</div>`}
+      </div>
+    `;
+
+
+    document.getElementById('f-company').addEventListener('change', e => {
+      filters.company = e.target.value;
+      filters.department = ''; // เปลี่ยนบริษัทแล้วรีเซ็ตตัวกรอง Model
+      filters.line = ''; // ...และรีเซ็ตตัวกรอง กลุ่มชิ้นงาน ด้วย เพราะตัวเลือก กลุ่มชิ้นงาน ขึ้นกับบริษัท/Model ที่เลือก
+      render();
+    });
+    document.getElementById('f-department').addEventListener('change', e => {
+      filters.department = e.target.value;
+      filters.line = ''; // เปลี่ยน Model แล้วรีเซ็ตตัวกรอง กลุ่มชิ้นงาน เช่นกัน
+      render();
+    });
+    document.getElementById('f-line').addEventListener('change', e => {
+      filters.line = e.target.value;
+      render();
+    });
+    document.getElementById('f-search').addEventListener('input', e => {
+      filters.q = e.target.value;
+      render();
+    });
+    document.querySelectorAll('.doc-row').forEach(row => {
+      row.addEventListener('click', () => {
+        currentDocId = row.dataset.id;
+        const p = new URLSearchParams(window.location.search);
+        p.set('doc', currentDocId);
+        history.pushState({}, '', '?' + p.toString());
+        render();
+      });
+    });
+
+    // ── ปุ่ม "✏️ แก้ไข" ในสรุป Rev ล่าสุดของแต่ละแถว — เปิด/ปิดฟอร์มแก้ไขแบบ inline ──
+    document.querySelectorAll('.btn-edit-rev').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation(); // กันไม่ให้ bubble ไปโดน click ของ .doc-row (จะพาไปหน้ารายละเอียดโดยไม่ตั้งใจ)
+        const id = btn.dataset.editId;
+        editingRevDocId = (editingRevDocId === id) ? null : id;
+        renderList();
+      });
+    });
+    if (editingRevDocId) {
+      const cancelBtn = document.getElementById('er-cancel');
+      if (cancelBtn) cancelBtn.addEventListener('click', () => { editingRevDocId = null; renderList(); });
+      const submitBtn = document.getElementById('er-submit');
+      if (submitBtn) submitBtn.addEventListener('click', () => submitEditRevision(submitBtn));
+    }
+
+    let addFormOpen = false;
+    document.getElementById('btn-add-doc').addEventListener('click', () => {
+      addFormOpen = !addFormOpen;
+      document.getElementById('add-doc-form').innerHTML = addFormOpen ? renderAddDocForm() : '';
+      if (addFormOpen) bindAddDocForm();
+    });
+
+    document.getElementById('btn-import-excel').addEventListener('click', () => {
+      document.getElementById('import-file-input').click();
+    });
+    document.getElementById('import-file-input').addEventListener('change', handleImportFile);
+  }
+
+  // ── ฟอร์มแก้ไขข้อมูล Rev ที่มีอยู่แล้ว (ใช้ทั้งในหน้ารายการ แก้ Rev ล่าสุด และหน้ารายละเอียด แก้ Rev ไหนก็ได้) ──
+  function renderEditRevForm(doc, rev) {
+    const revDateVal = rev.rev_date ? String(rev.rev_date).slice(0, 10) : '';
+    return `
+      <div class="card" id="edit-rev-card" style="border:1px solid var(--accent); margin-top:-6px; margin-bottom:14px;">
+        <div class="section-title"><span>✏️ แก้ไขข้อมูลการแก้ไข — ${esc(doc.doc_no)} (Rev ${rev.rev_no})</span></div>
+        <label class="field-label">Rev No.</label>
+        <input type="number" id="er-revno" min="0" value="${rev.rev_no}">
+        <label class="field-label">วันที่ปรับปรุง</label>
+        <input type="date" id="er-date" value="${revDateVal}">
+        <label class="field-label">รายละเอียดการแก้ไข</label>
+        <textarea id="er-detail">${esc(rev.amendment_detail || '')}</textarea>
+        <label class="field-label">ผู้แก้ไข</label>
+        <input type="text" id="er-prepared" value="${escAttr(rev.prepared_by || '')}">
+        <label class="field-label">ผู้อนุมัติ</label>
+        <input type="text" id="er-approver" value="${escAttr(rev.approved_by || '')}">
+        <label class="field-label">PIN ยืนยันตัวตน</label>
+        <input type="password" id="er-pin" inputmode="numeric" placeholder="กรอก PIN" value="${_rememberedPin ? escAttr(_rememberedPin) : ''}">
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button class="btn btn-approve" id="er-submit" type="button" data-rev-id="${escAttr(rev.id)}" style="flex:1;">บันทึกการแก้ไข</button>
+          <button class="btn-ghost" id="er-cancel" type="button" style="flex:0 0 auto;">ยกเลิก</button>
+        </div>
+        <div class="form-msg" id="er-msg"></div>
+      </div>
+    `;
+  }
+
+  async function submitEditRevision(btn) {
+    const revId = btn.dataset.revId;
+    const msgEl = document.getElementById('er-msg');
+    const revNo = parseInt(document.getElementById('er-revno').value, 10);
+    const revDate = document.getElementById('er-date').value;
+    const detail = document.getElementById('er-detail').value.trim();
+    const prepared = document.getElementById('er-prepared').value.trim();
+    const approver = document.getElementById('er-approver').value.trim();
+    const pin = document.getElementById('er-pin').value.trim();
+
+    msgEl.textContent = '';
+    msgEl.className = 'form-msg';
+
+    if (Number.isNaN(revNo) || revNo < 0) {
+      msgEl.textContent = 'กรุณากรอก Rev No. ให้ถูกต้อง (ตัวเลขตั้งแต่ 0 ขึ้นไป)';
+      msgEl.classList.add('err');
+      return;
+    }
+    if (!revDate || !detail) {
+      msgEl.textContent = 'กรุณากรอกวันที่ปรับปรุงและรายละเอียดการแก้ไข';
+      msgEl.classList.add('err');
+      return;
+    }
+    if (!pin) {
+      msgEl.textContent = 'กรุณากรอก PIN';
+      msgEl.classList.add('err');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก...';
+
+    // ✅ SECURITY: แก้ไขผ่าน RPC 'doc_edit_revision' เท่านั้น (เช็ค PIN ฝั่ง DB ก่อนเขียนทุกครั้ง เหมือน RPC อื่นๆ ในระบบนี้)
+    const { data: ok, error } = await sb.rpc('doc_edit_revision', {
+      p_pin: pin, p_revision_id: revId, p_rev_no: revNo, p_rev_date: revDate,
+      p_amendment_detail: detail, p_prepared_by: prepared || null, p_approved_by: approver || null,
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'บันทึกการแก้ไข';
+
+    if (error) {
+      msgEl.textContent = 'บันทึกไม่สำเร็จ: ' + error.message;
+      msgEl.classList.add('err');
+      return;
+    }
+    if (!ok) {
+      clearRememberedPin();
+      msgEl.textContent = 'PIN ไม่ถูกต้อง — บันทึกไม่สำเร็จ';
+      msgEl.classList.add('err');
+      return;
+    }
+
+    _rememberedPin = pin;
+    editingRevDocId = null;
+    editingRevIdDetail = null;
+    await loadAll(); // โหลดข้อมูลใหม่ทั้งหมด แล้ว render() จะเลือกโชว์หน้ารายการ/รายละเอียดให้เองตาม currentDocId
+  }
+
+  function renderAddDocForm() {
+    return `
+      <div class="card">
+        <div class="section-title"><span>➕ เพิ่มเอกสารใหม่เข้า Master List</span></div>
+        <label class="field-label">สังกัดบริษัท</label>
+        <select id="nd-company">
+          ${COMPANIES.map(c => `<option value="${escAttr(c)}">${esc(c)}</option>`).join('')}
+        </select>
+        <label class="field-label">ฝ่ายที่ครอบครอง</label>
+        <input type="text" id="nd-department" placeholder="เช่น BODY & SASH">
+        <label class="field-label">ประเภทเอกสาร</label>
+        <input type="text" id="nd-category" placeholder="เช่น WI">
+        <label class="field-label">เลขที่เอกสาร (Doc No.)</label>
+        <input type="text" id="nd-docno" placeholder="เช่น PRD1-T00A-005">
+        <label class="field-label">ชื่อเอกสาร</label>
+        <textarea id="nd-docname" placeholder="ชื่อเอกสารและรายละเอียด"></textarea>
+        <label class="field-label">วันที่เริ่มใช้เอกสารครั้งแรก</label>
+        <input type="date" id="nd-firstdate">
+        <label class="field-label">PIN ยืนยันตัวตน</label>
+        <input type="password" id="nd-pin" inputmode="numeric" placeholder="กรอก PIN" value="${_rememberedPin ? escAttr(_rememberedPin) : ''}">
+        <button class="btn btn-approve" id="nd-submit" type="button">บันทึกเอกสารใหม่</button>
+        <div class="form-msg" id="nd-msg"></div>
+      </div>
+    `;
+  }
+
+  function bindAddDocForm() {
+    document.getElementById('nd-submit').addEventListener('click', async () => {
+      const btn = document.getElementById('nd-submit');
+      const msgEl = document.getElementById('nd-msg');
+      const company = document.getElementById('nd-company').value;
+      const department = document.getElementById('nd-department').value.trim();
+      const category = document.getElementById('nd-category').value.trim();
+      const docNo = document.getElementById('nd-docno').value.trim();
+      const docName = document.getElementById('nd-docname').value.trim();
+      const firstDate = document.getElementById('nd-firstdate').value || null;
+      const pin = document.getElementById('nd-pin').value.trim();
+
+      msgEl.textContent = '';
+      msgEl.className = 'form-msg';
+
+      if (!department || !docNo || !docName) {
+        msgEl.textContent = 'กรุณากรอกฝ่ายที่ครอบครอง, เลขที่เอกสาร และชื่อเอกสารให้ครบ';
+        msgEl.classList.add('err');
+        return;
+      }
+      if (!pin) {
+        msgEl.textContent = 'กรุณากรอก PIN';
+        msgEl.classList.add('err');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'กำลังบันทึก...';
+
+      const { data: newId, error } = await sb.rpc('doc_add_master', {
+        p_pin: pin, p_company: company, p_department: department, p_doc_category: category,
+        p_doc_no: docNo, p_doc_name: docName, p_first_rev_date: firstDate,
+      });
+
+      btn.disabled = false;
+      btn.textContent = 'บันทึกเอกสารใหม่';
+
+      if (error) {
+        msgEl.textContent = 'บันทึกไม่สำเร็จ: ' + (error.message.includes('duplicate') ? 'เลขที่เอกสารนี้มีอยู่แล้วในระบบ' : error.message);
+        msgEl.classList.add('err');
+        return;
+      }
+      if (!newId) {
+        clearRememberedPin();
+        msgEl.textContent = 'PIN ไม่ถูกต้อง — บันทึกไม่สำเร็จ';
+        msgEl.classList.add('err');
+        return;
+      }
+
+      _rememberedPin = pin;
+      currentDocId = newId;
+      const p = new URLSearchParams(window.location.search);
+      p.set('doc', currentDocId);
+      history.pushState({}, '', '?' + p.toString());
+      await loadAll();
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  นำเข้าจาก Excel — ใช้ไฟล์ที่ export จาก "Export Master List (Run No. ทั้งหมด)" ในหน้า index.html
+  //  คอลัมน์ที่คาดหวัง: No. / Model / กลุ่มชิ้นงาน / ชื่อชิ้นงาน / รหัส Part (Part No.) / Run No. / Doc No. /
+  //                    Rev. Level (ฟอร์ม) / Rev. No. (เนื้อหา) / Rev. Date / Issued Form / จำนวนจุดตรวจ
+  // ══════════════════════════════════════════════════════════════
+
+  // แปลงวันที่ dd/mm/yyyy (พ.ศ. หรือ ค.ศ.) จากไฟล์ export กลับเป็น ISO ค.ศ. สำหรับ <input type=date>
+  function parseThaiDateToISO(s) {
+    if (!s) return null;
+    const str = String(s).trim();
+    if (!str || str === '—' || str === '-') return null;
+    const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (!m) return null;
+    let [, d, mo, y] = m;
+    y = parseInt(y, 10);
+    if (y < 100) y += 2500; // เผื่อปี พ.ศ. แบบ 2 หลัก
+    if (y > 2400) y -= 543; // พ.ศ. -> ค.ศ.
+    const pad = n => String(n).padStart(2, '0');
+    return `${y}-${pad(mo)}-${pad(d)}`;
+  }
+
+  function handleImportFile(e) {
+    const file = e.target.files[0];
+    e.target.value = ''; // เคลียร์ input ไว้เผื่อเลือกไฟล์เดิมซ้ำ
+    if (!file) return;
+    if (!window.XLSX) { alert('โหลด Excel library ไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้ง'); return; }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const wb = XLSX.read(ev.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+        // หาแถวหัวตาราง (แถวที่มีคำว่า 'Doc No.' อยู่)
+        const headerIdx = rows.findIndex(r => r.some(c => String(c).trim() === 'Doc No.'));
+        if (headerIdx === -1) {
+          alert('ไม่พบหัวตาราง "Doc No." ในไฟล์นี้ — ตรวจสอบว่าเป็นไฟล์ที่ export จากปุ่ม "Export Master List" ในหน้า index.html');
+          return;
+        }
+        const header = rows[headerIdx].map(h => String(h).trim());
+        const col = name => header.indexOf(name);
+        const cDept = col('Model'), cName = col('ชื่อชิ้นงาน'), cJig = col('รหัส Part (Part No.)'),
+              cRun = col('Run No.'), cDocNo = col('Doc No.'), cRevLevel = col('Rev. No. (เนื้อหา)'),
+              cRevDate = col('Rev. Date'), cIssued = col('Issued Form');
+
+        const parsed = rows.slice(headerIdx + 1)
+          .filter(r => r[cDocNo] && String(r[cDocNo]).trim() && !String(r[cDocNo]).includes('⚠️'))
+          .map(r => ({
+            department: String(r[cDept] || '').trim(),
+            docName: String(r[cName] || '').trim(),
+            jigId: String(r[cJig] || '').trim(),
+            runNo: String(r[cRun] || '').trim(),
+            docNo: String(r[cDocNo] || '').trim(),
+            revLevelText: String(r[cRevLevel] || '').trim(),
+            revDateText: String(r[cRevDate] || '').trim(),
+            issuedText: String(r[cIssued] || '').trim(),
+          }))
+          .filter(r => r.docNo && r.docName);
+
+        if (!parsed.length) {
+          alert('ไม่พบแถวข้อมูลที่นำเข้าได้ในไฟล์นี้');
+          return;
+        }
+
+        // ตัดรายการที่เลขที่เอกสารซ้ำกันเอง (เก็บแถวแรกที่เจอ)
+        const seen = new Set();
+        const deduped = [];
+        let dupInFile = 0;
+        parsed.forEach(r => {
+          if (seen.has(r.docNo)) { dupInFile++; return; }
+          seen.add(r.docNo);
+          deduped.push(r);
+        });
+
+        // ตัดรายการที่มีอยู่แล้วในระบบ (เทียบกับ allDocs ที่โหลดไว้)
+        const existingDocNos = new Set(allDocs.map(d => d.doc_no));
+        const toImport = deduped.filter(r => !existingDocNos.has(r.docNo));
+        const alreadyExists = deduped.length - toImport.length;
+
+        renderImportPreview(toImport, { dupInFile, alreadyExists, totalInFile: parsed.length });
+      } catch (err) {
+        alert('อ่านไฟล์ไม่สำเร็จ: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function renderImportPreview(rows, stats) {
+    const box = document.getElementById('import-preview');
+    if (!rows.length) {
+      box.innerHTML = `
+        <div class="card">
+          <div class="section-title"><span>📥 นำเข้าจาก Excel</span></div>
+          <div class="center-msg" style="padding:12px 0;">
+            ไม่มีรายการใหม่ให้นำเข้า (พบทั้งหมด ${stats.totalInFile} แถว —
+            มีอยู่แล้วในระบบ ${stats.alreadyExists} รายการ${stats.dupInFile ? `, ซ้ำกันเองในไฟล์ ${stats.dupInFile} รายการ` : ''})
+          </div>
+          <button class="btn-ghost" id="btn-import-cancel" type="button">ปิด</button>
+        </div>`;
+      document.getElementById('btn-import-cancel').addEventListener('click', () => box.innerHTML = '');
+      return;
+    }
+
+    box.innerHTML = `
+      <div class="card">
+        <div class="section-title"><span>📥 นำเข้าจาก Excel — พบ ${rows.length} รายการใหม่</span></div>
+        <div style="font-size:11px; color:var(--muted); margin-bottom:10px; line-height:1.6;">
+          ทั้งหมดในไฟล์ ${stats.totalInFile} แถว · มีอยู่แล้วในระบบแล้ว ${stats.alreadyExists} รายการ (ข้าม)
+          ${stats.dupInFile ? ` · ซ้ำกันเองในไฟล์ ${stats.dupInFile} รายการ (ใช้แถวแรก)` : ''}
+        </div>
+
+        <label class="field-label">นำเข้าเป็นเอกสารของบริษัท</label>
+        <select id="imp-company">
+          ${COMPANIES.map(c => `<option value="${escAttr(c)}">${esc(c)}</option>`).join('')}
+        </select>
+        <label class="field-label">ประเภทเอกสาร</label>
+        <input type="text" id="imp-category" value="WI">
+        <label class="field-label">PIN ยืนยันตัวตน</label>
+        <input type="password" id="imp-pin" inputmode="numeric" placeholder="กรอก PIN" value="${_rememberedPin ? escAttr(_rememberedPin) : ''}">
+
+        <div style="max-height:220px; overflow:auto; margin-top:10px; border:1px solid var(--border); border-radius:8px;">
+          <table class="rev-table" style="margin-top:0;">
+            <thead><tr><th>Doc No.</th><th>ชื่อเอกสาร</th><th>Model</th><th>Rev เดิม</th></tr></thead>
+            <tbody>
+              ${rows.map(r => `
+                <tr>
+                  <td>${esc(r.docNo)}</td>
+                  <td>${esc(r.docName)}</td>
+                  <td>${esc(r.department)}</td>
+                  <td>${esc(r.revLevelText || '-')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <button class="btn btn-approve" id="btn-import-confirm" type="button" style="margin-top:12px;">📥 นำเข้า ${rows.length} รายการ</button>
+        <button class="btn-ghost" id="btn-import-cancel" type="button" style="width:100%; margin-top:8px; box-sizing:border-box;">ยกเลิก</button>
+        <div class="form-msg" id="imp-msg"></div>
+      </div>
+    `;
+
+    document.getElementById('btn-import-cancel').addEventListener('click', () => box.innerHTML = '');
+    document.getElementById('btn-import-confirm').addEventListener('click', () => runImport(rows));
+  }
+
+  async function runImport(rows) {
+    const btn = document.getElementById('btn-import-confirm');
+    const msgEl = document.getElementById('imp-msg');
+    const company = document.getElementById('imp-company').value;
+    const category = document.getElementById('imp-category').value.trim() || 'WI';
+    const pin = document.getElementById('imp-pin').value.trim();
+
+    msgEl.textContent = '';
+    msgEl.className = 'form-msg';
+
+    if (!pin) {
+      msgEl.textContent = 'กรุณากรอก PIN';
+      msgEl.classList.add('err');
+      return;
+    }
+
+    btn.disabled = true;
+    let done = 0, failed = 0, pinInvalid = false;
+
+    for (const r of rows) {
+      if (pinInvalid) break;
+      btn.textContent = `กำลังนำเข้า... (${done + failed}/${rows.length})`;
+
+      const firstRevDate = parseThaiDateToISO(r.issuedText) || parseThaiDateToISO(r.revDateText);
+      const { data: newId, error: e1 } = await sb.rpc('doc_add_master', {
+        p_pin: pin, p_company: company, p_department: r.department || 'ไม่ระบุ', p_doc_category: category,
+        p_doc_no: r.docNo, p_doc_name: r.docName, p_first_rev_date: firstRevDate,
+      });
+
+      if (e1) { failed++; continue; }
+      if (!newId) { pinInvalid = true; break; }
+      _rememberedPin = pin;
+
+      // บันทึกประวัติเริ่มต้น เก็บค่า Rev เดิมจากระบบ Part ไว้เป็นหมายเหตุ ไม่ให้ข้อมูลหาย
+      const revDate = parseThaiDateToISO(r.revDateText) || firstRevDate || new Date().toISOString().slice(0, 10);
+      const detailParts = [`นำเข้าจากทะเบียน Part เดิม`];
+      if (r.jigId) detailParts.push(`รหัส Part: ${r.jigId}`);
+      if (r.runNo) detailParts.push(`Run No.: ${r.runNo}`);
+      if (r.revLevelText) detailParts.push(`Rev เดิม: ${r.revLevelText}`);
+      await sb.rpc('doc_add_revision', {
+        p_pin: pin, p_document_id: newId, p_rev_date: revDate, p_page: 'all',
+        p_amendment_detail: detailParts.join(' · '), p_approved_by: null,
+      });
+
+      done++;
+    }
+
+    btn.disabled = false;
+    btn.textContent = `📥 นำเข้า ${rows.length} รายการ`;
+
+    if (pinInvalid) {
+      clearRememberedPin();
+      msgEl.textContent = `PIN ไม่ถูกต้อง — นำเข้าไปแล้ว ${done} รายการก่อนหยุด`;
+      msgEl.classList.add('err');
+    } else if (failed) {
+      msgEl.textContent = `นำเข้าสำเร็จ ${done} รายการ, ล้มเหลว ${failed} รายการ`;
+      msgEl.classList.add(failed === rows.length ? 'err' : 'ok');
+    } else {
+      msgEl.textContent = `✅ นำเข้าสำเร็จทั้งหมด ${done} รายการ`;
+      msgEl.classList.add('ok');
+    }
+
+    document.getElementById('import-preview').innerHTML = '';
+    await loadAll();
+  }
+
+  async function renderDetail(docId) {
+    app.innerHTML = `<div class="center-msg"><div class="spinner"></div>กำลังโหลดเอกสาร...</div>`;
+
+    const doc = allDocs.find(d => d.id === docId);
+    if (!doc) {
+      app.innerHTML = `<div class="center-msg">ไม่พบเอกสารนี้</div><a href="documents.html" class="back-link">‹ กลับไปหน้ารายการ</a>`;
+      return;
+    }
+
+    const { data: revs, error } = await sb.from('document_revisions')
+      .select('*').eq('document_id', docId).order('rev_no', { ascending: false });
+
+    if (error) {
+      app.innerHTML = `<div class="center-msg">โหลดประวัติแก้ไขไม่สำเร็จ: ${esc(error.message)}</div>`;
+      return;
+    }
+
+    app.innerHTML = `
+      <a href="#" id="back-to-list" class="back-link">‹ กลับไปหน้ารายการ</a>
+
+      <div class="card">
+        <div class="doc-title">${esc(doc.doc_name)}</div>
+        <div class="doc-sub">${esc(doc.doc_no)}${doc.doc_category ? ' · ' + esc(doc.doc_category) : ''}</div>
+
+        <div class="meta-grid">
+          <div><span>บริษัท:</span> ${esc(doc.company)}</div>
+          <div><span>Model:</span> ${esc(doc.department)}</div>
+          <div><span>Rev ปัจจุบัน:</span> ${doc.current_rev_no ?? 0}</div>
+          <div><span>วันที่ Rev ล่าสุด:</span> ${fmtDate(doc.current_rev_date)}</div>
+        </div>
+
+        <span class="status-badge ${doc.status === 'obsolete' ? 'status-obsolete' : 'status-active'}">
+          ${doc.status === 'obsolete' ? '⛔ ยกเลิกใช้งานแล้ว' : '✅ ใช้งานอยู่'}
+        </span>
+
+        <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn-ghost" id="btn-add-rev" type="button">➕ บันทึกการแก้ไขใหม่</button>
+          ${doc.status === 'obsolete'
+            ? `<button class="btn-ghost" id="btn-toggle-status" type="button">↩️ เปิดใช้งานอีกครั้ง</button>`
+            : `<button class="btn-danger-ghost" id="btn-toggle-status" type="button">⛔ ยกเลิกเอกสารนี้</button>`}
+        </div>
+      </div>
+
+      <div id="add-rev-form"></div>
+
+      <div class="card">
+        <div class="section-title"><span>🗂️ ประวัติการแก้ไข (Amendment Record) — ${revs.length} ครั้ง</span></div>
+        ${revs.length ? `
+        <table class="rev-table">
+          <thead>
+            <tr>
+              <th>REV.</th><th>วันที่</th><th>หน้า</th><th>รายละเอียดการแก้ไข</th><th>ผู้แก้ไข</th><th>ผู้อนุมัติ</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${revs.map(r => `
+              <tr>
+                <td class="rev-no-cell">${r.rev_no}</td>
+                <td>${fmtDate(r.rev_date)}</td>
+                <td>${esc(r.page || 'all')}</td>
+                <td>${esc(r.amendment_detail)}</td>
+                <td>${esc(r.prepared_by || '-')}</td>
+                <td>${esc(r.approved_by || '-')}</td>
+                <td><button class="btn-edit-rev" type="button" data-edit-id="${escAttr(r.id)}" title="แก้ไขรายการนี้">✏️</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        ` : `<div class="center-msg" style="padding:16px 0;">ยังไม่มีประวัติการแก้ไข</div>`}
+      </div>
+
+      ${editingRevIdDetail ? renderEditRevForm(doc, revs.find(r => r.id === editingRevIdDetail)) : ''}
+    `;
+
+    document.getElementById('back-to-list').addEventListener('click', e => {
+      e.preventDefault();
+      currentDocId = null;
+      const p = new URLSearchParams(window.location.search);
+      p.delete('doc');
+      history.pushState({}, '', '?' + p.toString());
+      render();
+    });
+
+    let revFormOpen = false;
+    document.getElementById('btn-add-rev').addEventListener('click', () => {
+      revFormOpen = !revFormOpen;
+      document.getElementById('add-rev-form').innerHTML = revFormOpen ? renderAddRevForm(doc) : '';
+      if (revFormOpen) bindAddRevForm(doc);
+    });
+
+    // ── ปุ่ม "✏️" ในแต่ละแถวประวัติแก้ไข — เปิด/ปิดฟอร์มแก้ไขรายการนั้น ──
+    document.querySelectorAll('.btn-edit-rev').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.editId;
+        editingRevIdDetail = (editingRevIdDetail === id) ? null : id;
+        render();
+      });
+    });
+    if (editingRevIdDetail) {
+      const cancelBtn = document.getElementById('er-cancel');
+      if (cancelBtn) cancelBtn.addEventListener('click', () => { editingRevIdDetail = null; render(); });
+      const submitBtn = document.getElementById('er-submit');
+      if (submitBtn) submitBtn.addEventListener('click', () => submitEditRevision(submitBtn));
+    }
+
+    document.getElementById('btn-toggle-status').addEventListener('click', async () => {
+      const newStatus = doc.status === 'obsolete' ? 'active' : 'obsolete';
+      const label = newStatus === 'obsolete' ? 'ยกเลิกการใช้งานเอกสารนี้' : 'เปิดใช้งานเอกสารนี้อีกครั้ง';
+      const pin = _rememberedPin || prompt(`ยืนยัน${label} — กรุณากรอก PIN:`);
+      if (!pin) return;
+
+      const { data: ok, error } = await sb.rpc('doc_set_status', { p_pin: pin, p_document_id: doc.id, p_status: newStatus });
+      if (error) { alert('ทำรายการไม่สำเร็จ: ' + error.message); return; }
+      if (!ok) { clearRememberedPin(); alert('PIN ไม่ถูกต้อง'); return; }
+      _rememberedPin = pin;
+      await loadAll();
+    });
+  }
+
+  function renderAddRevForm(doc) {
+    const nextRev = (doc.current_rev_no ?? 0) + 1;
+    return `
+      <div class="card">
+        <div class="section-title"><span>➕ บันทึกการแก้ไขครั้งที่ ${nextRev}</span></div>
+        <label class="field-label">วันที่ปรับปรุง</label>
+        <input type="date" id="nr-date" value="${new Date().toISOString().slice(0,10)}">
+        <label class="field-label">หน้า (Page)</label>
+        <input type="text" id="nr-page" placeholder="เช่น all หรือ เลขหน้า" value="all">
+        <label class="field-label">รายละเอียดการแก้ไข</label>
+        <textarea id="nr-detail" placeholder="อธิบายสิ่งที่แก้ไขในรอบนี้"></textarea>
+        <label class="field-label">ผู้อนุมัติ</label>
+        <input type="text" id="nr-approver" placeholder="ชื่อผู้อนุมัติ">
+        <label class="field-label">PIN ยืนยันตัวตน (ผู้แก้ไข)</label>
+        <input type="password" id="nr-pin" inputmode="numeric" placeholder="กรอก PIN" value="${_rememberedPin ? escAttr(_rememberedPin) : ''}">
+        <button class="btn btn-approve" id="nr-submit" type="button">บันทึกการแก้ไข</button>
+        <div class="form-msg" id="nr-msg"></div>
+      </div>
+    `;
+  }
+
+  function bindAddRevForm(doc) {
+    document.getElementById('nr-submit').addEventListener('click', async () => {
+      const btn = document.getElementById('nr-submit');
+      const msgEl = document.getElementById('nr-msg');
+      const revDate = document.getElementById('nr-date').value;
+      const page = document.getElementById('nr-page').value.trim() || 'all';
+      const detail = document.getElementById('nr-detail').value.trim();
+      const approver = document.getElementById('nr-approver').value.trim();
+      const pin = document.getElementById('nr-pin').value.trim();
+
+      msgEl.textContent = '';
+      msgEl.className = 'form-msg';
+
+      if (!revDate || !detail) {
+        msgEl.textContent = 'กรุณากรอกวันที่ปรับปรุงและรายละเอียดการแก้ไข';
+        msgEl.classList.add('err');
+        return;
+      }
+      if (!pin) {
+        msgEl.textContent = 'กรุณากรอก PIN';
+        msgEl.classList.add('err');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'กำลังบันทึก...';
+
+      const { data: newRevNo, error } = await sb.rpc('doc_add_revision', {
+        p_pin: pin, p_document_id: doc.id, p_rev_date: revDate, p_page: page,
+        p_amendment_detail: detail, p_approved_by: approver || null,
+      });
+
+      btn.disabled = false;
+      btn.textContent = 'บันทึกการแก้ไข';
+
+      if (error) {
+        msgEl.textContent = 'บันทึกไม่สำเร็จ: ' + error.message;
+        msgEl.classList.add('err');
+        return;
+      }
+      if (newRevNo === null) {
+        clearRememberedPin();
+        msgEl.textContent = 'PIN ไม่ถูกต้อง — บันทึกไม่สำเร็จ';
+        msgEl.classList.add('err');
+        return;
+      }
+
+      _rememberedPin = pin;
+      await loadAll();
+    });
+  }
+
+  window.addEventListener('popstate', () => {
+    const p = new URLSearchParams(window.location.search);
+    currentDocId = p.get('doc') || null;
+    render();
+  });
+
+  // ─── Login Gate ───
+  // เข้าสู่ระบบผ่าน RPC 'verify_docs_login' — DB ตรวจสอบ username/password และตอบกลับแค่ true/false
+  // เท่านั้น (ไม่เคยส่ง password/hash กลับมาให้ client เห็น) แพทเทิร์นเดียวกับ verify_admin_login ที่ใช้อยู่แล้ว
+  // สถานะเข้าสู่ระบบเก็บไว้ใน sessionStorage — จะถูกล้างอัตโนมัติเมื่อปิดแท็บ/เบราว์เซอร์ (ไม่จำข้ามเซสชัน เพื่อความปลอดภัย)
+  const loginOverlay = document.getElementById('docs-login-overlay');
+  const loginMsg = document.getElementById('docs-login-msg');
+  const loginBtn = document.getElementById('docs-login-submit');
+  const loginUserInp = document.getElementById('docs-login-user');
+  const loginPassInp = document.getElementById('docs-login-pass');
+
+  function unlockDocsApp() {
+    loginOverlay.classList.add('hidden');
+    loadCompaniesFromSettings().then(loadAll); // 🆕 ดึงรายชื่อนิติบุคคลก่อน แล้วค่อยโหลด/render เอกสาร
+  }
+
+  async function attemptDocsLogin() {
+    const username = loginUserInp.value.trim();
+    const password = loginPassInp.value;
+    loginMsg.textContent = '';
+
+    if (!username || !password) {
+      loginMsg.textContent = 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน';
+      return;
+    }
+
+    loginBtn.disabled = true;
+    const originalText = loginBtn.textContent;
+    loginBtn.textContent = '🔄 กำลังตรวจสอบ...';
+
+    try {
+      const { data: ok, error } = await sb.rpc('verify_docs_login', {
+        p_username: username,
+        p_password: password,
+      });
+
+      if (error) {
+        console.error('Docs login RPC error:', error);
+        loginMsg.textContent = 'เกิดข้อผิดพลาดในการตรวจสอบ กรุณาลองใหม่';
+        return;
+      }
+
+      if (ok) {
+        sessionStorage.setItem('fc_docs_authed', '1');
+        unlockDocsApp();
+      } else {
+        loginMsg.textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+        loginPassInp.value = '';
+        loginPassInp.focus();
+      }
+    } catch (e) {
+      console.error('Docs login error:', e);
+      loginMsg.textContent = 'เกิดข้อผิดพลาดในการตรวจสอบ กรุณาลองใหม่';
+    } finally {
+      loginBtn.disabled = false;
+      loginBtn.textContent = originalText;
+    }
+  }
+
+  loginBtn.addEventListener('click', attemptDocsLogin);
+  loginPassInp.addEventListener('keydown', e => { if (e.key === 'Enter') attemptDocsLogin(); });
+  loginUserInp.addEventListener('keydown', e => { if (e.key === 'Enter') loginPassInp.focus(); });
+
+  // ── Logout — เคลียร์ session ('fc_docs_authed') แล้วโชว์หน้า login gate อีกครั้ง
+  document.getElementById('btn-docs-logout').addEventListener('click', async () => {
+    if (!(await showConfirmModal('ต้องการออกจากระบบควบคุมเอกสารใช่หรือไม่?', { confirmLabel: 'ออกจากระบบ' }))) return;
+    sessionStorage.removeItem('fc_docs_authed');
+    loginUserInp.value = '';
+    loginPassInp.value = '';
+    loginMsg.textContent = '';
+    loginOverlay.classList.remove('hidden');
+    loginUserInp.focus();
+  });
+
+  if (sessionStorage.getItem('fc_docs_authed') === '1') {
+    unlockDocsApp();
+  } else {
+    loginOverlay.classList.remove('hidden');
+    loginUserInp.focus();
+  }
+</script>
+</body>
+</html>

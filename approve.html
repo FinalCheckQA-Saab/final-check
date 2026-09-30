@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#16324f">
+<title>ตรวจสอบรายงานการตรวจ Part</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+  <link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --navy: #1e3a5f;
+    --navy-light: #2d5586;
+    --accent: #2f6fd1;
+    --gold: #b8903a;
+    --ok: #16a34a;
+    --ok-bg: #dcfce7;
+    --ng: #dc2626;
+    --ng-bg: #fee2e2;
+    --pending: #d97706;
+    --pending-bg: #fef3c7;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --bg: #f3f4f6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Noto Sans Thai', 'Sarabun', Tahoma, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding-bottom: 40px;
+  }
+  header {
+    background: linear-gradient(120deg, var(--navy), var(--navy-light));
+    color: #fff;
+    padding: 20px 16px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 4px 16px rgba(15,33,55,0.25);
+  }
+  header::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, var(--gold) 18%, var(--gold) 82%, transparent 100%);
+    opacity: 0.85;
+  }
+  header h1 { margin: 0; font-size: 17px; font-weight: 700; }
+  header p { margin: 4px 0 0; font-size: 12px; opacity: 0.85; }
+  .header-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    max-width: 560px;
+    margin: 0 auto;
+    text-align: left;
+  }
+  .header-logo {
+    width: 44px; height: 44px; flex-shrink: 0;
+    background: hsla(0,0%,100%,0.14);
+    border: 1px solid hsla(0,0%,100%,0.28);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  }
+  .header-actions-row {
+    position: absolute; top: 16px; right: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .header-back-link {
+    display: flex; align-items: center; gap: 5px;
+    padding: 6px 11px; border-radius: 999px;
+    background: hsla(0,0%,100%,0.12); border: 1px solid hsla(0,0%,100%,0.25);
+    color: #fff; font-size: 11.5px; font-weight: 600; text-decoration: none;
+    white-space: nowrap; font-family: inherit; cursor: pointer;
+  }
+  .header-back-link:hover { background: hsla(0,0%,100%,0.2); }
+  .header-logout-btn {
+    background: hsla(0, 75%, 60%, 0.18); border-color: hsla(0, 75%, 60%, 0.4);
+  }
+  .header-logout-btn:hover { background: hsla(0, 75%, 60%, 0.3); }
+
+  .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .jig-title { font-size: 18px; font-weight: 700; margin: 0 0 2px; }
+  .jig-sub { font-size: 12px; color: var(--muted); margin: 0 0 12px; }
+
+  .meta-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px;
+    font-size: 13px; margin-bottom: 4px;
+  }
+  .meta-grid div span { color: var(--muted); }
+
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    margin-top: 10px;
+  }
+  .status-pending { background: var(--pending-bg); color: var(--pending); }
+  .status-approved { background: var(--ok-bg); color: var(--ok); }
+  .status-partial { background: #dbeafe; color: #1e3a8a; }
+
+  .kpi-row { display: flex; gap: 10px; margin: 14px 0; }
+  .kpi { flex: 1; text-align: center; padding: 10px 6px; border-radius: 10px; }
+  .kpi-ok { background: var(--ok-bg); color: var(--ok); }
+  .kpi-ng { background: var(--ng-bg); color: var(--ng); }
+  .kpi-pending { background: var(--pending-bg); color: var(--pending); }
+  .kpi b { display: block; font-size: 20px; }
+  .kpi span { font-size: 11px; }
+
+  .line-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+  .line-table th {
+    text-align: left; font-size: 11px; color: var(--muted); font-weight: 600;
+    padding: 6px 4px; border-bottom: 1px solid var(--border);
+  }
+  .line-table th:not(:first-child), .line-table td:not(:first-child) { text-align: center; }
+  .line-table td { padding: 8px 4px; border-bottom: 1px solid var(--border); }
+  .line-table tr:last-child td { border-bottom: none; }
+  .line-name-cell { font-weight: 600; }
+  .mini-badge {
+    display: inline-block; min-width: 22px; padding: 2px 8px; border-radius: 999px;
+    font-size: 12px; font-weight: 700;
+  }
+  .mini-badge.pending { background: var(--pending-bg); color: var(--pending); }
+  .mini-badge.approved { background: var(--ok-bg); color: var(--ok); }
+  .mini-badge.zero { background: #f3f4f6; color: #9ca3af; }
+
+  .pending-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 12px 4px; border-bottom: 1px solid var(--border);
+    text-decoration: none; color: inherit;
+  }
+  .pending-item:last-child { border-bottom: none; }
+  .pending-item-jig { font-size: 14px; font-weight: 600; }
+  .pending-item-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .pending-item-arrow { font-size: 20px; color: var(--muted); flex: 0 0 auto; }
+  .pending-item-badge {
+    flex: 0 0 auto; font-size: 10px; font-weight: 700; padding: 3px 8px;
+    border-radius: 999px; background: var(--ng-bg); color: var(--ng);
+  }
+  .pending-item-cta {
+    flex: 0 0 auto; font-size: 11px; font-weight: 700; color: #fff;
+    background: var(--navy); border-radius: 8px; padding: 6px 10px; white-space: nowrap;
+  }
+
+  .back-link {
+    display: inline-block; font-size: 13px; font-weight: 600; color: var(--navy);
+    text-decoration: none; padding: 10px 4px; margin-bottom: 4px;
+  }
+  .back-link:hover { text-decoration: underline; }
+
+  summary.section-title { list-style: none; user-select: none; }
+  summary.section-title::-webkit-details-marker { display: none; }
+  summary.section-title::after { content: '▾'; float: right; color: var(--muted); font-size: 12px; }
+  details[open] summary.section-title::after { content: '▴'; }
+
+  .pending-line-group { margin-bottom: 18px; }
+  .pending-line-group:last-child { margin-bottom: 0; }
+  .pending-line-header {
+    font-size: 14px; font-weight: 700; color: var(--navy);
+    padding: 8px 0; border-bottom: 2px solid var(--navy);
+  }
+  .pending-line-count { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .pending-subgroup { margin-top: 4px; }
+  .pending-subgroup-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    padding: 8px 0 4px;
+  }
+  .btn-bulk {
+    flex: 0 0 auto; background: var(--ok); color: #fff; border: none;
+    border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+  }
+  .btn-bulk:disabled { background: #9ca3af; cursor: default; }
+
+  .item-row {
+    display: flex; justify-content: space-between; gap: 10px;
+    padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .item-row:last-child { border-bottom: none; }
+  .item-label { flex: 1; }
+  .item-note { font-size: 11px; color: var(--ng); margin-top: 2px; }
+  .item-status { font-weight: 600; white-space: nowrap; }
+  .st-ok, .st-fixed { color: var(--ok); }
+  .st-ng { color: var(--ng); }
+
+  .section-title { font-size: 13px; font-weight: 700; color: var(--navy); margin: 0 0 10px; }
+
+  textarea, input[type=text] {
+    width: 100%; border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 12px; font-family: inherit; font-size: 14px; color: var(--text);
+    background: #fafafa;
+  }
+  textarea { min-height: 70px; resize: vertical; }
+  label.field-label { font-size: 12px; color: var(--muted); display: block; margin: 10px 0 4px; }
+
+  .btn {
+    width: 100%; border: none; border-radius: 12px; padding: 14px;
+    font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+    margin-top: 6px;
+  }
+  .btn-approve { background: var(--ok); color: #fff; }
+  .btn-approve:disabled { background: #9ca3af; cursor: default; }
+
+  .gps-link { font-size: 12px; color: var(--accent); text-decoration: none; }
+
+  .center-msg { text-align: center; padding: 40px 16px; color: var(--muted); font-size: 14px; }
+  .spinner {
+    width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .approved-box {
+    background: var(--ok-bg); color: var(--ok); border-radius: 10px;
+    padding: 12px 14px; font-size: 13px; margin-top: 4px; line-height: 1.6;
+  }
+  .partial-box {
+    background: #dbeafe; color: #1e3a8a; border-radius: 10px;
+    padding: 12px 14px; font-size: 13px; margin-top: 4px; line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="header-actions-row">
+      <a href="index.html" class="header-back-link" title="กลับไปหน้าตรวจสอบหลัก">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        <span>หน้าหลัก</span>
+      </a>
+    </div>
+    <div class="header-brand">
+      <div class="header-logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      </div>
+      <div>
+        <h1>ตรวจสอบรายงานการตรวจ Part</h1>
+        <p>หัวหน้างาน (ขั้นที่ 1)</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div id="dashboard">
+      <div class="center-msg"><div class="spinner"></div>กำลังโหลดภาพรวม...</div>
+    </div>
+    <div id="app"></div>
+  </div>
+
+<script>
+  const SUPABASE_URL = 'https://YOUR-NEW-PROJECT.supabase.co'; // ⚠️ ใส่ URL ของ Supabase project ใหม่ (Final Check) — ห้ามใช้ของ Check Jig
+  const SUPABASE_ANON_KEY = 'YOUR-NEW-ANON-KEY'; // ⚠️ ใส่ anon key ของ project ใหม่
+  const SUPABASE_CONFIGURED = (SUPABASE_URL.startsWith('https://') && !SUPABASE_URL.includes('YOUR-NEW-PROJECT'));
+    if (!SUPABASE_CONFIGURED) console.warn('[Final Check] ยังไม่ได้ตั้งค่า Supabase');
+    const sb = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+  // ✅ จำ PIN และชื่อผู้อนุมัติไว้ชั่วคราวระหว่างที่หน้านี้ยังเปิดอยู่ (หายไปเองถ้า refresh/ปิดหน้า)
+  // เพื่อไม่ต้องพิมพ์ซ้ำทุกครั้งที่กดอนุมัติหลายรายการติดกัน
+  let _rememberedPin = null;
+  let _rememberedName = null;
+  function askPin(label) {
+    if (_rememberedPin) return _rememberedPin;
+    const p = prompt(label);
+    if (p) _rememberedPin = p;
+    return p;
+  }
+  function askName(label) {
+    if (_rememberedName) return _rememberedName;
+    const p = prompt(label);
+    if (p && p.trim()) _rememberedName = p.trim();
+    return p;
+  }
+  function clearRememberedPin() { _rememberedPin = null; }
+  const TELEGRAM_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/send-telegram`;
+  const APPROVED_NOTIFY_CHAT_ID = '-5170940793'; // กลุ่ม Telegram ที่แจ้งผล "ตรวจสอบแล้ว" (แจ้งซ้ำตอนหัวหน้าตรวจสอบ เพื่อให้ทุกคนตามงานได้)
+  // Telegram chat id ของกลุ่มผู้จัดการฝ่ายผลิต — แจ้งเตือนให้เข้ามาอนุมัติขั้นที่ 2
+  const MANAGER_NOTIFY_CHAT_ID = '-5415757971'; // กลุ่ม Telegram แจ้งผู้จัดการฝ่ายผลิตให้เข้ามาอนุมัติขั้นที่ 2
+
+  const app = document.getElementById('app');
+  const params = new URLSearchParams(window.location.search);
+  const recordId = params.get('id');
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+  function statusLabel(s) {
+    return s === 'ok' ? 'ผ่าน (OK)' : s === 'fixed' ? 'แก้ไขแล้ว' : s === 'ng' ? 'ไม่ผ่าน (NG)' : '-';
+  }
+  function statusClass(s) {
+    return s === 'ok' ? 'st-ok' : s === 'fixed' ? 'st-fixed' : s === 'ng' ? 'st-ng' : '';
+  }
+  // 🆕 Final Check: สรุปผล 3 ชิ้นของหัวข้อหนึ่งเป็นข้อความสั้นๆ (เหมือนใน app.js) — ใช้โชว์ในหน้าอนุมัติ/ข้อความ Telegram
+  function pieceSummaryText(item) {
+    const pieces = item.pieces || [];
+    if (!pieces.length) return '';
+    if (item.type === 'numeric') {
+      return pieces.map(p => (p.value != null ? `${p.value}${p.status === 'ng' ? '✖' : ''}` : '-')).join(' / ')
+        + (item.unit ? ` ${item.unit}` : '');
+    }
+    return pieces.map(p => p.status === 'ok' ? '✔' : p.status === 'ng' ? '✖' : p.status === 'fixed' ? '🔧' : '-').join(' / ');
+  }
+  // ── สร้างข้อความรายการที่ไม่ผ่าน (NG) สำหรับใส่ในแจ้งเตือน Telegram ──
+  function ngListText(items) {
+    const ngItems = (items || []).filter(i => i.status === 'ng');
+    if (!ngItems.length) return '';
+    const lines = ngItems.map((item, idx) => {
+      const value = ` (${pieceSummaryText(item)})`; // 🆕 โชว์ผลทั้ง 3 ชิ้น ไม่ใช่แค่ค่าเดียว
+      const note = item.note ? ` - _${esc(item.note)}_` : '';
+      return `${idx + 1}. ${esc(item.label)}${value}${note}`;
+    });
+    return `\n*🔴 รายการที่ไม่ผ่าน:*\n${lines.join('\n')}\n`;
+  }
+  // ── ระบุ stage การอนุมัติ (หัวหน้างาน = หน้านี้ / ผู้จัดการฝ่ายผลิต = manager-approve.html) ──
+  function approvalStage(row) {
+    const supApproved = row.approval_status === 'approved';
+    const mgrApproved  = row.manager_approval_status === 'approved';
+    if (supApproved && mgrApproved) return { key: 'approved', label: '✅ อนุมัติครบแล้ว' };
+    if (supApproved && !mgrApproved) return { key: 'partial', label: '🔵 รอผู้จัดการฝ่ายผลิตอนุมัติ' };
+    return { key: 'pending', label: '🟡 รอหัวหน้างานตรวจสอบ' };
+  }
+
+  async function loadDashboard() {
+    const dash = document.getElementById('dashboard');
+
+    // ถ้ากำลังดูรายงานเจาะจงอยู่ (มี id) ไม่ต้องโหลด/แสดงภาพรวมทั้งหมด — โชว์แค่ลิงก์กลับ
+    // เพื่อให้เห็นรายละเอียด + ปุ่มตรวจสอบได้ทันทีโดยไม่ต้องเลื่อนผ่านภาพรวมยาวๆ
+    if (recordId) {
+      dash.innerHTML = `<a class="back-link" href="approve.html">← กลับไปหน้ารายการที่รอตรวจสอบ</a>`;
+      return;
+    }
+
+    if (!sb) { // Final Check: ยังไม่ได้ตั้งค่า Supabase project ใหม่
+      dash.innerHTML = `<div class="card"><div class="center-msg" style="padding:14px 0;">⚠️ ยังไม่ได้ตั้งค่า Supabase (ใส่ URL/anon key ของ project ใหม่ในไฟล์นี้ก่อน)</div></div>`;
+      return;
+    }
+
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const { data, error } = await sb.from('history')
+      .select('id, jig_name, line_name, insp_date, ts, approval_status, inspector, items')
+      .gte('insp_date', since)
+      .order('ts', { ascending: false });
+
+    if (error || !data) {
+      dash.innerHTML = `<div class="card"><div class="section-title">📊 ภาพรวมการตรวจสอบ</div><div class="center-msg" style="padding:10px 0;">โหลดข้อมูลไม่สำเร็จ</div></div>`;
+      return;
+    }
+    renderDashboard(data);
+  }
+
+  function renderDashboard(rows) {
+    const dash = document.getElementById('dashboard');
+
+    // จัดกลุ่มตาม กลุ่มชิ้นงาน นับ pending / approved
+    const byLine = new Map();
+    rows.forEach(r => {
+      const key = r.line_name || 'ไม่ระบุ กลุ่มชิ้นงาน';
+      if (!byLine.has(key)) byLine.set(key, { pending: 0, approved: 0 });
+      const g = byLine.get(key);
+      if (r.approval_status === 'approved') g.approved++; else g.pending++;
+    });
+    // เรียง กลุ่มชิ้นงาน ที่มีรอตรวจสอบเยอะสุดไว้บนสุด (สำคัญที่สุดก่อน)
+    const lineRows = Array.from(byLine.entries()).sort((a, b) => b[1].pending - a[1].pending);
+
+    const totalPending = rows.filter(r => r.approval_status !== 'approved').length;
+    const totalApproved = rows.length - totalPending;
+
+    const pendingList = rows.filter(r => r.approval_status !== 'approved')
+      .map(r => ({ ...r, ngCount: (r.items || []).filter(i => i.status === 'ng').length }));
+
+    // จัดกลุ่มรายการรอตรวจสอบตาม กลุ่มชิ้นงาน — ภายในแต่ละ กลุ่มชิ้นงาน แยกเป็น "ไม่มี NG" (ตรวจสอบทีเดียวได้)
+    // กับ "มี NG" (ต้องเปิดดูทีละรายการ)
+    const pendingByLine = new Map();
+    pendingList.forEach(r => {
+      const key = r.line_name || 'ไม่ระบุ กลุ่มชิ้นงาน';
+      if (!pendingByLine.has(key)) pendingByLine.set(key, { clean: [], ng: [] });
+      (r.ngCount === 0 ? pendingByLine.get(key).clean : pendingByLine.get(key).ng).push(r);
+    });
+    // เรียง กลุ่มชิ้นงาน ที่มีรอตรวจสอบเยอะสุดไว้บนสุด
+    const pendingLineEntries = Array.from(pendingByLine.entries())
+      .sort((a, b) => (b[1].clean.length + b[1].ng.length) - (a[1].clean.length + a[1].ng.length));
+
+    dash.innerHTML = `
+      <div class="card">
+        <div class="section-title">📊 ภาพรวมการตรวจสอบของหัวหน้างาน (30 วันล่าสุด)</div>
+        <div class="kpi-row">
+          <div class="kpi kpi-pending"><b>${totalPending}</b><span>รอหัวหน้าตรวจสอบ</span></div>
+          <div class="kpi kpi-ok"><b>${totalApproved}</b><span>ผ่านหัวหน้าแล้ว</span></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;">ℹ️ หลังหัวหน้าตรวจสอบแล้ว ยังต้องรอผู้จัดการฝ่ายผลิตอนุมัติต่อ (ขั้นที่ 2) ก่อนจะถือว่าสมบูรณ์</div>
+        ${lineRows.length ? `
+        <table class="line-table">
+          <thead><tr><th>กลุ่มชิ้นงาน</th><th>รอตรวจสอบ</th><th>ตรวจสอบแล้ว</th></tr></thead>
+          <tbody>
+            ${lineRows.map(([name, g]) => `
+              <tr>
+                <td class="line-name-cell">${esc(name)}</td>
+                <td>${g.pending ? `<span class="mini-badge pending">${g.pending}</span>` : `<span class="mini-badge zero">0</span>`}</td>
+                <td>${g.approved ? `<span class="mini-badge approved">${g.approved}</span>` : `<span class="mini-badge zero">0</span>`}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>` : `<div class="center-msg" style="padding:10px 0;">ยังไม่มีข้อมูลการตรวจในช่วงนี้</div>`}
+      </div>
+
+      <div class="card">
+        <div class="section-title">🟡 รายการที่รอตรวจสอบ (${pendingList.length})</div>
+        ${pendingLineEntries.length ? pendingLineEntries.map(([lineName, g]) => `
+          <div class="pending-line-group">
+            <div class="pending-line-header">🏭 ${esc(lineName)} <span class="pending-line-count">(${g.clean.length + g.ng.length})</span></div>
+
+            ${g.clean.length ? `
+              <div class="pending-subgroup">
+                <div class="pending-subgroup-head">
+                  <span>✅ ไม่มี NG — ตรวจสอบทีเดียวได้ (${g.clean.length})</span>
+                  <button class="btn-bulk" data-line="${escAttr(lineName)}" data-ids="${g.clean.map(r => r.id).join(',')}">ตรวจสอบทั้งหมด</button>
+                </div>
+                ${g.clean.map(r => `
+                  <div class="pending-item" style="cursor:default;">
+                    <div>
+                      <div class="pending-item-jig">${esc(r.jig_name)}</div>
+                      <div class="pending-item-meta">${esc(r.insp_date)} · ผู้ตรวจ: ${esc(r.inspector)}</div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+
+            ${g.ng.length ? `
+              <div class="pending-subgroup">
+                <div class="pending-subgroup-head"><span>🔴 มี NG — ต้องตรวจสอบทีละรายการ (${g.ng.length})</span></div>
+                ${g.ng.map(r => `
+                  <a class="pending-item" href="approve.html?id=${encodeURIComponent(r.id)}">
+                    <div>
+                      <div class="pending-item-jig">${esc(r.jig_name)}</div>
+                      <div class="pending-item-meta">${esc(r.insp_date)} · ผู้ตรวจ: ${esc(r.inspector)}</div>
+                    </div>
+                    <span class="pending-item-badge">NG ${r.ngCount}</span>
+                    <span class="pending-item-cta">🔍 ตรวจสอบ ›</span>
+                  </a>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `).join('') : `<div class="center-msg" style="padding:16px 0;">🎉 ไม่มีรายการค้างตรวจสอบ</div>`}
+      </div>
+    `;
+
+    dash.querySelectorAll('.btn-bulk').forEach(btn => {
+      btn.addEventListener('click', () => bulkApprove(btn.dataset.line, btn.dataset.ids.split(',').filter(Boolean), btn));
+    });
+  }
+
+  function escAttr(s) {
+    return esc(s).replace(/"/g, '&quot;');
+  }
+
+  async function bulkApprove(lineName, ids, btn) {
+    if (!ids.length) return;
+    const name = askName(`ยืนยันตรวจสอบทั้งหมด ${ids.length} รายการของ กลุ่มชิ้นงาน "${lineName}" (ไม่มี NG ทุกรายการ)\n\nกรุณาพิมพ์ชื่อผู้ตรวจสอบ:`);
+    if (!name || !name.trim()) return;
+    const approverName = _rememberedName;
+    // ✅ SECURITY: ต้องกรอก PIN หัวหน้างานก่อนอนุมัติได้ — เช็คฝั่ง Supabase (RPC) เท่านั้น
+    // (จำ PIN ไว้ในหน้านี้ ถ้าเคยกรอกถูกแล้วไม่ต้องพิมพ์ซ้ำ)
+    const pin = askPin('กรุณากรอก PIN หัวหน้างาน เพื่อยืนยันการอนุมัติ:');
+    if (!pin) return;
+
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก...';
+
+    const { data: count, error } = await sb.rpc('bulk_approve_supervisor', {
+      p_ids: ids, p_pin: pin, p_name: approverName,
+    });
+
+    if (error) {
+      alert('บันทึกไม่สำเร็จ: ' + error.message);
+      btn.disabled = false;
+      btn.textContent = 'ตรวจสอบทั้งหมด';
+      return;
+    }
+    if (count === -1) {
+      clearRememberedPin();
+      alert('PIN ไม่ถูกต้อง — บันทึกไม่สำเร็จ กรุณากดใหม่แล้วกรอก PIN อีกครั้ง');
+      btn.disabled = false;
+      btn.textContent = 'ตรวจสอบทั้งหมด';
+      return;
+    }
+
+    notifyBulkManagerPending(lineName, ids.length, approverName);
+    loadDashboard();
+    if (recordId && ids.includes(recordId)) loadReport(); // ถ้าหน้ารายละเอียดที่เปิดอยู่โดนตรวจสอบไปด้วย ให้รีเฟรชตามด้วย
+  }
+
+  // ── แจ้งผู้จัดการฝ่ายผลิตหลังหัวหน้างานตรวจสอบแบบกลุ่ม — ยังต้องผ่านอนุมัติขั้นที่ 2 ทุกใบเช่นกัน ──
+  async function notifyBulkManagerPending(lineName, count, approverName) {
+    const managerDashUrl = window.location.href.replace(/approve\.html.*$/, '').replace(/\/?$/, '/') + `manager-approve.html`;
+    const text = `
+📋 *Final Check Report*
+🔵 สถานะ: รอผู้จัดการฝ่ายผลิตอนุมัติ (ขั้นที่ 2) — ตรวจสอบแบบกลุ่ม
+━━━━━━━━━━━━━━━━━━━━━━━━━
+🏭 กลุ่มชิ้นงาน: ${esc(lineName)}
+📦 จำนวน: ${count} รายการ (ผ่านทั้งหมด ไม่มี NG)
+✅ หัวหน้างานตรวจสอบแล้วโดย: ${esc(approverName)}
+🕐 เมื่อ: ${new Date().toLocaleString('th-TH')}
+━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+    try {
+      await fetch(TELEGRAM_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+        body: JSON.stringify({
+          text, chatId: MANAGER_NOTIFY_CHAT_ID,
+          buttonUrl: managerDashUrl, buttonText: '✅ เปิดรายการรออนุมัติ (ผู้จัดการฝ่ายผลิต)',
+        }),
+      });
+    } catch (e) {
+      console.error('notifyBulkManagerPending error:', e);
+    }
+  }
+
+  async function loadReport() {
+    if (!recordId) return; // ไม่มี id ไม่เป็นไร — มี dashboard ให้เลือกรายการแทน
+    app.innerHTML = `<div class="center-msg"><div class="spinner"></div>กำลังโหลดรายงาน...</div>`;
+    const { data, error } = await sb.from('history').select('*').eq('id', recordId).single();
+    if (error || !data) {
+      app.innerHTML = `<div class="card center-msg">❌ ไม่พบรายงานนี้ในระบบ (อาจถูกลบไปแล้ว)</div>`;
+      return;
+    }
+    render(data);
+  }
+
+  function render(row) {
+    const items = row.items || [];
+    const okCount = items.filter(i => i.status === 'ok' || i.status === 'fixed').length;
+    const ngItems = items.filter(i => i.status === 'ng');
+    const stage = approvalStage(row);
+    const time = row.ts ? new Date(row.ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+
+    app.innerHTML = `
+      <div class="card">
+        <div class="jig-title">${esc(row.jig_name)}</div>
+        <div class="jig-sub">${esc(row.jig_id || '')}${row.jig_doc_no ? ' · ' + esc(row.jig_doc_no) : ''} · ${esc(row.dept_name)} &gt; ${esc(row.line_name)}</div>
+
+        <div class="meta-grid">
+          <div><span>วันที่:</span> ${esc(row.insp_date)}</div>
+          <div><span>เวลา:</span> ${esc(time)}</div>
+          <div><span>กะ:</span> ${esc(row.shift || '-')}</div>
+          <div><span>ผู้ตรวจ:</span> ${esc(row.inspector)}</div>
+        </div>
+
+        <span class="status-badge status-${stage.key}">${stage.label}</span>
+
+        <div class="kpi-row">
+          <div class="kpi kpi-ok"><b>${okCount}</b><span>ผ่าน (OK)</span></div>
+          <div class="kpi kpi-ng"><b>${ngItems.length}</b><span>ไม่ผ่าน (NG)</span></div>
+        </div>
+
+        ${row.gps_latitude ? `<a class="gps-link" target="_blank" href="https://maps.google.com/?q=${row.gps_latitude},${row.gps_longitude}">📍 เปิดตำแหน่ง GPS</a>` : ''}
+      </div>
+
+      ${ngItems.length ? `
+      <div class="card">
+        <div class="section-title">🔴 รายการที่ไม่ผ่าน (${ngItems.length})</div>
+        ${ngItems.map(i => `
+          <div class="item-row">
+            <div class="item-label">
+              ${esc(i.label)}
+              ${(i.pieces && i.pieces.length) ? `<div class="item-note">ผลแต่ละชิ้น: ${esc(pieceSummaryText(i))}</div>` : ''}
+              ${i.note ? `<div class="item-note">${esc(i.note)}</div>` : ''}
+            </div>
+            <div class="item-status st-ng">NG</div>
+          </div>
+        `).join('')}
+      </div>` : ''}
+
+      <div class="card">
+        <details>
+          <summary class="section-title" style="cursor:pointer;">📝 หัวข้อตรวจทั้งหมด (${items.length}) — แตะเพื่อดู</summary>
+          <div style="margin-top:8px;">
+            ${items.map(i => `
+              <div class="item-row">
+                <div class="item-label">${esc(i.label)}${(i.pieces && i.pieces.length) ? `<div class="item-note">${esc(pieceSummaryText(i))}</div>` : ''}</div>
+                <div class="item-status ${statusClass(i.status)}">${statusLabel(i.status)}</div>
+              </div>
+            `).join('')}
+          </div>
+        </details>
+      </div>
+
+      ${row.notes ? `
+      <div class="card">
+        <div class="section-title">💬 หมายเหตุจากผู้ตรวจสอบ</div>
+        <div style="font-size:13px;">${esc(row.notes)}</div>
+      </div>` : ''}
+
+      <div class="card" id="approval-card"></div>
+    `;
+
+    renderApprovalCard(row);
+  }
+
+  function renderApprovalCard(row) {
+    const box = document.getElementById('approval-card');
+    const stage = approvalStage(row);
+
+    if (stage.key === 'approved') {
+      // อนุมัติครบทั้ง 2 ขั้นตอนแล้ว
+      box.innerHTML = `
+        <div class="section-title">✅ สถานะการอนุมัติ</div>
+        <div class="approved-box">
+          👔 หัวหน้างาน: <strong>${esc(row.approved_by)}</strong> — ${row.approved_at ? new Date(row.approved_at).toLocaleString('th-TH') : '-'}
+          ${row.supervisor_comment ? `<br>💬 ${esc(row.supervisor_comment)}` : ''}
+          <br><br>
+          🏭 ผู้จัดการฝ่ายผลิต: <strong>${esc(row.manager_approved_by)}</strong> — ${row.manager_approved_at ? new Date(row.manager_approved_at).toLocaleString('th-TH') : '-'}
+          ${row.manager_comment ? `<br>💬 ${esc(row.manager_comment)}` : ''}
+        </div>
+      `;
+      return;
+    }
+
+    if (stage.key === 'partial') {
+      // หัวหน้างานตรวจสอบแล้ว — รอผู้จัดการฝ่ายผลิต (อนุมัติที่หน้า manager-approve.html)
+      box.innerHTML = `
+        <div class="section-title">✅ หัวหน้างานตรวจสอบแล้ว</div>
+        <div class="partial-box">
+          👔 ตรวจสอบโดย <strong>${esc(row.approved_by)}</strong><br>
+          เมื่อ ${row.approved_at ? new Date(row.approved_at).toLocaleString('th-TH') : '-'}
+          ${row.supervisor_comment ? `<br><br>💬 ความเห็น: ${esc(row.supervisor_comment)}` : ''}
+          <br><br>🔵 ขั้นต่อไป: รอผู้จัดการฝ่ายผลิตอนุมัติผ่านลิงก์ที่ส่งให้ทาง Telegram
+        </div>
+      `;
+      return;
+    }
+
+    box.innerHTML = `
+      <div class="section-title">✍️ ตรวจสอบรายงานนี้</div>
+      <label class="field-label">ชื่อผู้ตรวจสอบ (หัวหน้างาน)</label>
+      <input type="text" id="approver-name" placeholder="พิมพ์ชื่อ-นามสกุล" value="${_rememberedName ? escAttr(_rememberedName) : ''}">
+      <label class="field-label">PIN หัวหน้างาน</label>
+      <input type="password" id="approver-pin" placeholder="กรอก PIN เพื่อยืนยันตัวตน" inputmode="numeric" value="${_rememberedPin ? escAttr(_rememberedPin) : ''}">
+      <label class="field-label">ความเห็นเพิ่มเติม (ถ้ามี)</label>
+      <textarea id="approver-comment" placeholder="เช่น รับทราบ NG แล้ว ให้ทีมซ่อมเข้าแก้ไขภายในวันนี้"></textarea>
+      <button class="btn btn-approve" id="btn-approve">✅ ตรวจสอบรายงานนี้</button>
+      <div id="approve-msg" style="font-size:12px; color:var(--ng); margin-top:8px;"></div>
+      ${(_rememberedName || _rememberedPin) ? `<div style="text-align:center; margin-top:10px;"><a href="#" id="btn-reset-approver" style="font-size:12px; color:#6b7280;">ไม่ใช่ ${_rememberedName ? esc(_rememberedName) : 'คนนี้'}? เปลี่ยนผู้ใช้</a></div>` : ''}
+    `;
+
+    document.getElementById('btn-approve').addEventListener('click', () => approveReport(row));
+    const resetLink = document.getElementById('btn-reset-approver');
+    if (resetLink) resetLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      _rememberedName = null;
+      clearRememberedPin();
+      renderApprovalCard(row); // วาดฟอร์มใหม่ให้ช่องว่างเปล่าอีกครั้ง
+    });
+  }
+
+  async function approveReport(row) {
+    const nameEl = document.getElementById('approver-name');
+    const pinEl = document.getElementById('approver-pin');
+    const commentEl = document.getElementById('approver-comment');
+    const msgEl = document.getElementById('approve-msg');
+    const btn = document.getElementById('btn-approve');
+    const name = nameEl.value.trim();
+    const pin = pinEl.value.trim();
+
+    if (!name) {
+      msgEl.textContent = 'กรุณากรอกชื่อผู้ตรวจสอบก่อน';
+      nameEl.focus();
+      return;
+    }
+    if (!pin) {
+      msgEl.textContent = 'กรุณากรอก PIN หัวหน้างานก่อน';
+      pinEl.focus();
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก...';
+    msgEl.textContent = '';
+
+    const { data: ok, error } = await sb.rpc('approve_history_supervisor', {
+      p_id: row.id, p_pin: pin, p_name: name, p_comment: commentEl.value.trim() || null,
+    });
+
+    if (error) {
+      btn.disabled = false;
+      btn.textContent = '✅ ตรวจสอบรายงานนี้';
+      msgEl.textContent = 'บันทึกไม่สำเร็จ: ' + error.message;
+      return;
+    }
+    if (!ok) {
+      clearRememberedPin();
+      btn.disabled = false;
+      btn.textContent = '✅ ตรวจสอบรายงานนี้';
+      msgEl.textContent = 'PIN ไม่ถูกต้อง — บันทึกไม่สำเร็จ';
+      pinEl.value = '';
+      pinEl.focus();
+      return;
+    }
+    _rememberedPin = pin; // จำไว้ใช้ต่อกับรายการถัดไปในหน้านี้
+    _rememberedName = name;
+
+    row.approval_status = 'approved';
+    row.approved_by = name;
+    row.approved_at = new Date().toISOString();
+    row.supervisor_comment = commentEl.value.trim() || null;
+    renderApprovalCard(row);
+    document.querySelector('.status-badge').outerHTML = `<span class="status-badge status-partial">🔵 รอผู้จัดการฝ่ายผลิตอนุมัติ</span>`;
+
+    notifyManagerPending(row); // ยิงแจ้งเตือนไปหาผู้จัดการฝ่ายผลิต พร้อมลิงก์ไปอนุมัติขั้นที่ 2 — ไม่ต้องรอผล ไม่บล็อกหน้าจอ
+    loadDashboard(); // รีเฟรชภาพรวมด้านบนให้ตัวเลขอัปเดตทันที ไม่ต้องรอ reload หน้า
+  }
+
+  // ── แจ้งผู้จัดการฝ่ายผลิตให้เข้ามาอนุมัติต่อ (ขั้นที่ 2) หลังหัวหน้างานตรวจสอบแล้ว ──
+  async function notifyManagerPending(row) {
+    const items = row.items || [];
+    const okCount = items.filter(i => i.status === 'ok' || i.status === 'fixed').length;
+    const ngCount = items.filter(i => i.status === 'ng').length;
+    const time = row.ts ? new Date(row.ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+
+    const text = `
+📋 *Final Check Report*
+🔵 สถานะ: รอผู้จัดการฝ่ายผลิตอนุมัติ (ขั้นที่ 2)
+━━━━━━━━━━━━━━━━━━━━━━━━━
+*${esc(row.jig_name)}*
+${esc(row.jig_id || '')}
+${row.jig_doc_no ? `_${esc(row.jig_doc_no)}_` : ''}
+
+📅 วันที่ตรวจ: ${esc(row.insp_date)} เวลา ${esc(time)}
+👤 ผู้ตรวจ: ${esc(row.inspector)}
+🔍 จุดเช็คทั้งหมด: ${items.length} จุด
+✅ ผ่าน (OK): ${okCount}${ngCount > 0 ? `  ❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
+${ngListText(items)}
+✅ หัวหน้างานตรวจสอบแล้วโดย: ${esc(row.approved_by)}
+🕐 เมื่อ: ${new Date(row.approved_at).toLocaleString('th-TH')}
+${row.supervisor_comment ? `💬 ความเห็น: ${esc(row.supervisor_comment)}` : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
+    // ลิงก์หน้าอนุมัติของผู้จัดการฝ่ายผลิต — ใช้ path เดียวกับที่ deploy อยู่จริง
+    const managerUrl = window.location.href.replace(/approve\.html.*$/, '').replace(/\/?$/, '/')
+      + `manager-approve.html?id=${encodeURIComponent(row.id)}`;
+
+    try {
+      await fetch(TELEGRAM_FUNCTION_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          text, chatId: MANAGER_NOTIFY_CHAT_ID,
+          buttonUrl: managerUrl, buttonText: '✅ เปิดเพื่ออนุมัติ (ผู้จัดการฝ่ายผลิต)',
+        }),
+      });
+    } catch (e) {
+      console.error('notifyManagerPending error:', e);
+      // ไม่ต้องโชว์ error ให้หัวหน้างานเห็น — การตรวจสอบบันทึกลง DB สำเร็จแล้ว แค่แจ้งเตือนอาจพลาด
+    }
+  }
+
+  loadDashboard();
+  loadReport();
+
+  // รีเฟรชภาพรวมอัตโนมัติทุก 30 วิ — เพราะหน้างานตรวจ Part พร้อมกันหลายจุด ข้อมูลจะเข้ามาเรื่อยๆ
+  setInterval(loadDashboard, 30000);
+</script>
+</body>
+</html>
