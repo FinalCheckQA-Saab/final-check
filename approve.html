@@ -367,15 +367,15 @@
   function renderDashboard(rows) {
     const dash = document.getElementById('dashboard');
 
-    // จัดกลุ่มตาม กลุ่มชิ้นงาน นับ pending / approved
+    // จัดกลุ่มตาม Model นับ pending / approved
     const byLine = new Map();
     rows.forEach(r => {
-      const key = r.line_name || 'ไม่ระบุ กลุ่มชิ้นงาน';
+      const key = r.line_name || 'ไม่ระบุ Model';
       if (!byLine.has(key)) byLine.set(key, { pending: 0, approved: 0 });
       const g = byLine.get(key);
       if (r.approval_status === 'approved') g.approved++; else g.pending++;
     });
-    // เรียง กลุ่มชิ้นงาน ที่มีรอตรวจสอบเยอะสุดไว้บนสุด (สำคัญที่สุดก่อน)
+    // เรียง Model ที่มีรอตรวจสอบเยอะสุดไว้บนสุด (สำคัญที่สุดก่อน)
     const lineRows = Array.from(byLine.entries()).sort((a, b) => b[1].pending - a[1].pending);
 
     const totalPending = rows.filter(r => r.approval_status !== 'approved').length;
@@ -384,15 +384,15 @@
     const pendingList = rows.filter(r => r.approval_status !== 'approved')
       .map(r => ({ ...r, ngCount: (r.items || []).filter(i => i.status === 'ng').length }));
 
-    // จัดกลุ่มรายการรอตรวจสอบตาม กลุ่มชิ้นงาน — ภายในแต่ละ กลุ่มชิ้นงาน แยกเป็น "ไม่มี NG" (ตรวจสอบทีเดียวได้)
+    // จัดกลุ่มรายการรอตรวจสอบตาม Model — ภายในแต่ละ Model แยกเป็น "ไม่มี NG" (ตรวจสอบทีเดียวได้)
     // กับ "มี NG" (ต้องเปิดดูทีละรายการ)
     const pendingByLine = new Map();
     pendingList.forEach(r => {
-      const key = r.line_name || 'ไม่ระบุ กลุ่มชิ้นงาน';
+      const key = r.line_name || 'ไม่ระบุ Model';
       if (!pendingByLine.has(key)) pendingByLine.set(key, { clean: [], ng: [] });
       (r.ngCount === 0 ? pendingByLine.get(key).clean : pendingByLine.get(key).ng).push(r);
     });
-    // เรียง กลุ่มชิ้นงาน ที่มีรอตรวจสอบเยอะสุดไว้บนสุด
+    // เรียง Model ที่มีรอตรวจสอบเยอะสุดไว้บนสุด
     const pendingLineEntries = Array.from(pendingByLine.entries())
       .sort((a, b) => (b[1].clean.length + b[1].ng.length) - (a[1].clean.length + a[1].ng.length));
 
@@ -406,7 +406,7 @@
         <div style="font-size:11px;color:var(--muted);margin-top:6px;">ℹ️ หลังหัวหน้าตรวจสอบแล้ว ยังต้องรอผู้จัดการฝ่ายผลิตอนุมัติต่อ (ขั้นที่ 2) ก่อนจะถือว่าสมบูรณ์</div>
         ${lineRows.length ? `
         <table class="line-table">
-          <thead><tr><th>กลุ่มชิ้นงาน</th><th>รอตรวจสอบ</th><th>ตรวจสอบแล้ว</th></tr></thead>
+          <thead><tr><th>Model</th><th>รอตรวจสอบ</th><th>ตรวจสอบแล้ว</th></tr></thead>
           <tbody>
             ${lineRows.map(([name, g]) => `
               <tr>
@@ -473,7 +473,7 @@
 
   async function bulkApprove(lineName, ids, btn) {
     if (!ids.length) return;
-    const name = askName(`ยืนยันตรวจสอบทั้งหมด ${ids.length} รายการของ กลุ่มชิ้นงาน "${lineName}" (ไม่มี NG ทุกรายการ)\n\nกรุณาพิมพ์ชื่อผู้ตรวจสอบ:`);
+    const name = askName(`ยืนยันตรวจสอบทั้งหมด ${ids.length} รายการของ Model "${lineName}" (ไม่มี NG ทุกรายการ)\n\nกรุณาพิมพ์ชื่อผู้ตรวจสอบ:`);
     if (!name || !name.trim()) return;
     const approverName = _rememberedName;
     // ✅ SECURITY: ต้องกรอก PIN หัวหน้างานก่อนอนุมัติได้ — เช็คฝั่ง Supabase (RPC) เท่านั้น
@@ -514,7 +514,7 @@
 📋 *Final Check Report*
 🔵 สถานะ: รอผู้จัดการฝ่ายผลิตอนุมัติ (ขั้นที่ 2) — ตรวจสอบแบบกลุ่ม
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-🏭 กลุ่มชิ้นงาน: ${esc(lineName)}
+🏭 Model: ${esc(lineName)}
 📦 จำนวน: ${count} รายการ (ผ่านทั้งหมด ไม่มี NG)
 ✅ หัวหน้างานตรวจสอบแล้วโดย: ${esc(approverName)}
 🕐 เมื่อ: ${new Date().toLocaleString('th-TH')}

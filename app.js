@@ -1,6 +1,6 @@
 /* =====================================================
    Final Check Dashboard — app.js  v2
-   3-Level Filter (Dept → กลุ่มชิ้นงาน → Part) + Admin Panel
+   3-Level Filter (Dept → Model → Part) + Admin Panel
    ===================================================== */
 (function () {
   'use strict';
@@ -220,8 +220,8 @@
           x: row.x, 
           y: row.y,
           type: row.type || undefined,
-          min: row.min ?? undefined,   // ใช้ ?? แทน || — ไม่งั้นค่า 0 (เช่น 0–0.5) ถูกทิ้งเป็น undefined แล้วตรวจ min/max ผิด
-          max: row.max ?? undefined,
+          min: row.min || undefined,
+          max: row.max || undefined,
           unit: row.unit || undefined
         });
       });
@@ -546,7 +546,7 @@
   ══════════════════════════════════════ */
   let catalog = { depts: [], lines: [], jigs: [], templates: [] };
   // 🆕 แยกสถานะ "กำลังโหลด" ออกจาก "โหลดเสร็จแล้วแต่ไม่มีข้อมูลจริงๆ" — กันไม่ให้ข้อความ
-  // "ยังไม่มี Model" ขึ้นพร่ำเพรื่อระหว่างรอข้อมูลจาก Supabase ตอนเปิดแอปครั้งแรก
+  // "ยังไม่มี Line" ขึ้นพร่ำเพรื่อระหว่างรอข้อมูลจาก Supabase ตอนเปิดแอปครั้งแรก
   let catalogLoading = true;
   // ── ค่ากลางทั้งระบบ (ตาม ISO — Doc No. ของแบบฟอร์มตรวจ Part มีค่าเดียวทั้งบริษัท ไม่ผูกกับ Part ตัวไหน) ──
   // 🆕 companyNameTh/En/Logo — เว้นว่าง = ใช้ค่า default ของระบบ (ดู DEFAULT_COMPANY_* ด้านล่าง) เพื่อไม่ให้ deployment เดิม (Summit) พังตอนยังไม่ได้ตั้งค่า
@@ -700,14 +700,14 @@
     if (etype === 'dept') {
       const d = catalog.depts.find(x => x.id === id);
       if (!d) return;
-      const newName = prompt('แก้ไขชื่อ Model:', d.name);
+      const newName = prompt('แก้ไขชื่อ Line:', d.name);
       if (newName === null) return;
       if (!newName.trim()) { toast('ชื่อห้ามว่าง', 'ng'); return; }
       d.name = newName.trim();
     } else if (etype === 'line') {
       const l = catalog.lines.find(x => x.id === id);
       if (!l) return;
-      const newName = prompt('แก้ไขชื่อ กลุ่มชิ้นงาน:', l.name);
+      const newName = prompt('แก้ไขชื่อ Model:', l.name);
       if (newName === null) return;
       if (!newName.trim()) { toast('ชื่อห้ามว่าง', 'ng'); return; }
       l.name = newName.trim();
@@ -1186,14 +1186,14 @@
     $('inp-month').value = currentThaiMonthAbbr();
     $('inp-shift').value = 'กะ 1'; // ตั้งค่าเริ่มต้นเป็นกะ 1 ทุกครั้งที่เข้าโปรแกรม แต่ยังเลือกเปลี่ยนเป็นกะอื่นได้ตามปกติ
 
-    dbgLog('กำลังเรียก renderFilter() (แสดงรายการ Model/กลุ่มชิ้นงาน/Part)');
+    dbgLog('กำลังเรียก renderFilter() (แสดงรายการ Line/Model/Part)');
     renderFilter();
-    dbgLog('renderFilter() เสร็จแล้ว — ควรเห็นรายการ Model บนจอแล้ว ✅');
+    dbgLog('renderFilter() เสร็จแล้ว — ควรเห็นรายการ Line บนจอแล้ว ✅');
     hideBootLoading(); // 🆕 เนื้อหาหลักพร้อมแสดงแล้ว — ซ่อน boot loading screen (fade out)
     bindJigSearch();
     bindThemeToggle();
     bindAdminPanel();
-    bindUncheckedLinesPanel();   // 🆕 กลุ่มชิ้นงาน ที่ไม่มีการตรวจเช็คในแต่ละวัน (Admin Panel)
+    bindUncheckedLinesPanel();   // 🆕 Model ที่ไม่มีการตรวจเช็คในแต่ละวัน (Admin Panel)
     bindHolidayCalendarPanel();  // 🆕 ปฏิทินวันหยุด (Admin Panel)
     bindActionButtons();
     bindLightbox();
@@ -1228,7 +1228,7 @@
     if (!catalog.depts.length) {
       container.innerHTML = catalogLoading
         ? '<span class="chip-loading"><span class="chip-loading-spinner"></span>กำลังโหลดข้อมูล...</span>'
-        : '<span class="chip-empty">ยังไม่มี Model — ไปที่ Admin Panel เพื่อเพิ่ม หรือกด "โหลดข้อมูลทดสอบ"</span>';
+        : '<span class="chip-empty">ยังไม่มี Line — ไปที่ Admin Panel เพื่อเพิ่ม หรือกด "โหลดข้อมูลทดสอบ"</span>';
       return;
     }
     container.innerHTML = catalog.depts.map(d => {
@@ -1256,11 +1256,11 @@
     levelEl.classList.remove('hidden');
     const lines = catalog.lines.filter(l => l.deptId === selection.deptId);
     if (!lines.length) {
-      container.innerHTML = '<span class="chip-empty">ยังไม่มี กลุ่มชิ้นงาน ใน Model นี้</span>';
+      container.innerHTML = '<span class="chip-empty">ยังไม่มี Model ใน Line นี้</span>';
       return;
     }
-    // 🆕 นับจำนวน Part ที่ตรวจไปแล้ว "วันนี้" ต่อ กลุ่มชิ้นงาน — ไม่นับ Part ที่มาร์ค "ไม่ได้ผลิตวันนี้" เป็นตัวหาร
-    // (ใช้ตรรกะเดียวกับ "สถานะ กลุ่มชิ้นงาน วันนี้" ใน Dashboard เพื่อให้ตัวเลขตรงกันทั้งแอป)
+    // 🆕 นับจำนวน Part ที่ตรวจไปแล้ว "วันนี้" ต่อ Model — ไม่นับ Part ที่มาร์ค "ไม่ได้ผลิตวันนี้" เป็นตัวหาร
+    // (ใช้ตรรกะเดียวกับ "สถานะ Model วันนี้" ใน Dashboard เพื่อให้ตัวเลขตรงกันทั้งแอป)
     const t = todayStr();
     const skippedJigIds = new Set(loadJigSkips().filter(s => s.date === t).map(s => s.jigId));
     container.innerHTML = lines.map(l => {
@@ -1269,13 +1269,13 @@
       const totalJigs = lineJigs.length - skippedCount;
       const checkedCount = lineJigs.filter(j => !skippedJigIds.has(j.id) && getJigCheckedTodayInfo(j.id)).length;
       const sel = selection.lineId === l.id ? 'selected' : '';
-      // โชว์รหัส กลุ่มชิ้นงาน ต่อเมื่อไม่ซ้ำกับชื่อเท่านั้น (บาง กลุ่มชิ้นงาน ตั้งชื่อ = รหัสเป๊ะ โชว์ซ้ำ 2 บรรทัดไม่มีประโยชน์)
+      // โชว์รหัส Model ต่อเมื่อไม่ซ้ำกับชื่อเท่านั้น (บาง Model ตั้งชื่อ = รหัสเป๊ะ โชว์ซ้ำ 2 บรรทัดไม่มีประโยชน์)
       const codeHtml = l.id !== l.name ? `<span class="chip-code">${escHtml(l.id)}</span>` : '';
       const progressClass = totalJigs > 0 && checkedCount === totalJigs
         ? 'line-chip-count-full'
         : (checkedCount > 0 ? 'line-chip-count-partial' : '');
-      // 🆕 โชว์ตัวเลขในวงเล็บเสมอทุก กลุ่มชิ้นงาน เพื่อความสม่ำเสมอ (ไม่ใช่แค่ตอนมี Part ถูกมาร์ค
-      // "ไม่ได้ผลิตวันนี้" เหมือนเดิม) — วงเล็บ = จำนวน Part ทั้งหมดในกลุ่มชิ้นงานนั้นจริงๆ เทียบกับตัวหาร
+      // 🆕 โชว์ตัวเลขในวงเล็บเสมอทุก Model เพื่อความสม่ำเสมอ (ไม่ใช่แค่ตอนมี Part ถูกมาร์ค
+      // "ไม่ได้ผลิตวันนี้" เหมือนเดิม) — วงเล็บ = จำนวน Part ทั้งหมดใน Modelนั้นจริงๆ เทียบกับตัวหาร
       // ด้านหน้าที่ตัด Part ที่ไม่ได้ผลิตออกไปแล้ว ถ้าตัวเลขเท่ากันแปลว่าไม่มี Part ไหนถูกซ่อนไว้
       const countLabel = totalJigs > 0
         ? `${checkedCount}/${totalJigs} Part (${lineJigs.length})`
@@ -1304,7 +1304,7 @@
     levelEl.classList.remove('hidden');
     const allJigs = catalog.jigs.filter(j => j.lineId === selection.lineId);
     if (!allJigs.length) {
-      container.innerHTML = '<span class="chip-empty">ยังไม่มี Part ใน กลุ่มชิ้นงาน นี้</span>';
+      container.innerHTML = '<span class="chip-empty">ยังไม่มี Part ใน Model นี้</span>';
       banner.classList.add('hidden');
       return;
     }
@@ -1974,7 +1974,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 
       await sendTelegramMessage(telegramMsg, approveUrl, '✅ เปิดเพื่อตรวจสอบ');
 
-      // 🆕 กลับไปหน้า "เลือก กลุ่มชิ้นงาน" ทันทีหลังบันทึกสำเร็จ — ตามที่พี่บีขอ
+      // 🆕 กลับไปหน้า "เลือก Model" ทันทีหลังบันทึกสำเร็จ — ตามที่พี่บีขอ
       // กันปัญหาคนหน้างานกดบันทึกซ้ำที่ฟอร์มเดิม (ทำให้ประวัติซ้ำ) เพราะฟอร์มนี้จะถูกซ่อนไปเลย
       // ต้องเลือก Part ใหม่ทั้งกระบวนการถึงจะกดบันทึกได้อีกครั้ง
       selection.lineId = null;
@@ -2010,8 +2010,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           'วันที่': h.date || '',
           'เวลา': h.timestamp ? new Date(h.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '',
           'กะ': h.shift || '',
-          'Model': h.deptName || '',
-          'กลุ่มชิ้นงาน': h.lineName || '',
+          'Line': h.deptName || '',
+          'Model': h.lineName || '',
           'Part': h.jigName || '',
           'รหัส Part (Part No.)': h.jigId || '',
           'Run No.': h.jigDocNo || '',
@@ -2038,7 +2038,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
             ngRows.push({
               'วันที่': h.date || '',
               'Part': h.jigName || '',
-              'กลุ่มชิ้นงาน': h.lineName || '',
+              'Model': h.lineName || '',
               'หัวข้อที่ไม่ผ่าน': item.label || '',
               'ค่าที่วัดได้ (ชิ้น 1/2/3)': pieceSummaryText(item),
               'หมายเหตุ NG': item.note || '',
@@ -2068,7 +2068,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     }
   }
 
-  // ── Export Master List: รวม Run No. ของ Part ทุกตัวในระบบ จัดกลุ่มตาม Model/กลุ่มชิ้นงาน ──
+  // ── Export Master List: รวม Run No. ของ Part ทุกตัวในระบบ จัดกลุ่มตาม Line/Model ──
   // ใช้สำหรับ Document Control ตามระบบ ISO/IATF — ดึงจาก catalog สดเสมอ (ไม่ใช่จากประวัติการตรวจ)
   // หมายเหตุ: Doc No. ของแบบฟอร์มตรวจ Part มีค่าเดียวทั้งบริษัท (ตั้งค่าที่ "ตั้งค่าเอกสารกลาง") เลยไม่ใส่ในตารางนี้ต่อแถว
   // 🆕 คำนวณค่าเอกสาร "ที่ใช้จริง" ของ Part ตัวนี้ — ถ้า Part กำหนด override ไว้ใช้ค่านั้น
@@ -2105,8 +2105,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       const eff = effectiveJigDocFields(j);
       return {
         'No.': i + 1,
-        'Model': dept ? dept.name : '',
-        'กลุ่มชิ้นงาน': line ? line.name : (j.lineId || ''),
+        'Line': dept ? dept.name : '',
+        'Model': line ? line.name : (j.lineId || ''),
         'ชื่อชิ้นงาน': j.name,
         'รหัส Part (Part No.)': j.id,
         'Run No.': j.docNo && j.docNo.trim() ? j.docNo.trim() : '⚠️ ยังไม่กำหนด',
@@ -2551,7 +2551,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       if (admLoggedIn) {
         openPanel('admin-panel');
         if (_adminSessionPass) { renderStaffAccountList(); renderLoginLogList(); }
-        renderUncheckedLinesReport();   // 🆕 กลุ่มชิ้นงาน ที่ไม่มีการตรวจเช็คในแต่ละวัน
+        renderUncheckedLinesReport();   // 🆕 Model ที่ไม่มีการตรวจเช็คในแต่ละวัน
       }
       else {
         $('admin-login-modal').classList.remove('hidden');
@@ -2580,7 +2580,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           _adminSessionPass = pass; // เก็บไว้ใน memory ใช้แนบ RPC (โหมด local ไม่มี RPC จริงอยู่แล้ว แต่ตั้งไว้ให้ครบ flow)
           $('admin-login-modal').classList.add('hidden');
           openPanel('admin-panel');
-          renderUncheckedLinesReport();   // 🆕 กลุ่มชิ้นงาน ที่ไม่มีการตรวจเช็คในแต่ละวัน
+          renderUncheckedLinesReport();   // 🆕 Model ที่ไม่มีการตรวจเช็คในแต่ละวัน
           toast('เข้าสู่ระบบสำเร็จ (local mode)', 'ok');
         } else {
           toast('รหัสผ่านไม่ถูกต้อง', 'ng');
@@ -2613,7 +2613,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           localStorage.setItem('fc_admin_user', username);
           $('admin-login-modal').classList.add('hidden');
           openPanel('admin-panel');
-          renderUncheckedLinesReport();   // 🆕 กลุ่มชิ้นงาน ที่ไม่มีการตรวจเช็คในแต่ละวัน
+          renderUncheckedLinesReport();   // 🆕 Model ที่ไม่มีการตรวจเช็คในแต่ละวัน
           toast(`เข้าสู่ระบบสำเร็จ (${username})`, 'ok');
         } else {
           toast('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'ng');
@@ -2700,28 +2700,28 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     $('btn-adm-dept').addEventListener('click', () => {
       const id   = $('adm-dept-id').value.trim().toUpperCase();
       const name = $('adm-dept-name').value.trim();
-      if (!id || !name) { toast('กรุณากรอกรหัสและชื่อ Model', 'ng'); return; }
+      if (!id || !name) { toast('กรุณากรอกรหัสและชื่อ Line', 'ng'); return; }
       if (catalog.depts.find(d => d.id === id)) { toast(`รหัส ${id} มีแล้ว`, 'ng'); return; }
       catalog.depts.push({ id, name });
       saveCatalog();
       $('adm-dept-id').value = ''; $('adm-dept-name').value = '';
       renderAdminLists(); renderFilter();
-      toast(`เพิ่ม Model "${name}" สำเร็จ`, 'ok');
+      toast(`เพิ่ม Line "${name}" สำเร็จ`, 'ok');
     });
 
-    /* Add กลุ่มชิ้นงาน */
+    /* Add Model */
     $('btn-adm-line').addEventListener('click', () => {
       const deptId = $('adm-line-dept').value;
       const id     = $('adm-line-id').value.trim();
       const name   = $('adm-line-name').value.trim();
-      if (!deptId) { toast('กรุณาเลือก Model', 'ng'); return; }
-      if (!id || !name) { toast('กรุณากรอกรหัสและชื่อ กลุ่มชิ้นงาน', 'ng'); return; }
+      if (!deptId) { toast('กรุณาเลือก Line', 'ng'); return; }
+      if (!id || !name) { toast('กรุณากรอกรหัสและชื่อ Model', 'ng'); return; }
       if (catalog.lines.find(l => l.id === id)) { toast(`รหัส ${id} มีแล้ว`, 'ng'); return; }
       catalog.lines.push({ id, deptId, name });
       saveCatalog();
       $('adm-line-id').value = ''; $('adm-line-name').value = '';
       renderAdminLists(); renderFilter();
-      toast(`เพิ่ม กลุ่มชิ้นงาน "${name}" สำเร็จ`, 'ok');
+      toast(`เพิ่ม Model "${name}" สำเร็จ`, 'ok');
     });
 
     /* Add Part */
@@ -2731,7 +2731,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       const id     = $('adm-jig-id').value.trim().toUpperCase();
       const name   = $('adm-jig-name').value.trim();
       const docNo  = $('adm-jig-docno').value.trim(); // Run No. — เลขประจำตัว Part ตัวนี้ตายตัว (ตามเอกสารกระดาษเดิม เช่น SL-RG01-002) กรอกเองอิสระ แก้ไข/ลบได้ตลอด
-      if (!lineId) { toast('กรุณาเลือก กลุ่มชิ้นงาน', 'ng'); return; }
+      if (!lineId) { toast('กรุณาเลือก Model', 'ng'); return; }
       if (!id || !name) { toast('กรุณากรอกรหัสและชื่อชิ้นงาน', 'ng'); return; }
       if (catalog.jigs.find(j => j.id === id)) { toast(`รหัส ${id} มีแล้ว`, 'ng'); return; }
       catalog.jigs.push({ id, lineId, name, docNo, bgImage: null, checkpoints: [] });
@@ -2745,7 +2745,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     $('adm-jig-dept').addEventListener('change', () => {
       const deptId = $('adm-jig-dept').value;
       const lines  = catalog.lines.filter(l => l.deptId === deptId);
-      $('adm-jig-line').innerHTML = '<option value="">กลุ่มชิ้นงาน</option>' +
+      $('adm-jig-line').innerHTML = '<option value="">Model</option>' +
         lines.map(l => `<option value="${escHtml(l.id)}">${escHtml(l.name)}</option>`).join('');
     });
 
@@ -2973,7 +2973,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           && roundTrip.lines.length === catalog.lines.length
           && roundTrip.depts.length === catalog.depts.length;
         if (ok) {
-          toast(`✅ บันทึกข้อมูลทั้งหมดแล้ว (${catalog.depts.length} Model, ${catalog.lines.length} กลุ่มชิ้นงาน, ${catalog.jigs.length} Part)`, 'ok');
+          toast(`✅ บันทึกข้อมูลทั้งหมดแล้ว (${catalog.depts.length} Line, ${catalog.lines.length} Model, ${catalog.jigs.length} Part)`, 'ok');
           btn.textContent = '✅ บันทึกแล้ว';
         } else {
           toast('บันทึกไม่สำเร็จ — พื้นที่จัดเก็บอาจเต็ม กรุณาลองใหม่', 'ng');
@@ -3448,7 +3448,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     });
   }
 
-  /* ── กรองรายการ Part ตามคำค้นหา (ชื่อ/รหัส/กลุ่มชิ้นงาน) — ซ่อนแถวที่ไม่ตรง และซ่อนหัวข้อกลุ่มถ้าไม่เหลือ Part ที่ตรงในกลุ่มนั้น ── */
+  /* ── กรองรายการ Part ตามคำค้นหา (ชื่อ/รหัส/Model) — ซ่อนแถวที่ไม่ตรง และซ่อนหัวข้อกลุ่มถ้าไม่เหลือ Part ที่ตรงในกลุ่มนั้น ── */
   function filterJigList() {
     const searchInput = $('adm-jig-search');
     if (!searchInput) return;
@@ -3483,9 +3483,9 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
             <button class="adm-item-edit" data-etype="dept" data-id="${escHtml(d.id)}" title="แก้ไข">${ico(ICO_EDIT_P)}</button>
             <button class="adm-item-del" data-dtype="dept" data-id="${escHtml(d.id)}" title="ลบ">${ico(ICO_TRASH_P)}</button>
           </div>`).join('')
-      : '<div class="adm-item" style="color:var(--text-muted);font-style:italic">ยังไม่มี Model</div>';
+      : '<div class="adm-item" style="color:var(--text-muted);font-style:italic">ยังไม่มี Line</div>';
 
-    /* กลุ่มชิ้นงาน list */
+    /* Model list */
     $('adm-line-list').innerHTML = catalog.lines.length
       ? catalog.lines.map(l => {
           const dept = catalog.depts.find(d => d.id === l.deptId);
@@ -3497,23 +3497,23 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
             <button class="adm-item-edit" data-etype="line" data-id="${escHtml(l.id)}" title="แก้ไข">${ico(ICO_EDIT_P)}</button>
             <button class="adm-item-del" data-dtype="line" data-id="${escHtml(l.id)}" title="ลบ">${ico(ICO_TRASH_P)}</button>
           </div>`;}).join('')
-      : '<div class="adm-item" style="color:var(--text-muted);font-style:italic">ยังไม่มี กลุ่มชิ้นงาน</div>';
+      : '<div class="adm-item" style="color:var(--text-muted);font-style:italic">ยังไม่มี Model</div>';
 
-    /* Part list — จัดกลุ่มตาม กลุ่มชิ้นงาน และรองรับค้นหา (จำเป็นเมื่อมี Part หลายร้อยตัว) */
+    /* Part list — จัดกลุ่มตาม Model และรองรับค้นหา (จำเป็นเมื่อมี Part หลายร้อยตัว) */
     if (!catalog.jigs.length) {
       $('adm-jig-list').innerHTML = '<div class="adm-item" style="color:var(--text-muted);font-style:italic">ยังไม่มี Part</div>';
     } else {
       const jigsSorted = [...catalog.jigs].sort((a, b) => {
         const la = catalog.lines.find(l => l.id === a.lineId);
         const lb = catalog.lines.find(l => l.id === b.lineId);
-        return (la ? la.name : 'ไม่ระบุ กลุ่มชิ้นงาน').localeCompare(lb ? lb.name : 'ไม่ระบุ กลุ่มชิ้นงาน', 'th');
+        return (la ? la.name : 'ไม่ระบุ Model').localeCompare(lb ? lb.name : 'ไม่ระบุ Model', 'th');
       });
       let html = '', lastLineId = '\u0000';
       jigsSorted.forEach(j => {
         const line = catalog.lines.find(l => l.id === j.lineId);
         const groupKey = j.lineId || '__none__';
         if (groupKey !== lastLineId) {
-          html += `<div class="adm-group-header" data-group="${escHtml(groupKey)}">${ico(ICO_PIN_P)} ${escHtml(line ? line.name : 'ไม่ระบุ กลุ่มชิ้นงาน')}</div>`;
+          html += `<div class="adm-group-header" data-group="${escHtml(groupKey)}">${ico(ICO_PIN_P)} ${escHtml(line ? line.name : 'ไม่ระบุ Model')}</div>`;
           lastLineId = groupKey;
         }
         const searchText = `${j.name} ${j.id} ${j.docNo || ''} ${line ? line.name : ''}`.toLowerCase();
@@ -3550,18 +3550,18 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     }
 
     /* Refresh selects in admin */
-    $('adm-line-dept').innerHTML = '<option value="">เลือก Model</option>' +
+    $('adm-line-dept').innerHTML = '<option value="">เลือก Line</option>' +
       catalog.depts.map(d => `<option value="${escHtml(d.id)}">${escHtml(d.name)}</option>`).join('');
-    $('adm-jig-dept').innerHTML = '<option value="">Model</option>' +
+    $('adm-jig-dept').innerHTML = '<option value="">Line</option>' +
       catalog.depts.map(d => `<option value="${escHtml(d.id)}">${escHtml(d.name)}</option>`).join('');
-    $('adm-jig-line').innerHTML = '<option value="">กลุ่มชิ้นงาน</option>';
+    $('adm-jig-line').innerHTML = '<option value="">Model</option>';
     
     // Checkpoints editor dropdown — เก็บค่าที่เลือกอยู่ไว้ก่อน แล้วใส่กลับหลัง re-render
     // (ป้องกันปัญหา: realtime sync เรียก renderAdminLists() แทรกกลางคันตอนแก้ไขจุดตรวจ
     //  แล้ว dropdown รีเซ็ตเป็นค่าว่าง ทำให้ user ต้องเลือก Part ใหม่)
     const cpJigSel = $('adm-cp-jig');
     const prevCpJig = cpJigSel.value;
-    // จัดกลุ่ม Part ตาม กลุ่มชิ้นงาน (แสดงเป็น "Model › กลุ่มชิ้นงาน") เพื่อให้หาง่ายขึ้นตอน Part เยอะๆ
+    // จัดกลุ่ม Part ตาม Model (แสดงเป็น "Line › Model") เพื่อให้หาง่ายขึ้นตอน Part เยอะๆ
     const jigsByLine = new Map(); // lineId -> jigs[]
     const orphanJigs = [];
     catalog.jigs.forEach(j => {
@@ -3583,7 +3583,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         `</optgroup>`;
     });
     if (orphanJigs.length) {
-      cpJigOptionsHtml += `<optgroup label="อื่นๆ (ไม่มี กลุ่มชิ้นงาน)">` +
+      cpJigOptionsHtml += `<optgroup label="อื่นๆ (ไม่มี Model)">` +
         orphanJigs.map(j => `<option value="${escHtml(j.id)}">${escHtml(j.id)} - ${escHtml(j.name)}</option>`).join('') +
         `</optgroup>`;
     }
@@ -3662,7 +3662,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     $('btn-bulk-clear').addEventListener('click', () => { _histSelected.clear(); populateHistoryPanel(); });
   }
 
-  // 🆕 เติม dropdown "กลุ่มชิ้นงาน" — ถ้าเลือก Model ไว้แล้ว จะโชว์เฉพาะ กลุ่มชิ้นงาน ใน Model นั้น (cascading เหมือนหน้าเลือกชิ้นงาน)
+  // 🆕 เติม dropdown "Model" — ถ้าเลือก Line ไว้แล้ว จะโชว์เฉพาะ Model ใน Line นั้น (cascading เหมือนหน้าเลือกชิ้นงาน)
   function populateHistLineOptions() {
     const lineSel = $('hf-line');
     const prevVal = lineSel.value;
@@ -3764,7 +3764,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     } else if (autosavedCount && downloadedCount) {
       toast(`✅ Export PDF ครบ ${recs.length} ไฟล์ — บันทึกลงโฟลเดอร์ ${autosavedCount} ไฟล์ / ดาวน์โหลดปกติ ${downloadedCount} ไฟล์`, 'ok');
     } else if (autosavedCount) {
-      toast(`✅ Export PDF ครบ ${recs.length} ไฟล์ → บันทึกลงโฟลเดอร์ "📁 ${autosaveDirHandle.name}" ทั้งหมด (แยก subfolder ตามชื่อ กลุ่มชิ้นงาน)`, 'ok');
+      toast(`✅ Export PDF ครบ ${recs.length} ไฟล์ → บันทึกลงโฟลเดอร์ "📁 ${autosaveDirHandle.name}" ทั้งหมด (แยก subfolder ตามชื่อ Model)`, 'ok');
     } else {
       toast(`✅ Export PDF ครบ ${recs.length} ไฟล์ (ดาวน์โหลดไปที่ Downloads ตามปกติ)`, 'ok');
     }
@@ -4146,14 +4146,14 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           </div>
         </div>
 
-        <!-- ── SCOPE: Dept / กลุ่มชิ้นงาน / Part No. ── -->
+        <!-- ── SCOPE: Dept / Model / Part No. ── -->
         <div class="pdf-scope-block">
           <div class="pdf-scope-cell">
-            <div class="pdf-scope-label">Model / Model</div>
+            <div class="pdf-scope-label">Line / Line</div>
             <div class="pdf-scope-value">${escHtml(record.deptName || '—')}</div>
           </div>
           <div class="pdf-scope-cell">
-            <div class="pdf-scope-label">Production กลุ่มชิ้นงาน / กลุ่มชิ้นงาน</div>
+            <div class="pdf-scope-label">Production Model / Model</div>
             <div class="pdf-scope-value">${escHtml(record.lineName || '—')}</div>
           </div>
           <div class="pdf-scope-cell">
@@ -4257,8 +4257,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 
   /* ══════════════════════════════════════
      PDF AUTO-SAVE TO LOCAL FOLDER (File System Access API)
-     — เลือกโฟลเดอร์หลักครั้งเดียว ระบบจะสร้าง subfolder ตามชื่อ กลุ่มชิ้นงาน
-       ให้อัตโนมัติ (เช่น เลือก Part ของ กลุ่มชิ้นงาน "Beam" → เซฟลง .../Beam/)
+     — เลือกโฟลเดอร์หลักครั้งเดียว ระบบจะสร้าง subfolder ตามชื่อ Model
+       ให้อัตโนมัติ (เช่น เลือก Part ของ Model "Beam" → เซฟลง .../Beam/)
        แล้วเซฟไฟล์ PDF ลงไปโดยไม่มี dialog ถามซ้ำอีกในครั้งถัดไป
      — รองรับเฉพาะ Chrome / Edge (Chromium) บนคอมพิวเตอร์เท่านั้น
        ถ้า browser ไม่รองรับ หรือยังไม่ได้ตั้งค่า จะ fallback ไปดาวน์โหลดไฟล์แบบปกติ
@@ -4330,7 +4330,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     return (name || '').toString().trim()
       .replace(/[\\/:*?"<>|]/g, '-')
       .replace(/\s+/g, ' ')
-      .slice(0, 80) || 'ไม่ระบุกลุ่มชิ้นงาน';
+      .slice(0, 80) || 'ไม่ระบุ Model';
   }
   // กันชื่อไฟล์ PDF มีอักขระที่ระบบไฟล์ไม่รับ — สำคัญมากเพราะรหัส Part บางตัวมี "/" อยู่ในตัวเอง
   // (เช่น "7552712620/2640/2660/2680") ถ้าไม่กรองก่อน getFileHandle() ของ File System Access API
@@ -4355,7 +4355,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       autosaveDirHandle = handle;
       await idbSet(AUTOSAVE_KEY, handle);
       updateAutoSaveFolderUI();
-      toast(`✅ ตั้งค่าโฟลเดอร์บันทึก PDF อัตโนมัติแล้ว: "${handle.name}" (PDF จะแยกเก็บเป็น subfolder ตามชื่อ กลุ่มชิ้นงาน)`, 'ok');
+      toast(`✅ ตั้งค่าโฟลเดอร์บันทึก PDF อัตโนมัติแล้ว: "${handle.name}" (PDF จะแยกเก็บเป็น subfolder ตามชื่อ Model)`, 'ok');
     } catch (e) {
       if (e && e.name === 'AbortError') return; // ผู้ใช้กดยกเลิก dialog เฉยๆ
       console.error('chooseAutoSaveFolder error:', e);
@@ -4413,7 +4413,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       statusEl.textContent = '⚠️ ต้องกดยืนยันสิทธิ์อีกครั้ง (browser รีเซ็ตสิทธิ์เมื่อเปิดแท็บ/รีสตาร์ท browser ใหม่)';
       if (btnConfirm) btnConfirm.style.display = 'inline-flex';
     } else {
-      statusEl.textContent = '✅ พร้อมใช้งาน — PDF จะถูกบันทึกลง subfolder ตามชื่อ กลุ่มชิ้นงาน อัตโนมัติ';
+      statusEl.textContent = '✅ พร้อมใช้งาน — PDF จะถูกบันทึกลง subfolder ตามชื่อ Model อัตโนมัติ';
       if (btnConfirm) btnConfirm.style.display = 'none';
     }
   }
@@ -4518,7 +4518,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       }
 
       // ── บันทึกไฟล์: ถ้าตั้งค่าโฟลเดอร์อัตโนมัติไว้ (และได้สิทธิ์) จะเซฟลง subfolder
-      //    ตามชื่อ กลุ่มชิ้นงาน ให้เองแบบเงียบๆ ไม่มี dialog ถาม — ถ้าไม่ได้ตั้งค่า หรือเซฟอัตโนมัติ
+      //    ตามชื่อ Model ให้เองแบบเงียบๆ ไม่มี dialog ถาม — ถ้าไม่ได้ตั้งค่า หรือเซฟอัตโนมัติ
       //    ไม่สำเร็จ (เช่นสิทธิ์หลุด) จะ fallback ไปดาวน์โหลดไฟล์แบบปกติแทน
       let autosaved = false;
       if (autosaveDirHandle) {
@@ -4835,8 +4835,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
   ══════════════════════════════════════ */
   function bindTabNav() {
     const HEADER_BY_TAB = {
-      inspect:   { title: 'ใบรายงานการตรวจสอบขั้นสุดท้าย (Final Check)', sub: 'เลือก Model &rarr; กลุ่มชิ้นงาน &rarr; Part เพื่อเริ่มตรวจสอบ' },
-      dashboard: { title: 'Dashboard ภาพรวมการตรวจสอบ', sub: 'สรุปผลการตรวจสอบ Part ทั้งหมด แยกตามเดือนและ กลุ่มชิ้นงาน' },
+      inspect:   { title: 'ใบรายงานการตรวจสอบขั้นสุดท้าย (Final Check)', sub: 'เลือก Line &rarr; Model &rarr; Part เพื่อเริ่มตรวจสอบ' },
+      dashboard: { title: 'Dashboard ภาพรวมการตรวจสอบ', sub: 'สรุปผลการตรวจสอบ Part ทั้งหมด แยกตามเดือนและ Model' },
     };
     document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -4861,8 +4861,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
   let charts = {};
   const currentYearMonth = () => new Date().toISOString().slice(0, 7); // 'YYYY-MM'
   let dashMonthFilter = currentYearMonth(); // ⚠️ FIX: default เป็นเดือนปัจจุบัน (เดิมเป็น 'all') — ยังเปลี่ยนเป็นเดือนอื่นหรือ "ทั้งหมด" ได้ตามปกติ
-  let dashLineFilter  = 'all'; // 'all' หรือ line id — ใช้กรอง Dashboard ให้ดูได้เฉพาะ กลุ่มชิ้นงาน ที่เลือก
-  let _dashKpiHist = []; // 🆕 เก็บ hist (ที่ผ่านตัวกรองเดือน/กลุ่มชิ้นงาน แล้ว) ไว้ให้ modal "รายการ NG ทั้งหมด" ใช้ตัวเลขตรงกับการ์ด KPI เป๊ะๆ
+  let dashLineFilter  = 'all'; // 'all' หรือ line id — ใช้กรอง Dashboard ให้ดูได้เฉพาะ Model ที่เลือก
+  let _dashKpiHist = []; // 🆕 เก็บ hist (ที่ผ่านตัวกรองเดือน/Model แล้ว) ไว้ให้ modal "รายการ NG ทั้งหมด" ใช้ตัวเลขตรงกับการ์ด KPI เป๊ะๆ
 
   // ตัวแปรสี CSS ในระบบนี้เป็นรูปแบบ hsl(H, S%, L%) — การต่อ '22'/'aa'/'cc' ท้ายสตริง
   // (แบบ hex alpha) ทำให้ได้ค่าสีที่ผิดรูปแบบ เช่น "hsl(145, 65%, 45%)22" ซึ่ง Canvas/Chart.js
@@ -4963,7 +4963,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       dashLineFilter = e.target.value;
       refreshDashboard();
     });
-    // 🆕 คลิกการ์ด KPI "รายการ NG ทั้งหมด" → เปิด modal ดูรายละเอียดทุกรายการ (ตรงกับตัวกรองเดือน/กลุ่มชิ้นงาน ปัจจุบัน)
+    // 🆕 คลิกการ์ด KPI "รายการ NG ทั้งหมด" → เปิด modal ดูรายละเอียดทุกรายการ (ตรงกับตัวกรองเดือน/Model ปัจจุบัน)
     $('kpi-ng').addEventListener('click', openNgListModal);
     $('btn-ng-list-modal-close').addEventListener('click', closeNgListModal);
     $('ng-list-modal').addEventListener('click', (e) => { if (e.target.id === 'ng-list-modal') closeNgListModal(); });
@@ -4975,7 +4975,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
      ลากสลับตำแหน่ง 7 การ์ด/บล็อกใน Dashboard ได้ตามใจชอบ — จับที่ไอคอน ⠿ (.drag-handle)
      เท่านั้น ไม่ใช่ทั้งการ์ด กันชนกับการ scroll ด้วยนิ้วบนมือถือ/แท็บเล็ตหน้างาน
      บันทึกลำดับไว้เฉพาะเครื่อง/เบราว์เซอร์นั้น (localStorage) — คนอื่นไม่ถูกกระทบ
-     "สถานะ กลุ่มชิ้นงาน วันนี้" และแถบตัวกรองเดือน/กลุ่มชิ้นงาน ด้านบนสุดตรึงตำแหน่งไว้เสมอ ไม่รวมอยู่ในนี้
+     "สถานะ Model วันนี้" และแถบตัวกรองเดือน/Model ด้านบนสุดตรึงตำแหน่งไว้เสมอ ไม่รวมอยู่ในนี้
   ══════════════════════════════════════ */
   const DASH_ORDER_KEY = 'fc_dashboard_order_v1';
   // ลำดับเริ่มต้น (ค่าที่ออกแบบไว้แต่แรก) ใช้ตอน "รีเซ็ตเป็นค่าเริ่มต้น" หรือตอนที่ localStorage
@@ -5010,7 +5010,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     const blocks = {};
     container.querySelectorAll(':scope > .dash-block').forEach(el => { blocks[el.dataset.blockId] = el; });
     order.forEach(id => { if (blocks[id]) container.appendChild(blocks[id]); });
-    // 🆕 appendChild ข้างบนจะดัน .dash-filter-row (แถบ filter เดือน/กลุ่มชิ้นงาน/นาฬิกา ที่ย้ายมาอยู่ในนี้)
+    // 🆕 appendChild ข้างบนจะดัน .dash-filter-row (แถบ filter เดือน/Model/นาฬิกา ที่ย้ายมาอยู่ในนี้)
     //    ไปค้างอยู่บนสุดโดยไม่ตั้งใจ — ย้ายกลับมาไว้หลังบล็อกแรกเสมอ (ใต้การ์ดที่อยู่บนสุด ไม่ว่าจะลากสลับเป็นใบไหน)
     const filterRow = container.querySelector(':scope > .dash-filter-row');
     const firstBlock = blocks[order[0]];
@@ -5075,7 +5075,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 
   /* ══════════════════════════════════════
      Part SKIP — มาร์ค Part ว่า "ไม่ได้ผลิตวันนี้" (ผู้ตรวจมาร์คเองได้ที่หน้าเลือก Part)
-     ใช้ตัดออกจากตัวหารตอนคำนวณ % ตรวจครบของ กลุ่มชิ้นงาน — รีเซ็ตทุกเช้าอัตโนมัติ (เก็บแยกตามวันที่)
+     ใช้ตัดออกจากตัวหารตอนคำนวณ % ตรวจครบของ Model — รีเซ็ตทุกเช้าอัตโนมัติ (เก็บแยกตามวันที่)
   ══════════════════════════════════════ */
   const JIG_SKIPS_KEY = 'fc_skips_v1';
   const todayStr = () => localDateStr();
@@ -5215,7 +5215,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
      LINE ที่ไม่มีการตรวจเช็คในแต่ละวัน (Admin Panel)
      ดึงผ่าน RPC get_unchecked_lines(p_from, p_to) — คำนวณฝั่งเซิร์ฟเวอร์ทั้งหมด
      (ดู add_unchecked_lines_report.sql) ไม่ดาวน์โหลด history เต็มแถว/รูปถ่ายมาไล่เช็คฝั่ง browser
-     เกณฑ์: กลุ่มชิ้นงาน ที่ "ไม่ตรวจเลยสักจุด" ในวันนั้น (ไม่นับ Part ที่มาร์คไม่ได้ผลิตออก)
+     เกณฑ์: Model ที่ "ไม่ตรวจเลยสักจุด" ในวันนั้น (ไม่นับ Part ที่มาร์คไม่ได้ผลิตออก)
   ══════════════════════════════════════ */
   async function renderUncheckedLinesReport() {
     const listEl = $('adm-uncl-list');
@@ -5238,11 +5238,11 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 
       const rows = data || [];
       if (!rows.length) {
-        listEl.innerHTML = '<span class="chip-empty">✅ ไม่พบ กลุ่มชิ้นงาน ที่ขาดการตรวจในช่วงที่เลือก</span>';
+        listEl.innerHTML = '<span class="chip-empty">✅ ไม่พบ Model ที่ขาดการตรวจในช่วงที่เลือก</span>';
         return;
       }
 
-      // ── Top offenders — นับจำนวนวันที่ขาดตรวจต่อ กลุ่มชิ้นงาน ในช่วงที่เลือก เรียงมากไปน้อย โชว์ 5 อันดับแรก ──
+      // ── Top offenders — นับจำนวนวันที่ขาดตรวจต่อ Model ในช่วงที่เลือก เรียงมากไปน้อย โชว์ 5 อันดับแรก ──
       const countByLine = {};
       rows.forEach(r => { countByLine[r.line_id] = (countByLine[r.line_id] || 0) + 1; });
       const ranked = Object.entries(countByLine).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -5258,15 +5258,15 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
               <span class="uncl-top-count">ขาด ${count} วัน</span>
             </div>`;
         }).join('');
-        topEl.innerHTML = `<div class="adm-uncl-top-title">⚠️ กลุ่มชิ้นงาน ที่ขาดตรวจบ่อยสุด</div>${items}`;
+        topEl.innerHTML = `<div class="adm-uncl-top-title">⚠️ Model ที่ขาดตรวจบ่อยสุด</div>${items}`;
       }
 
-      // จัดกลุ่มตามวันที่ (ใหม่สุดก่อน) — แต่ละวันแสดงว่า กลุ่มชิ้นงาน ไหนขาดตรวจบ้าง
+      // จัดกลุ่มตามวันที่ (ใหม่สุดก่อน) — แต่ละวันแสดงว่า Model ไหนขาดตรวจบ้าง
       const byDate = {};
       rows.forEach(r => { (byDate[r.check_date] = byDate[r.check_date] || []).push(r.line_id); });
       const dates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
 
-      if (summaryEl) summaryEl.textContent = `พบ กลุ่มชิ้นงาน ที่ขาดการตรวจรวม ${rows.length} ครั้ง ใน ${dates.length} วัน`;
+      if (summaryEl) summaryEl.textContent = `พบ Model ที่ขาดการตรวจรวม ${rows.length} ครั้ง ใน ${dates.length} วัน`;
 
       listEl.innerHTML = dates.map(d => {
         const dt = new Date(d + 'T00:00:00');
@@ -5279,7 +5279,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         }).join('');
         return `
           <div class="adm-uncl-item">
-            <div class="uncl-date">${escHtml(dateLabel)} <span class="uncl-count">${byDate[d].length} กลุ่มชิ้นงาน</span></div>
+            <div class="uncl-date">${escHtml(dateLabel)} <span class="uncl-count">${byDate[d].length} Model</span></div>
             <div class="uncl-lines">${lineChips}</div>
           </div>`;
       }).join('');
@@ -5308,7 +5308,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
      ปฏิทินวันหยุด (Admin Panel)
      วันที่ตั้งไว้ในนี้จะไม่ถูกนับว่า "ขาดตรวจ" ใน get_unchecked_lines/
      get_today_missed_lines ฝั่ง Postgres (ดู add_holidays_calendar.sql)
-     ใช้ร่วมกันทุก กลุ่มชิ้นงาน ทั้งบริษัท ไม่ผูกกับ กลุ่มชิ้นงาน ใดกลุ่มชิ้นงานหนึ่ง
+     ใช้ร่วมกันทุก Model ทั้งบริษัท ไม่ผูกกับ Model ใด Modelหนึ่ง
   ══════════════════════════════════════ */
   let holidaysCache = [];
 
@@ -5469,11 +5469,11 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
   }
 
   /* ══════════════════════════════════════
-     LINE STATUS — สถานะ กลุ่มชิ้นงาน วันนี้ (แบบรายการ จัดกลุ่มตาม Model)
+     LINE STATUS — สถานะ Model วันนี้ (แบบรายการ จัดกลุ่มตาม Line)
      สี: เทา = ยังไม่ตรวจวันนี้ | เหลือง = ตรวจบางส่วน | เขียว = ตรวจครบปกติ | แดง = พบ NG (คำนวณจากวันที่ "วันนี้" เท่านั้น รีเซ็ตทุกเช้า)
   ══════════════════════════════════════ */
 
-  /* คำนวณสถานะแต่ละ กลุ่มชิ้นงาน จากประวัติ "วันนี้" เท่านั้น
+  /* คำนวณสถานะแต่ละ Model จากประวัติ "วันนี้" เท่านั้น
      - Part ที่มาร์ค "ไม่ได้ผลิตวันนี้" จะถูกตัดออกจากตัวหาร (ไม่นับว่าต้องตรวจ)
      - ต้องตรวจครบทุก Part ที่เหลือ (และไม่มี NG) ถึงจะเป็นสีเขียว
      - ตรวจไปบางส่วนแล้ว (ไม่มี NG) = 'partial' (สีเหลือง/ส้ม)
@@ -5527,7 +5527,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
   }
 
   let lineSearchQuery = '';
-  let expandedLineId = null; // กลุ่มชิ้นงาน ที่กำลังเปิดดูรายละเอียดราย Part อยู่ (คลิกที่การ์ด กลุ่มชิ้นงาน เพื่อเปิด/ปิด)
+  let expandedLineId = null; // Model ที่กำลังเปิดดูรายละเอียดราย Part อยู่ (คลิกที่การ์ด Model เพื่อเปิด/ปิด)
 
   function renderLineStatusList() {
     const listEl = $('line-status-list');
@@ -5538,11 +5538,11 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     const filtered = catalog.lines.filter(l => !q || (l.name || l.id).toLowerCase().includes(q));
 
     if (!filtered.length) {
-      listEl.innerHTML = `<div class="line-status-empty">${q ? 'ไม่พบ กลุ่มชิ้นงาน ที่ค้นหา' : 'ยังไม่มี กลุ่มชิ้นงาน ในระบบ'}</div>`;
+      listEl.innerHTML = `<div class="line-status-empty">${q ? 'ไม่พบ Model ที่ค้นหา' : 'ยังไม่มี Model ในระบบ'}</div>`;
       return;
     }
 
-    // จัดกลุ่มตาม Model แล้วเรียงชื่อ กลุ่มชิ้นงาน ในแต่ละกลุ่มตามตัวอักษร
+    // จัดกลุ่มตาม Line แล้วเรียงชื่อ Model ในแต่ละกลุ่มตามตัวอักษร
     const deptOrder = catalog.depts.map(d => d.id);
     const groups = {}; // deptId -> [lines]
     filtered.forEach(l => {
@@ -5555,7 +5555,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 
     listEl.innerHTML = orderedDeptIds.map(deptId => {
       const dept = catalog.depts.find(d => d.id === deptId);
-      const deptName = dept ? dept.name : 'ไม่ระบุ Model';
+      const deptName = dept ? dept.name : 'ไม่ระบุ Line';
       const cards = groups[deptId].map(l => {
         const info = statusMap[l.id]; // undefined | { status: 'ok'|'ng'|'partial', checked, total, jigDetails }
         const status = info ? info.status : undefined;
@@ -5577,7 +5577,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           </div>`;
       }).join('');
 
-      // ── แผงรายละเอียดราย Part (เปิดเมื่อคลิกการ์ด กลุ่มชิ้นงาน) — บอกชัดว่า Part ไหนตรวจแล้ว/ยังไม่ตรวจ/ไม่ได้ผลิตวันนี้ ──
+      // ── แผงรายละเอียดราย Part (เปิดเมื่อคลิกการ์ด Model) — บอกชัดว่า Part ไหนตรวจแล้ว/ยังไม่ตรวจ/ไม่ได้ผลิตวันนี้ ──
       const expandedLine = groups[deptId].find(l => l.id === expandedLineId);
       const detailPanel = expandedLine ? renderJigDetailPanel(expandedLine, statusMap[expandedLine.id]) : '';
 
@@ -5594,19 +5594,19 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         const lineId = card.dataset.line;
         const isSame = expandedLineId === lineId;
         expandedLineId = isSame ? null : lineId;
-        // 🆕 คลิกการ์ด กลุ่มชิ้นงาน แล้ว sync กับตัวกรอง กลุ่มชิ้นงาน ของ Dashboard ด้วย (เดิมกรอง KPI/กราฟ
-        // ไม่ผูกกับการคลิกการ์ดเลย ทำให้คลิก กลุ่มชิ้นงาน ไหนข้อมูล/กราฟด้านล่างก็ไม่เปลี่ยนตาม)
-        // คลิกซ้ำที่การ์ดเดิม (ยุบแผง) = กลับไปดู "ทุก กลุ่มชิ้นงาน" เหมือนเดิม
+        // 🆕 คลิกการ์ด Model แล้ว sync กับตัวกรอง Model ของ Dashboard ด้วย (เดิมกรอง KPI/กราฟ
+        // ไม่ผูกกับการคลิกการ์ดเลย ทำให้คลิก Model ไหนข้อมูล/กราฟด้านล่างก็ไม่เปลี่ยนตาม)
+        // คลิกซ้ำที่การ์ดเดิม (ยุบแผง) = กลับไปดู "ทุก Model" เหมือนเดิม
         dashLineFilter = isSame ? 'all' : lineId;
         refreshDashboard(); // เรียกตัวนี้แทน renderLineStatusList() เพราะจะ re-render การ์ดนี้ให้ + อัปเดต KPI/กราฟ/dropdown ให้ตรงกันในทีเดียว
       });
     });
   }
 
-  // ── รายละเอียดราย Part ของ กลุ่มชิ้นงาน ที่เปิดดูอยู่ — ใครตรวจแล้ว/ยังไม่ตรวจ/ไม่ได้ผลิตวันนี้ ──
+  // ── รายละเอียดราย Part ของ Model ที่เปิดดูอยู่ — ใครตรวจแล้ว/ยังไม่ตรวจ/ไม่ได้ผลิตวันนี้ ──
   function renderJigDetailPanel(line, info) {
     const jigDetails = (info && info.jigDetails) || [];
-    if (!jigDetails.length) return '<div class="line-jig-detail-panel"><span class="line-jig-detail-empty">ยังไม่มี Part ใน กลุ่มชิ้นงาน นี้</span></div>';
+    if (!jigDetails.length) return '<div class="line-jig-detail-panel"><span class="line-jig-detail-empty">ยังไม่มี Part ใน Model นี้</span></div>';
     const chips = jigDetails.map(j => {
       let cls, icon, label;
       if (j.status === 'ok') { cls = 'jd-ok'; icon = '✅'; label = `ตรวจแล้ว ${j.time || ''}`; }
@@ -5639,12 +5639,12 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     });
   }
 
-  /* สร้าง options ของ dropdown กลุ่มชิ้นงาน จาก catalog ทั้งหมด (ไม่ใช่แค่ กลุ่มชิ้นงาน ที่มีข้อมูลตรวจแล้ว
-     เพื่อให้เลือกดู กลุ่มชิ้นงาน ที่ยังไม่เคยตรวจได้ด้วย — เห็นชัดว่า "ยังไม่มีข้อมูล") */
+  /* สร้าง options ของ dropdown Model จาก catalog ทั้งหมด (ไม่ใช่แค่ Model ที่มีข้อมูลตรวจแล้ว
+     เพื่อให้เลือกดู Model ที่ยังไม่เคยตรวจได้ด้วย — เห็นชัดว่า "ยังไม่มีข้อมูล") */
   function populateDashLineOptions() {
     const sel = $('dash-line-filter');
     const sortedLines = [...catalog.lines].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'th'));
-    sel.innerHTML = '<option value="all">ทุกกลุ่มชิ้นงาน (All)</option>' +
+    sel.innerHTML = '<option value="all">ทุก Model (All)</option>' +
       sortedLines.map(l => `<option value="${escHtml(l.id)}">${escHtml(l.name)}</option>`).join('');
     if (dashLineFilter !== 'all' && catalog.lines.some(l => l.id === dashLineFilter)) {
       sel.value = dashLineFilter;
@@ -5654,7 +5654,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     }
   }
 
-  // 🆕 หาชื่อ กลุ่มชิ้นงาน จาก id (ใช้โชว์ในหัวข้อการ์ดต่าง ๆ เมื่อกรองดูเฉพาะ กลุ่มชิ้นงาน เดียว)
+  // 🆕 หาชื่อ Model จาก id (ใช้โชว์ในหัวข้อการ์ดต่าง ๆ เมื่อกรองดูเฉพาะ Model เดียว)
   function lineNameById(id) {
     const l = catalog.lines.find(x => x.id === id);
     return l ? (l.name || l.id) : id;
@@ -5666,7 +5666,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     populateDashLineOptions();
     populateAiPeriodOptions(allHist); // 🆕 อัปเดตรายชื่อเดือนใน dropdown ของ AI ให้ตรงกับข้อมูลล่าสุด
     renderLineStatusList();
-    renderNgToday(allHist); // 🆕 รายการ NG วันนี้ — โชว์ "วันนี้" เสมอ ไม่ผูกกับตัวกรองเดือน แต่กรองตาม กลุ่มชิ้นงาน ที่เลือกด้วย (ดูใน renderNgToday)
+    renderNgToday(allHist); // 🆕 รายการ NG วันนี้ — โชว์ "วันนี้" เสมอ ไม่ผูกกับตัวกรองเดือน แต่กรองตาม Model ที่เลือกด้วย (ดูใน renderNgToday)
     let hist = dashMonthFilter === 'all'
       ? allHist
       : allHist.filter(h => (h.date || '').slice(0, 7) === dashMonthFilter);
@@ -5677,11 +5677,11 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     renderDeptDonut(hist);
     renderNgRanking(hist);
 
-    // 🆕 ใส่ชื่อ กลุ่มชิ้นงาน ที่กำลังกรองอยู่ต่อท้ายหัวข้อการ์ดต่าง ๆ ให้เห็นชัดว่าตอนนี้ดูข้อมูลของ กลุ่มชิ้นงาน ไหนอยู่
+    // 🆕 ใส่ชื่อ Model ที่กำลังกรองอยู่ต่อท้ายหัวข้อการ์ดต่าง ๆ ให้เห็นชัดว่าตอนนี้ดูข้อมูลของ Model ไหนอยู่
     const lineSuffix = dashLineFilter !== 'all' ? ` — ${lineNameById(dashLineFilter)}` : '';
     if (lineSuffix) $('trend-title-text').textContent += lineSuffix;
-    $('byline-title-text').textContent   = 'NG ตาม กลุ่มชิ้นงาน' + lineSuffix;
-    $('donut-title-text').textContent    = 'อัตราผ่านตาม กลุ่มชิ้นงาน' + lineSuffix;
+    $('byline-title-text').textContent   = 'NG ตาม Model' + lineSuffix;
+    $('donut-title-text').textContent    = 'อัตราผ่านตาม Model' + lineSuffix;
     $('ng-rank-title-text').textContent  = 'จุดตรวจที่พบ NG บ่อยที่สุด' + lineSuffix;
     $('ng-today-title-text').textContent = 'NG วันนี้' + lineSuffix;
   }
@@ -5711,13 +5711,13 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
   }
 
   // ── รายการ NG ที่พบ "วันนี้" แบบละเอียด (Part ไหน ข้อไหน ใครตรวจ กี่โมง) ──
-  // แยกจาก renderNgRanking ซึ่งเป็นสรุปสถิติ NG-checkpoint สะสมตามตัวกรองเดือน/กลุ่มชิ้นงาน ด้านบน
+  // แยกจาก renderNgRanking ซึ่งเป็นสรุปสถิติ NG-checkpoint สะสมตามตัวกรองเดือน/Model ด้านบน
   function renderNgToday(allHist) {
     const listEl = $('ng-today-list');
     const countEl = $('ng-today-count');
     if (!listEl) return;
     const t = todayStr();
-    // 🆕 กรองตาม กลุ่มชิ้นงาน ที่กำลังเลือกดูอยู่ด้วย (เดิมโชว์ทุก กลุ่มชิ้นงาน เสมอ ไม่ผูกกับการคลิกการ์ด กลุ่มชิ้นงาน)
+    // 🆕 กรองตาม Model ที่กำลังเลือกดูอยู่ด้วย (เดิมโชว์ทุก Model เสมอ ไม่ผูกกับการคลิกการ์ด Model)
     let todayHist = allHist.filter(h => h.date === t);
     if (dashLineFilter !== 'all') todayHist = todayHist.filter(h => h.lineId === dashLineFilter);
     const rows = buildNgDetailRows(todayHist);
@@ -5804,7 +5804,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     animateCountUp($('kpi-n-ng'), allNgs.length);
     animateCountUp($('kpi-n-jig'), jigsSeen);
 
-    // 🆕 เทียบ "วันนี้ vs เมื่อวาน" — ใช้ allHist (ไม่ผูกกับตัวกรองเดือน) กรองตาม กลุ่มชิ้นงาน เดียวกับที่เลือกดูอยู่ ให้ความรู้สึกว่า Dashboard นี้ขยับตามเวลาจริง
+    // 🆕 เทียบ "วันนี้ vs เมื่อวาน" — ใช้ allHist (ไม่ผูกกับตัวกรองเดือน) กรองตาม Model เดียวกับที่เลือกดูอยู่ ให้ความรู้สึกว่า Dashboard นี้ขยับตามเวลาจริง
     if (allHist) {
       const t = todayStr();
       const y = localDateStr(new Date(Date.now() - 86400000));
@@ -5892,7 +5892,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     });
   }
 
-  /* ── NG by กลุ่มชิ้นงาน Bar Chart ── */
+  /* ── NG by Model Bar Chart ── */
   function renderByLineChart(hist) {
     const style = getComputedStyle(document.documentElement);
     const ng  = style.getPropertyValue('--ng').trim();
@@ -5931,7 +5931,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     });
   }
 
-  /* ── กลุ่มชิ้นงาน Donut (เดิมเป็น Dept Donut — เปลี่ยนมาจัดกลุ่มตาม กลุ่มชิ้นงาน ตามที่พี่บีขอ) ── */
+  /* ── Model Donut (เดิมเป็น Dept Donut — เปลี่ยนมาจัดกลุ่มตาม Model ตามที่พี่บีขอ) ── */
   function renderDeptDonut(hist) {
     const style = getComputedStyle(document.documentElement);
     const colors = [
@@ -6149,7 +6149,7 @@ ${JSON.stringify(summary, null, 2)}
 
 กติกาการใส่ emoji (สำคัญมาก ต้องทำทุกบรรทัด):
 - ทุกหัวข้อ <h3> ต้องขึ้นต้นด้วย emoji ตามข้อ 1-5 ด้านบน
-- ทุกบรรทัด <li> ต้องขึ้นต้นด้วย emoji ที่สื่อความหมายของเนื้อหาบรรทัดนั้น (เช่น 🔧 สำหรับ maintenance, 📋 สำหรับ audit/checklist, ⚠️ สำหรับคำเตือน, 📅 สำหรับกำหนดเวลา, 🏭 สำหรับ กลุ่มชิ้นงาน) ห้ามมี <li> ที่ไม่มี emoji นำหน้า
+- ทุกบรรทัด <li> ต้องขึ้นต้นด้วย emoji ที่สื่อความหมายของเนื้อหาบรรทัดนั้น (เช่น 🔧 สำหรับ maintenance, 📋 สำหรับ audit/checklist, ⚠️ สำหรับคำเตือน, 📅 สำหรับกำหนดเวลา, 🏭 สำหรับ Model) ห้ามมี <li> ที่ไม่มี emoji นำหน้า
 - ใช้ <strong> เน้นตัวเลข/ชื่อที่สำคัญ และใช้ span class="tag-risk tag-high/tag-med/tag-low" ประกอบเมื่อมีระดับความเสี่ยง
 
 ตอบเป็น HTML โดยใช้ tag: <h3>, <p>, <ul>, <li>, <strong> และ class="tag-risk tag-high/tag-med/tag-low" เท่านั้น`;
@@ -6245,12 +6245,12 @@ ${JSON.stringify(summary, null, 2)}
       </ul>` : '<p>✅ ไม่พบรายการ NG ที่น่าเป็นห่วง</p>'}
 
       <hr class="report-sep">
-      <h3>🏭 กลุ่มชิ้นงาน ที่มีปัญหาสูงสุด</h3>
+      <h3>🏭 Model ที่มีปัญหาสูงสุด</h3>
       ${topLine.length ? `<ul>
         ${topLine.map(([line, count]) => `<li><strong>${escHtml(line)}</strong> — พบ NG รวม <span class="tag-risk tag-high">${count} รายการ</span>
           <br><small>แนะนำให้ทีม QC เข้าตรวจสอบ Part อย่างละเอียด</small>
         </li>`).join('')}
-      </ul>` : '<p>✅ ทุก กลุ่มชิ้นงาน มีอัตรา NG ต่ำ</p>'}
+      </ul>` : '<p>✅ ทุก Model มีอัตรา NG ต่ำ</p>'}
 
       <hr class="report-sep">
       <h3>${trendIcon} แนวโน้ม</h3>
@@ -6271,7 +6271,7 @@ ${JSON.stringify(summary, null, 2)}
       <h3>✅ คำแนะนำ Action Items</h3>
       <ul>
         ${topNg.length ? `<li>🔧 วางแผน PM เพิ่มความถี่สำหรับ: <strong>${topNg.map(([id,d])=>`ข้อ ${id}`).join(', ')}</strong></li>` : ''}
-        ${topLine.length ? `<li>📋 ทำ Audit พิเศษสำหรับ กลุ่มชิ้นงาน: <strong>${escHtml(topLine[0][0])}</strong></li>` : ''}
+        ${topLine.length ? `<li>📋 ทำ Audit พิเศษสำหรับ Model: <strong>${escHtml(topLine[0][0])}</strong></li>` : ''}
         ${trend === 'แย่ลง' ? `<li>🚨 ประชุม QC ทีมเพื่อหาสาเหตุแนวโน้มที่แย่ลง</li>` : ''}
         ${s.passRate < 80 ? `<li>📊 อัตราผ่านต่ำกว่า 80% — ทบทวน SOP และ Training</li>` : ''}
         <li>📅 บันทึกผลการตรวจให้ครบทุก Shift ทุกวัน</li>
@@ -6415,8 +6415,8 @@ ${JSON.stringify(summary, null, 2)}
         <!-- Records Count -->
         <div class="storage-stat-box">
           <div class="storage-stat-grid">
-            <div>${ICON_FOLDER} Model: <strong>${stats.departments}</strong></div>
-            <div>${ICON_PIN} กลุ่มชิ้นงาน: <strong>${stats.lines}</strong></div>
+            <div>${ICON_FOLDER} Line: <strong>${stats.departments}</strong></div>
+            <div>${ICON_PIN} Model: <strong>${stats.lines}</strong></div>
             <div>${ICON_WRENCH} Part: <strong>${stats.jigs}</strong></div>
             <div>${ICON_CHECK} จุดตรวจ: <strong>${stats.checkpoints}</strong></div>
             <div>${ICON_DOC} ประวัติ: <strong>${stats.history}</strong></div>
@@ -6429,8 +6429,8 @@ ${JSON.stringify(summary, null, 2)}
         <div class="storage-stat-box">
           <div class="storage-stat-box-label">${ICON_BOX} ขนาดจริงแยกตามตาราง:</div>
           <div class="storage-stat-grid">
-            <div>${ICON_FOLDER} Model: <strong>${formatBytes(stats.sizeByTable.departments)}</strong></div>
-            <div>${ICON_PIN} กลุ่มชิ้นงาน: <strong>${formatBytes(stats.sizeByTable.lines)}</strong></div>
+            <div>${ICON_FOLDER} Line: <strong>${formatBytes(stats.sizeByTable.departments)}</strong></div>
+            <div>${ICON_PIN} Model: <strong>${formatBytes(stats.sizeByTable.lines)}</strong></div>
             <div>${ICON_WRENCH} Part: <strong>${formatBytes(stats.sizeByTable.jigs)}</strong></div>
             <div>${ICON_CHECK} จุดตรวจ: <strong>${formatBytes(stats.sizeByTable.checkpoints)}</strong></div>
             <div>${ICON_DOC} ประวัติ: <strong>${formatBytes(stats.sizeByTable.history)}</strong></div>

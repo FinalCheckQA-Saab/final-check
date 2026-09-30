@@ -244,7 +244,7 @@
 
   .section-title { font-size: 13px; font-weight: 700; color: var(--navy); margin: 0 0 10px; display: flex; justify-content: space-between; align-items: center; }
 
-  /* ── หัวกลุ่ม กลุ่มชิ้นงาน ในหน้ารายการเอกสาร ── */
+  /* ── หัวกลุ่ม Model ในหน้ารายการเอกสาร ── */
   .line-group { margin-top: 18px; }
   .line-group:first-child { margin-top: 0; }
   .line-group-header {
@@ -427,7 +427,7 @@
 
   let allDocs = [];
   let latestRevByDoc = {}; // document_id -> แถวประวัติแก้ไขล่าสุด (rev_no สูงสุด) — ใช้โชว์สรุปในหน้ารายการ
-  let lineNameByJigId = {}; // source_jig_id (ของ master_documents) -> ชื่อ กลุ่มชิ้นงาน — ใช้จัดกลุ่มในหน้ารายการ
+  let lineNameByJigId = {}; // source_jig_id (ของ master_documents) -> ชื่อ Model — ใช้จัดกลุ่มในหน้ารายการ
   let filters = { company: params.get('company') || '', department: params.get('department') || '', line: params.get('line') || '', q: '' };
   let currentDocId = params.get('doc') || null;
   let editingRevDocId = null;   // ← document_id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายการ"
@@ -453,7 +453,7 @@
       });
     }
 
-    // ── ดึงข้อมูล กลุ่มชิ้นงาน มาด้วย เพื่อจัดกลุ่มรายการเอกสารตาม กลุ่มชิ้นงาน ──
+    // ── ดึงข้อมูล Model มาด้วย เพื่อจัดกลุ่มรายการเอกสารตาม Model ──
     // master_documents.source_jig_id -> jigs.id -> jigs.line_id -> lines.name
     const [{ data: jigs, error: jigErr }, { data: lines, error: lineErr }] = await Promise.all([
       sb.from('jigs').select('id, line_id'),
@@ -483,7 +483,7 @@
     return [...set].sort();
   }
 
-  // ── รายชื่อ กลุ่มชิ้นงาน ที่มีให้เลือกในตัวกรอง (คำนวณจากเอกสารที่ผ่านตัวกรอง บริษัท/Model อยู่แล้ว ไม่รวมตัวกรอง กลุ่มชิ้นงาน เอง) ──
+  // ── รายชื่อ Model ที่มีให้เลือกในตัวกรอง (คำนวณจากเอกสารที่ผ่านตัวกรอง บริษัท/Line อยู่แล้ว ไม่รวมตัวกรอง Model เอง) ──
   function linesFor(company, department) {
     const set = new Set();
     allDocs
@@ -497,7 +497,7 @@
     return arr;
   }
 
-  // ── markup ของแถวเอกสาร 1 รายการ (แยกเป็นฟังก์ชันเพื่อใช้ซ้ำได้ทั้งตอนจัดกลุ่มตาม กลุ่มชิ้นงาน) ──
+  // ── markup ของแถวเอกสาร 1 รายการ (แยกเป็นฟังก์ชันเพื่อใช้ซ้ำได้ทั้งตอนจัดกลุ่มตาม Model) ──
   function renderDocRow(d) {
     const rev = latestRevByDoc[d.id];
     const isEditing = rev && editingRevDocId === d.id;
@@ -527,13 +527,13 @@
     `;
   }
 
-  const NO_LINE_LABEL = 'ไม่ระบุ กลุ่มชิ้นงาน';
+  const NO_LINE_LABEL = 'ไม่ระบุ Model';
 
   function lineNameFor(d) {
     return (d.source_jig_id && lineNameByJigId[d.source_jig_id]) || NO_LINE_LABEL;
   }
 
-  // ── จัดกลุ่มรายการเอกสารตาม กลุ่มชิ้นงาน (เอกสารที่ไม่มี กลุ่มชิ้นงาน ระบุ จะถูกจัดไว้กลุ่มท้ายสุด) ──
+  // ── จัดกลุ่มรายการเอกสารตาม Model (เอกสารที่ไม่มี Model ระบุ จะถูกจัดไว้กลุ่มท้ายสุด) ──
   function groupByLine(docs) {
     const groups = {};
     docs.forEach(d => {
@@ -575,13 +575,13 @@
             ${COMPANIES.map(c => `<option value="${escAttr(c)}" ${filters.company === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
           </select>
           <select id="f-department">
-            <option value="">ทุก Model</option>
+            <option value="">ทุก Line</option>
             ${departments.map(dp => `<option value="${escAttr(dp)}" ${filters.department === dp ? 'selected' : ''}>${esc(dp)}</option>`).join('')}
           </select>
         </div>
         <div class="filter-row">
           <select id="f-line">
-            <option value="">🏭 ทุก กลุ่มชิ้นงาน</option>
+            <option value="">🏭 ทุก Model</option>
             ${lineOptions.map(l => `<option value="${escAttr(l)}" ${filters.line === l ? 'selected' : ''}>${esc(l)}</option>`).join('')}
           </select>
         </div>
@@ -602,7 +602,7 @@
         ${grouped.length ? grouped.map(g => `
           <div class="line-group">
             <div class="line-group-header">
-              <span>🏭 LINE: ${esc(g.line)}</span>
+              <span>🏭 MODEL: ${esc(g.line)}</span>
               <span class="line-group-count">${g.docs.length}</span>
             </div>
             ${g.docs.map(d => renderDocRow(d)).join('')}
@@ -614,13 +614,13 @@
 
     document.getElementById('f-company').addEventListener('change', e => {
       filters.company = e.target.value;
-      filters.department = ''; // เปลี่ยนบริษัทแล้วรีเซ็ตตัวกรอง Model
-      filters.line = ''; // ...และรีเซ็ตตัวกรอง กลุ่มชิ้นงาน ด้วย เพราะตัวเลือก กลุ่มชิ้นงาน ขึ้นกับบริษัท/Model ที่เลือก
+      filters.department = ''; // เปลี่ยนบริษัทแล้วรีเซ็ตตัวกรอง Line
+      filters.line = ''; // ...และรีเซ็ตตัวกรอง Model ด้วย เพราะตัวเลือก Model ขึ้นกับบริษัท/Line ที่เลือก
       render();
     });
     document.getElementById('f-department').addEventListener('change', e => {
       filters.department = e.target.value;
-      filters.line = ''; // เปลี่ยน Model แล้วรีเซ็ตตัวกรอง กลุ่มชิ้นงาน เช่นกัน
+      filters.line = ''; // เปลี่ยน Line แล้วรีเซ็ตตัวกรอง Model เช่นกัน
       render();
     });
     document.getElementById('f-line').addEventListener('change', e => {
@@ -842,7 +842,7 @@
 
   // ══════════════════════════════════════════════════════════════
   //  นำเข้าจาก Excel — ใช้ไฟล์ที่ export จาก "Export Master List (Run No. ทั้งหมด)" ในหน้า index.html
-  //  คอลัมน์ที่คาดหวัง: No. / Model / กลุ่มชิ้นงาน / ชื่อชิ้นงาน / รหัส Part (Part No.) / Run No. / Doc No. /
+  //  คอลัมน์ที่คาดหวัง: No. / Line / Model / ชื่อชิ้นงาน / รหัส Part (Part No.) / Run No. / Doc No. /
   //                    Rev. Level (ฟอร์ม) / Rev. No. (เนื้อหา) / Rev. Date / Issued Form / จำนวนจุดตรวจ
   // ══════════════════════════════════════════════════════════════
 
@@ -882,7 +882,7 @@
         }
         const header = rows[headerIdx].map(h => String(h).trim());
         const col = name => header.indexOf(name);
-        const cDept = col('Model'), cName = col('ชื่อชิ้นงาน'), cJig = col('รหัส Part (Part No.)'),
+        const cDept = col('Line') !== -1 ? col('Line') : col('Model'), cName = col('ชื่อชิ้นงาน'), cJig = col('รหัส Part (Part No.)'),
               cRun = col('Run No.'), cDocNo = col('Doc No.'), cRevLevel = col('Rev. No. (เนื้อหา)'),
               cRevDate = col('Rev. Date'), cIssued = col('Issued Form');
 
@@ -963,7 +963,7 @@
 
         <div style="max-height:220px; overflow:auto; margin-top:10px; border:1px solid var(--border); border-radius:8px;">
           <table class="rev-table" style="margin-top:0;">
-            <thead><tr><th>Doc No.</th><th>ชื่อเอกสาร</th><th>Model</th><th>Rev เดิม</th></tr></thead>
+            <thead><tr><th>Doc No.</th><th>ชื่อเอกสาร</th><th>Line</th><th>Rev เดิม</th></tr></thead>
             <tbody>
               ${rows.map(r => `
                 <tr>
@@ -1079,7 +1079,7 @@
 
         <div class="meta-grid">
           <div><span>บริษัท:</span> ${esc(doc.company)}</div>
-          <div><span>Model:</span> ${esc(doc.department)}</div>
+          <div><span>Line:</span> ${esc(doc.department)}</div>
           <div><span>Rev ปัจจุบัน:</span> ${doc.current_rev_no ?? 0}</div>
           <div><span>วันที่ Rev ล่าสุด:</span> ${fmtDate(doc.current_rev_date)}</div>
         </div>

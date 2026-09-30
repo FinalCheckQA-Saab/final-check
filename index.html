@@ -156,7 +156,7 @@
       </button>
       <div class="brand-text">
         <h1 id="header-title">ใบรายงานการตรวจสอบขั้นสุดท้าย (Final Check)</h1>
-        <p id="header-sub">เลือก Model &rarr; กลุ่มชิ้นงาน &rarr; Part เพื่อเริ่มตรวจสอบ</p>
+        <p id="header-sub">เลือก Line &rarr; Model &rarr; Part เพื่อเริ่มตรวจสอบ</p>
       </div>
     </div>
     <div class="header-actions">
@@ -191,20 +191,20 @@
         </span>
       </div>
 
-      <!-- Level 1: Model -->
+      <!-- Level 1: Line -->
       <div class="filter-level" id="level-dept">
         <div class="level-label">
           <span class="level-num">1</span>
-          <span>เลือก <strong>Model</strong></span>
+          <span>เลือก <strong>Line</strong></span>
         </div>
         <div class="filter-chips" id="chips-dept"><span class="chip-loading"><span class="chip-loading-spinner"></span>กำลังโหลดข้อมูล...</span></div>
       </div>
 
-      <!-- Level 2: กลุ่มชิ้นงาน -->
+      <!-- Level 2: Model -->
       <div class="filter-level hidden" id="level-line">
         <div class="level-label">
           <span class="level-num">2</span>
-          <span>เลือก <strong>กลุ่มชิ้นงาน</strong></span>
+          <span>เลือก <strong>Model</strong></span>
         </div>
         <div class="filter-chips line-chips-grid" id="chips-line"></div>
       </div>
@@ -354,10 +354,10 @@
   <!-- ─── VIEW: DASHBOARD ─── -->
   <div id="view-dashboard" class="hidden">
 
-    <!-- ─── สถานะ กลุ่มชิ้นงาน วันนี้ — read-only, จัดกลุ่มตาม Model ─── -->
+    <!-- ─── สถานะ Model วันนี้ — read-only, จัดกลุ่มตาม Line ─── -->
     <div class="glass-card" style="margin-bottom:16px;">
       <div class="card-header-flex">
-        <h2 class="card-title"><span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="7" r="4"/></svg></span> สถานะ กลุ่มชิ้นงาน วันนี้</h2>
+        <h2 class="card-title"><span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="7" r="4"/></svg></span> สถานะ Model วันนี้</h2>
         <span class="chart-legend line-status-legend">
           <span class="cl-dot" style="background:var(--pending)"></span>ยังไม่ตรวจ
           <span class="cl-dot" style="background:var(--fixed)"></span>กำลังตรวจ (ยังไม่ครบ)
@@ -369,7 +369,7 @@
       <div class="line-view-toolbar">
         <div class="jig-search-wrap line-search-wrap" id="line-search-wrap">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" class="jig-search-input" id="line-search-input" placeholder="ค้นหาชื่อ กลุ่มชิ้นงาน...">
+          <input type="text" class="jig-search-input" id="line-search-input" placeholder="ค้นหาชื่อ Model...">
           <button class="jig-search-clear hidden" id="line-search-clear">✕</button>
         </div>
       </div>
@@ -382,8 +382,8 @@
          เฉพาะเครื่อง/เบราว์เซอร์นั้น (localStorage) ไม่กระทบคนอื่น -->
     <div id="dashboard-sortable" class="dashboard-sortable">
 
-      <!-- NG วันนี้ — รายการ NG ที่พบวันนี้แบบละเอียด (โชว์ "วันนี้" เสมอ ไม่ผูกกับตัวกรองเดือน, แต่กรองตาม กลุ่มชิ้นงาน ที่เลือกด้วย)
-           🆕 วางติดกับ "สถานะ กลุ่มชิ้นงาน วันนี้" เลย ไม่มี filter คั่นกลาง — ย้ายแถบ filter ไปอยู่ด้านล่างแทน (ดูถัดจากบล็อกนี้) -->
+      <!-- NG วันนี้ — รายการ NG ที่พบวันนี้แบบละเอียด (โชว์ "วันนี้" เสมอ ไม่ผูกกับตัวกรองเดือน, แต่กรองตาม Model ที่เลือกด้วย)
+           🆕 วางติดกับ "สถานะ Model วันนี้" เลย ไม่มี filter คั่นกลาง — ย้ายแถบ filter ไปอยู่ด้านล่างแทน (ดูถัดจากบล็อกนี้) -->
       <div class="dash-block dash-block-wide" data-block-id="ng-today">
         <div class="glass-card" id="ng-today-card">
           <h2 class="card-title">
@@ -394,7 +394,7 @@
         </div>
       </div>
 
-      <!-- 🆕 Month filter + กลุ่มชิ้นงาน filter + live clock — ย้ายมาอยู่ตรงนี้ (ใต้ NG วันนี้) แทนที่จะอยู่เหนือมัน
+      <!-- 🆕 Month filter + Model filter + live clock — ย้ายมาอยู่ตรงนี้ (ใต้ NG วันนี้) แทนที่จะอยู่เหนือมัน
            เป็น static element ไม่ใช่ .dash-block เลยไม่ถูก SortableJS ลากสลับปนกับการ์ดอื่น (ดู draggable: '.dash-block' ใน app.js) -->
       <div class="dash-filter-row">
         <div class="dash-filter-left">
@@ -402,9 +402,9 @@
           <select id="dash-month-filter">
             <option value="all">ทั้งหมด (All)</option>
           </select>
-          <label for="dash-line-filter"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V11l5 3v-3l5 3V8l5 3v10z"/><path d="M3 21h18"/></svg> กลุ่มชิ้นงาน:</label>
+          <label for="dash-line-filter"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V11l5 3v-3l5 3V8l5 3v10z"/><path d="M3 21h18"/></svg> Model:</label>
           <select id="dash-line-filter">
-            <option value="all">ทุกกลุ่มชิ้นงาน (All)</option>
+            <option value="all">ทุก Model (All)</option>
           </select>
         </div>
         <div class="dash-live-clock">
@@ -474,12 +474,12 @@
         </div>
       </div>
 
-      <!-- NG by กลุ่มชิ้นงาน -->
+      <!-- NG by Model -->
       <div class="dash-block" data-block-id="chart-byline">
         <div class="glass-card chart-card">
           <h2 class="card-title">
             <span class="drag-handle" title="ลากเพื่อสลับตำแหน่ง"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
-            <span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> <span id="byline-title-text">NG ตาม กลุ่มชิ้นงาน</span>
+            <span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> <span id="byline-title-text">NG ตาม Model</span>
           </h2>
           <div class="chart-wrap"><canvas id="chart-byline"></canvas></div>
         </div>
@@ -490,7 +490,7 @@
         <div class="glass-card chart-card">
           <h2 class="card-title">
             <span class="drag-handle" title="ลากเพื่อสลับตำแหน่ง"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
-            <span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span> <span id="donut-title-text">อัตราผ่านตาม กลุ่มชิ้นงาน</span>
+            <span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span> <span id="donut-title-text">อัตราผ่านตาม Model</span>
           </h2>
           <div class="chart-wrap chart-donut-wrap"><canvas id="chart-dept"></canvas></div>
           <div id="donut-legend" class="donut-legend"></div>
@@ -657,35 +657,35 @@
       <div class="admin-list admin-list-scroll" id="adm-login-log-list" style="margin-top:8px;"></div>
     </div>
 
-    <!-- Add Model -->
+    <!-- Add Line -->
     <div class="admin-section">
-      <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V11l5 3v-3l5 3V8l5 3v10z"/><path d="M3 21h18"/></svg> เพิ่ม Model</div>
+      <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V11l5 3v-3l5 3V8l5 3v10z"/><path d="M3 21h18"/></svg> เพิ่ม Line</div>
       <div class="admin-input-row">
-        <input type="text" id="adm-dept-id" placeholder="รหัส (เช่น BODY)">
-        <input type="text" id="adm-dept-name" placeholder="ชื่อ Model (เช่น RG14)">
+        <input type="text" id="adm-dept-id" placeholder="รหัส (เช่น LINE1)">
+        <input type="text" id="adm-dept-name" placeholder="ชื่อ Line (เช่น Final Check)">
         <button class="btn-adm-add" id="btn-adm-dept">เพิ่ม</button>
       </div>
       <div class="admin-list" id="adm-dept-list"></div>
     </div>
 
-    <!-- Add กลุ่มชิ้นงาน -->
+    <!-- Add Model -->
     <div class="admin-section">
-      <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> เพิ่ม กลุ่มชิ้นงาน</div>
+      <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> เพิ่ม Model</div>
       <div class="admin-input-row">
-        <select id="adm-line-dept" class="adm-sel"><option value="">เลือก Model</option></select>
-        <input type="text" id="adm-line-id" placeholder="รหัส (เช่น L1)">
-        <input type="text" id="adm-line-name" placeholder="ชื่อกลุ่มชิ้นงาน (เช่น FRT PIPE)">
+        <select id="adm-line-dept" class="adm-sel"><option value="">เลือก Line</option></select>
+        <input type="text" id="adm-line-id" placeholder="รหัส (เช่น RG14)">
+        <input type="text" id="adm-line-name" placeholder="ชื่อ Model (เช่น RG14)">
         <button class="btn-adm-add" id="btn-adm-line">เพิ่ม</button>
       </div>
       <div class="admin-list admin-list-scroll" id="adm-line-list"></div>
     </div>
 
-    <!-- 🆕 กลุ่มชิ้นงาน ที่ไม่มีการตรวจเช็คในแต่ละวัน — ดึงผ่าน RPC get_unchecked_lines (คำนวณฝั่งเซิร์ฟเวอร์
+    <!-- 🆕 Model ที่ไม่มีการตรวจเช็คในแต่ละวัน — ดึงผ่าน RPC get_unchecked_lines (คำนวณฝั่งเซิร์ฟเวอร์
          ไม่ดาวน์โหลดรูปถ่าย/ข้อมูลเต็มแถวจาก history เหมือนวิธีเดิม, ดู add_unchecked_lines_report.sql) -->
     <div class="admin-section">
-      <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> กลุ่มชิ้นงาน ที่ไม่มีการตรวจเช็คในแต่ละวัน</div>
+      <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Model ที่ไม่มีการตรวจเช็คในแต่ละวัน</div>
       <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px; line-height:1.5;">
-        แสดง กลุ่มชิ้นงาน ที่ <b>ไม่มีการตรวจเลยสักจุด</b> ในวันนั้นๆ (กลุ่มชิ้นงาน ที่มาร์ค "ไม่ได้ผลิต" ครบทุก Part แล้ว จะไม่ถูกนับว่าขาดตรวจ) — เลือกช่วงวันที่แล้วกด "ค้นหา"
+        แสดง Model ที่ <b>ไม่มีการตรวจเลยสักจุด</b> ในวันนั้นๆ (Model ที่มาร์ค "ไม่ได้ผลิต" ครบทุก Part แล้ว จะไม่ถูกนับว่าขาดตรวจ) — เลือกช่วงวันที่แล้วกด "ค้นหา"
       </div>
       <div class="admin-input-row">
         <input type="date" id="adm-uncl-from" title="จากวันที่">
@@ -698,11 +698,11 @@
     </div>
 
     <!-- 🆕 ปฏิทินวันหยุด — วันที่ตั้งไว้ตรงนี้จะไม่ถูกนับว่า "ขาดตรวจ" ในรายงานด้านบน
-         (ใช้ร่วมกันทุก กลุ่มชิ้นงาน ทั้งบริษัท ดู add_holidays_calendar.sql) -->
+         (ใช้ร่วมกันทุก Model ทั้งบริษัท ดู add_holidays_calendar.sql) -->
     <div class="admin-section">
       <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ปฏิทินวันหยุด</div>
       <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px; line-height:1.5;">
-        วันที่ตั้งไว้ในนี้จะไม่ถูกนับว่า "ขาดตรวจ" ในรายงานด้านบน (ใช้ร่วมกันทุก กลุ่มชิ้นงาน ทั้งบริษัท) — เหมาะกับวันเสาร์-อาทิตย์ที่หยุดประจำ หรือวันหยุดนักขัตฤกษ์
+        วันที่ตั้งไว้ในนี้จะไม่ถูกนับว่า "ขาดตรวจ" ในรายงานด้านบน (ใช้ร่วมกันทุก Model ทั้งบริษัท) — เหมาะกับวันเสาร์-อาทิตย์ที่หยุดประจำ หรือวันหยุดนักขัตฤกษ์
       </div>
       <div class="admin-input-row">
         <input type="date" id="adm-holiday-date" title="วันที่หยุด">
@@ -787,15 +787,15 @@
     <div class="admin-section">
       <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> เพิ่ม Part</div>
       <div class="admin-input-row">
-        <select id="adm-jig-dept" class="adm-sel"><option value="">Model</option></select>
-        <select id="adm-jig-line" class="adm-sel"><option value="">กลุ่มชิ้นงาน</option></select>
+        <select id="adm-jig-dept" class="adm-sel"><option value="">Line</option></select>
+        <select id="adm-jig-line" class="adm-sel"><option value="">Model</option></select>
         <input type="text" id="adm-jig-id" placeholder="รหัส Part (เช่น 897848-9670)">
         <input type="text" id="adm-jig-name" placeholder="ชื่อชิ้นงาน">
         <input type="text" id="adm-jig-docno" placeholder="Run No. (เช่น SL-RG01-002) — เว้นว่างได้">
         <button class="btn-adm-add" id="btn-adm-jig">เพิ่ม</button>
       </div>
       <div class="admin-search-row">
-        <input type="text" id="adm-jig-search" placeholder="🔍 ค้นหา Part (ชื่อ/รหัส/กลุ่มชิ้นงาน)...">
+        <input type="text" id="adm-jig-search" placeholder="🔍 ค้นหา Part (ชื่อ/รหัส/Model)...">
         <span id="adm-jig-count" class="admin-search-count"></span>
       </div>
       <div class="admin-list admin-list-scroll" id="adm-jig-list" style="max-height:340px"></div>
@@ -880,7 +880,7 @@
         <input type="file" id="inp-import-data" accept=".json,application/json" class="file-input" style="display:none">
       </label>
       <div style="font-size:11px; color:var(--text-muted); margin-top:6px; line-height:1.5;">
-        Export เก็บทั้ง Catalog (Model/กลุ่มชิ้นงาน/Part/จุดตรวจ) และประวัติการตรวจ — ใช้สำรองก่อนล้าง browser cache หรือย้ายเครื่อง
+        Export เก็บทั้ง Catalog (Line/Model/Part/จุดตรวจ) และประวัติการตรวจ — ใช้สำรองก่อนล้าง browser cache หรือย้ายเครื่อง
       </div>
       <button id="btn-export-excel" class="btn-sec" style="width:100%; margin-top:8px;"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Export ประวัติการตรวจเป็น Excel (.xlsx)</button>
     </div>
@@ -889,7 +889,7 @@
     <div class="admin-section">
       <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> บันทึก PDF อัตโนมัติลงโฟลเดอร์ในเครื่อง</div>
       <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px; line-height:1.5;">
-        เลือกโฟลเดอร์หลักในคอมพิวเตอร์ครั้งเดียว ระบบจะสร้าง subfolder ตามชื่อ กลุ่มชิ้นงาน ให้อัตโนมัติ (เช่น กลุ่มชิ้นงาน "Beam" → บันทึกลง <code>โฟลเดอร์ที่เลือก/Beam/</code>) แล้วเซฟไฟล์ PDF ลงไปทันทีที่กด Export โดยไม่มี dialog ถามซ้ำอีก<br>
+        เลือกโฟลเดอร์หลักในคอมพิวเตอร์ครั้งเดียว ระบบจะสร้าง subfolder ตามชื่อ Model ให้อัตโนมัติ (เช่น Model "Beam" → บันทึกลง <code>โฟลเดอร์ที่เลือก/Beam/</code>) แล้วเซฟไฟล์ PDF ลงไปทันทีที่กด Export โดยไม่มี dialog ถามซ้ำอีก<br>
         <b>รองรับเฉพาะ Chrome / Edge บนคอมพิวเตอร์เท่านั้น</b> (มือถือ/Safari/Firefox จะดาวน์โหลดไฟล์แบบปกติ)
       </div>
       <div style="display:flex; align-items:center; gap:8px; font-size:12px; margin-bottom:8px;">
@@ -921,11 +921,11 @@
       <div class="hf"><label>จาก</label><input type="date" id="hf-start"></div>
       <div class="hf"><label>ถึง</label><input type="date" id="hf-end"></div>
       <div class="hf">
-        <label>Model</label>
+        <label>Line</label>
         <select id="hf-dept"><option value="">ทั้งหมด</option></select>
       </div>
       <div class="hf">
-        <label>กลุ่มชิ้นงาน</label>
+        <label>Model</label>
         <select id="hf-line"><option value="">ทั้งหมด</option></select>
       </div>
       <div class="hf">
