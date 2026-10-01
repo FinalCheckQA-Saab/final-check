@@ -853,6 +853,16 @@
     
     e.stopPropagation();
     const { etype, id } = btn.dataset;
+    let pendingRename = null; // 🆕 { kind, oldId, newId } — ถ้าเปลี่ยนรหัส ต้องย้ายข้อมูลบน Supabase ตาม
+    // ถามรหัสใหม่ (คืน null = ยกเลิก, '' ไม่ได้ใช้) — ห้ามว่าง/มีช่องว่าง/ซ้ำ
+    const askNewId = (label, current, existsFn) => {
+      const raw = prompt(`แก้ไขรหัส ${label} (เดิม: ${current})\nเปลี่ยนแล้วข้อมูลที่ผูกอยู่จะย้ายตามให้อัตโนมัติ:`, current);
+      if (raw === null) return null;
+      const v = raw.trim();
+      if (!v || /\s/.test(v)) { toast('รหัสห้ามว่างหรือมีช่องว่าง', 'ng'); return null; }
+      if (v !== current && existsFn(v)) { toast(`รหัส ${v} มีแล้ว`, 'ng'); return null; }
+      return v;
+    };
     
     if (etype === 'section') {
       const sec = catalog.sections.find(x => x.id === id);
@@ -873,6 +883,8 @@
       const newName = prompt('แก้ไขชื่อ Line:', d.name);
       if (newName === null) return;
       if (!newName.trim()) { toast('ชื่อห้ามว่าง', 'ng'); return; }
+      const newId = askNewId('Line', d.id, v => catalog.depts.some(x => x.id === v));
+      if (newId === null) return;
       const secNames = getSections();
       const newSection = prompt(`แผนกของ Line นี้ — พิมพ์ชื่อให้ตรงกับแผนกที่มีอยู่:\n${secNames.join(', ')}`, deptSection(d));
       if (newSection === null) return;
@@ -880,6 +892,11 @@
       if (!match) { toast(`ไม่พบแผนก "${newSection.trim()}" — เพิ่มแผนกก่อนที่ส่วน "เพิ่มแผนก"`, 'ng'); return; }
       d.name = newName.trim();
       d.section = match;
+      if (newId !== d.id) {
+        pendingRename = { kind: 'dept', oldId: d.id, newId };
+        applyLocalIdRename('dept', d.id, newId);
+        d.id = newId;
+      }
       if (selectedSection && !getSections().includes(selectedSection)) selectedSection = null;
     } else if (etype === 'line') {
       const l = catalog.lines.find(x => x.id === id);
@@ -887,13 +904,21 @@
       const newName = prompt('แก้ไขชื่อ Model:', l.name);
       if (newName === null) return;
       if (!newName.trim()) { toast('ชื่อห้ามว่าง', 'ng'); return; }
+      const newId = askNewId('Model', l.id, v => catalog.lines.some(x => x.id === v));
+      if (newId === null) return;
       l.name = newName.trim();
+      if (newId !== l.id) {
+        pendingRename = { kind: 'line', oldId: l.id, newId };
+        applyLocalIdRename('line', l.id, newId);
+        l.id = newId;
+      }
     } else if (etype === 'jig') {
       openJigDocModal(id);
       return;
     }
     
     saveCatalog(); renderAdminLists(); renderFilter();
+    if (pendingRename) renameCatalogIdInSupabase(pendingRename.kind, pendingRename.oldId, pendingRename.newId);
     toast('แก้ไขสำเร็จ', 'ok');
   }
 
@@ -991,6 +1016,54 @@
       toast('เปลี่ยนรหัส Part บน Supabase ไม่สำเร็จบางส่วน — ลอง sync ใหม่อีกครั้ง หรือแจ้ง Admin', 'ng');
     } finally {
       setTimeout(() => { _syncing = false; }, 1500);
+    }
+  }
+
+  // 🆕 เปลี่ยนรหัส Line (departments) / Model (lines) บน Supabase — ย้าย Model/Part/ประวัติ/รายการ "ไม่ได้ผลิต" ที่ผูกอยู่ตามไปด้วย
+  // ทำฝั่ง DB ผ่าน RPC 'rename_dept_id' / 'rename_line_id' (ดู add_rename_ids.sql) เช็ครหัส Admin ก่อนทุกครั้ง
+  async function renameCatalogIdInSupabase(kind, oldId, newId) {
+    if (!sb) return;
+    const pass = getAdminPass();
+    if (!pass) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อเปลี่ยนรหัส', 'ng'); return; }
+    _syncing = true;
+    try {
+      const { data: ok, error } = await sb.rpc(`rename_${kind}_id`, { p_password: pass, p_old_id: oldId, p_new_id: newId });
+      if (error) throw error;
+      if (!ok) {
+        _adminSessionPass = null;
+        toast('รหัสผ่าน Admin ไม่ถูกต้อง — เปลี่ยนรหัสบน Supabase ไม่สำเร็จ', 'ng');
+      }
+    } catch (e) {
+      console.error(`renameCatalogIdInSupabase(${kind}) error:`, e);
+      toast('เปลี่ยนรหัสบน Supabase ไม่สำเร็จ (ยังไม่ได้รัน add_rename_ids.sql?) — ' + (e.message || e), 'ng');
+    } finally {
+      setTimeout(() => { _syncing = false; }, 1500);
+    }
+  }
+
+  // เปลี่ยนรหัสในเครื่อง: ย้าย Model/Part ที่อ้างถึง + ประวัติ/รายการข้ามที่เก็บในเครื่อง + ตัวเลือกที่เลือกค้างอยู่
+  function applyLocalIdRename(kind, oldId, newId) {
+    const fixHistory = field => {
+      try {
+        const hist = loadHistory(); let changed = false;
+        hist.forEach(h => { if (h[field] === oldId) { h[field] = newId; changed = true; } });
+        if (changed) localStorage.setItem(SK.history, JSON.stringify(hist)); // เขียนตรง ไม่ผ่าน saveHistory (ไม่ต้อง push ซ้ำ — ฝั่ง DB ย้ายให้แล้ว)
+      } catch (e) { console.warn('fixHistory error:', e); }
+    };
+    if (kind === 'dept') {
+      catalog.lines.forEach(l => { if (l.deptId === oldId) l.deptId = newId; });
+      if (selection.deptId === oldId) selection.deptId = newId;
+      fixHistory('deptId');
+    } else {
+      catalog.jigs.forEach(j => { if (j.lineId === oldId) j.lineId = newId; });
+      if (selection.lineId === oldId) selection.lineId = newId;
+      fixHistory('lineId');
+      try {
+        const skips = loadJigSkips(); let ch = false;
+        skips.forEach(x => { if (x.lineId === oldId) { x.lineId = newId; ch = true; } });
+        if (ch) saveJigSkips(skips);
+      } catch (e) { console.warn('fix skips error:', e); }
+      try { if (dashLineFilter === oldId) dashLineFilter = newId; } catch (e) { /* ยังไม่ได้ประกาศ — ข้าม */ }
     }
   }
 
