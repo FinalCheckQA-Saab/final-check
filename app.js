@@ -1204,7 +1204,54 @@
      ไม่ขยายรูปที่เล็กกว่าขีดจำกัด (ไม่ upscale) — รับได้ทั้ง File และ dataURL */
   const BG_IMAGE_STEPS = [[1600, 0.88], [1600, 0.80], [1400, 0.72], [1200, 0.65], [1000, 0.60]];
   const BG_IMAGE_MAX_CHARS = 650000; // ≈ 480 KB ต่อรูป (base64)
-  async function resizeBgImageAdaptive(src) {
+  const BG_FRAME_ASPECT = 2; // กรอบแผนผังในหน้าจอคือ 560×280 = กว้าง:สูง 2:1
+
+  // ประเมินสีพื้นหลังจากขอบรูป + หาพื้นที่ที่มี "เนื้อแบบ" จริง เพื่อตัดขอบว่างทิ้ง (ให้แบบใหญ่ขึ้นในกรอบ)
+  function detectBgContent(img) {
+    const a = Math.min(1, 500 / Math.max(img.width, img.height));
+    const cw = Math.max(1, Math.round(img.width * a)), ch = Math.max(1, Math.round(img.height * a));
+    const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, cw, ch);
+    let data;
+    try { data = ctx.getImageData(0, 0, cw, ch).data; } catch (e) { return null; }
+    // สีพื้น = ค่าเฉลี่ยของพิกเซลขอบรอบรูป
+    let r = 0, g = 0, b = 0, n = 0;
+    const addPx = (x, y) => { const i = (y * cw + x) * 4; r += data[i]; g += data[i + 1]; b += data[i + 2]; n++; };
+    for (let x = 0; x < cw; x++) { addPx(x, 0); addPx(x, ch - 1); }
+    for (let y = 1; y < ch - 1; y++) { addPx(0, y); addPx(cw - 1, y); }
+    const bg = { r: Math.round(r / n), g: Math.round(g / n), b: Math.round(b / n) };
+    // หาแถว/คอลัมน์ที่มีเนื้อแบบ (ต่างจากสีพื้นชัดเจน) — ต้องมีอย่างน้อย 2 พิกเซลกันจุดรบกวน
+    const rows = new Uint16Array(ch), cols = new Uint16Array(cw);
+    for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+      const i = (y * cw + x) * 4;
+      if (Math.abs(data[i] - bg.r) + Math.abs(data[i + 1] - bg.g) + Math.abs(data[i + 2] - bg.b) > 60) { rows[y]++; cols[x]++; }
+    }
+    const first = (arr) => { for (let i = 0; i < arr.length; i++) if (arr[i] >= 2) return i; return -1; };
+    const last  = (arr) => { for (let i = arr.length - 1; i >= 0; i--) if (arr[i] >= 2) return i; return -1; };
+    const x0 = first(cols), x1 = last(cols), y0 = first(rows), y1 = last(rows);
+    if (x0 < 0 || y0 < 0 || x1 <= x0 || y1 <= y0) return { bg, box: null };
+    const pad = Math.round(0.03 * Math.max(cw, ch));
+    const box = {
+      sx: Math.max(0, Math.floor((x0 - pad) / a)),
+      sy: Math.max(0, Math.floor((y0 - pad) / a)),
+      ex: Math.min(img.width,  Math.ceil((x1 + 1 + pad) / a)),
+      ey: Math.min(img.height, Math.ceil((y1 + 1 + pad) / a)),
+    };
+    box.sw = box.ex - box.sx; box.sh = box.ey - box.sy;
+    // ถ้าตัดแล้วแทบไม่ต่างจากเดิม (<5%) ไม่ต้องตัด
+    if (box.sw >= img.width * 0.95 && box.sh >= img.height * 0.95) return { bg, box: null };
+    return { bg, box };
+  }
+
+  /* 🆕 ปรับภาพอัตโนมัติให้พอดีกรอบแผนผัง (2:1) ที่ขนาดเหมาะสมที่สุด
+     opts.fit  = true  → (ตัดขอบว่าง) แล้วจัดภาพทั้งภาพให้อยู่ในกรอบ 2:1 พอดี ไม่โดนตัด ไม่บิดสัดส่วน ใช้พื้นที่กรอบมากสุด
+                         ส่วนที่เหลือเติมด้วยสีพื้นหลังของภาพเอง (ตรวจจากขอบรูป) จึงกลืนไปกับภาพ
+     opts.trim = true  → ตัดขอบว่างรอบแบบทิ้งก่อน (ปิดได้ด้วยช่อง "ตัดขอบว่างอัตโนมัติ")
+     opts.fit  = false → โหมดเดิม: แค่ย่อรูป ไม่ปรับกรอบ (ใช้กับปุ่มบีบอัดรูปเก่า เพื่อไม่ให้ตำแหน่งจุดตรวจเลื่อน)
+     ลองคุณภาพสูงสุดก่อนแล้วลดลงทีละขั้นเฉพาะเมื่อไฟล์ใหญ่เกินเพดาน • ไม่ขยายรูปเกินความละเอียดต้นฉบับ */
+  async function resizeBgImageAdaptive(src, opts = {}) {
+    const fit = !!opts.fit, trim = opts.trim !== false;
     const dataUrl = (typeof src === 'string') ? src : await new Promise((res, rej) => {
       const r = new FileReader();
       r.onload = e => res(e.target.result);
@@ -1217,15 +1264,36 @@
       im.onerror = () => rej(new Error('ไม่สามารถอ่านไฟล์รูปภาพได้'));
       im.src = dataUrl;
     });
+
+    let crop = { sx: 0, sy: 0, sw: img.width, sh: img.height };
+    let bg = { r: 0, g: 0, b: 0 };
+    if (fit) {
+      const det = detectBgContent(img);
+      if (det) { bg = det.bg; if (trim && det.box) crop = det.box; }
+    }
+
     let out = null;
     for (const [maxDim, quality] of BG_IMAGE_STEPS) {
-      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-      const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
       const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
       ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, 0, 0, w, h);
+      if (fit) {
+        // กรอบ 2:1 เล็กที่สุดที่ครอบภาพได้พอดี (ไม่ขยายเกินต้นฉบับ) แล้วย่อลงถ้าเกิน maxDim
+        const baseW = Math.max(crop.sw, BG_FRAME_ASPECT * crop.sh);
+        const cw = Math.max(2, Math.round(Math.min(baseW, maxDim)));
+        const chh = Math.round(cw / BG_FRAME_ASPECT);
+        const k = cw / baseW;
+        const dw = crop.sw * k, dh = crop.sh * k;
+        canvas.width = cw; canvas.height = chh;
+        ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`;
+        ctx.fillRect(0, 0, cw, chh);
+        ctx.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, (cw - dw) / 2, (chh - dh) / 2, dw, dh);
+      } else {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      }
       out = canvas.toDataURL('image/jpeg', quality);
       if (out.length <= BG_IMAGE_MAX_CHARS) break;
     }
@@ -3245,19 +3313,39 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       try {
         // 🆕 เพิ่มความคมชัด: จากเดิม 500px/55% (เบลอ อ่านตัวเลขในแบบไม่ออก) → สูงสุด 1600px/88% แบบปรับลงอัตโนมัติถ้าไฟล์ใหญ่เกินเพดาน
         // (ยังคุม Egress/พื้นที่เก็บไว้ที่ ≈480KB ต่อรูป — เส้นแบบ/ลายเส้นบีบอัดได้ดี มักไม่ถึงเพดาน)
-        const dataUrl = await resizeBgImageAdaptive(file);
+        const trimEl = $('adm-cp-bg-trim');
+        const dataUrl = await resizeBgImageAdaptive(file, { fit: true, trim: trimEl ? trimEl.checked : true });
         const jig = catalog.jigs.find(j => j.id === cpEditJigId);
         jig.bgImage = dataUrl;
         saveCatalog();
         renderCpBgControls(cpEditJigId);
         renderAdmCpMap(cpEditJigId);
         renderSvgMap(); // อัปเดตแผนผังในหน้าตรวจสอบด้วย ถ้ากำลังเปิด Part นี้อยู่
-        toast('อัปโหลดรูปพื้นหลังแล้ว', 'ok');
+        toast('อัปโหลดรูปพื้นหลังแล้ว — ปรับขนาดให้พอดีกรอบอัตโนมัติ', 'ok');
       } catch (err) {
         console.error(err);
         toast('อัปโหลดรูปไม่สำเร็จ', 'ng');
       }
       e.target.value = '';
+    });
+    // 🆕 ปรับภาพที่อัปโหลดไว้แล้วให้พอดีกรอบอัตโนมัติ (ตัดขอบว่าง + จัดทั้งภาพให้อยู่ในกรอบ 2:1)
+    if ($('btn-cp-bg-fit')) $('btn-cp-bg-fit').addEventListener('click', async () => {
+      if (!cpEditJigId) return;
+      const jig = catalog.jigs.find(j => j.id === cpEditJigId);
+      if (!jig || !jig.bgImage) return;
+      const hasMarks = (jig.checkpoints || []).length + (jig.arrows || []).length > 0;
+      if (!(await showConfirmModal(
+        'ปรับภาพให้พอดีกรอบอัตโนมัติหรือไม่?' + (hasMarks ? '\n\n⚠️ ตำแหน่งภาพจะเปลี่ยน — จุดตรวจและลูกศรที่วางไว้อาจเลื่อนจากตำแหน่งเดิม ต้องลากจัดใหม่' : ''),
+        { confirmLabel: 'ปรับภาพ' }))) return;
+      try {
+        const trimEl = $('adm-cp-bg-trim');
+        jig.bgImage = await resizeBgImageAdaptive(jig.bgImage, { fit: true, trim: trimEl ? trimEl.checked : true });
+        saveCatalog();
+        renderCpBgControls(cpEditJigId);
+        renderAdmCpMap(cpEditJigId);
+        renderSvgMap();
+        toast('ปรับภาพให้พอดีกรอบแล้ว', 'ok');
+      } catch (err) { console.error(err); toast('ปรับภาพไม่สำเร็จ', 'ng'); }
     });
     $('btn-cp-bg-remove').addEventListener('click', () => {
       if (!cpEditJigId) return;
@@ -3775,6 +3863,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     if (!jig) return;
     const hasImg = !!jig.bgImage;
     $('btn-cp-bg-remove').classList.toggle('hidden', !hasImg);
+    if ($('btn-cp-bg-fit')) $('btn-cp-bg-fit').classList.toggle('hidden', !hasImg);
     $('cp-bg-status').innerHTML = hasImg
       ? `${ico(ICO_CHECK_P)} มีรูปพื้นหลังกำหนดเองแล้ว — ใช้แสดงในหน้าตรวจสอบของ Part นี้`
       : `${ico(ICO_INFO_P)} ยังไม่มีรูปพื้นหลัง — ใช้แผนผังเริ่มต้น`;
@@ -7184,7 +7273,7 @@ ${JSON.stringify(summary, null, 2)}
     for (const jig of targets) {
       try {
         const before = jig.bgImage;
-        const resized = await resizeBgImageAdaptive(before); // ใช้เกณฑ์เดียวกับตอนอัปโหลด (ไม่ลดคุณภาพต่ำกว่าเดิมอีกแล้ว) — รูปที่เล็กอยู่แล้วจะถูกข้าม
+        const resized = await resizeBgImageAdaptive(before, { fit: false }); // ใช้เกณฑ์เดียวกับตอนอัปโหลด (ไม่ลดคุณภาพต่ำกว่าเดิมอีกแล้ว) — รูปที่เล็กอยู่แล้วจะถูกข้าม
         sizeBefore += before.length;
         if (resized.length < before.length) {
           jig.bgImage = resized;
