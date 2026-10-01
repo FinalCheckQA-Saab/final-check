@@ -899,17 +899,29 @@
       }
 
       const pick = (override, fallback) => (override && String(override).trim()) ? String(override).trim() : (fallback || '');
-      const seen = new Set();
+      // ชื่อ Part เดียวกัน + Doc No. เดียวกัน = เคยนำเข้าแล้ว (ข้าม) / Doc No. ซ้ำแต่เป็นคนละ Part = ต่อท้ายด้วยรหัส Part ไม่ทิ้งรายการ
+      const docByNo = {}; allDocs.forEach(d => { docByNo[d.doc_no] = d; });
+      const sameName = (d, name) => d && String(d.doc_name || '').trim() === name;
+      const taken = new Set(Object.keys(docByNo));
       const rows = [];
-      let dupInList = 0;
+      let alreadyImported = 0, renamed = 0;
       parts.forEach(j => {
+        const name = String(j.name || '').trim();
+        if (!name) return;
+        const base = pick(j.doc_no_override, j.id);
+        if (!base) return;
+        if (sameName(docByNo[base], name)) { alreadyImported++; return; }
+        let docNo = base;
+        if (taken.has(docNo)) {
+          docNo = `${base} (${j.id})`;
+          if (sameName(docByNo[docNo], name)) { alreadyImported++; return; }
+          renamed++;
+        }
+        taken.add(docNo);
         const line = lineById[j.line_id];
-        const docNo = pick(j.doc_no_override, j.id);
-        if (seen.has(docNo)) { dupInList++; return; }
-        seen.add(docNo);
         rows.push({
           department: (line && deptName[line.dept_id]) || '',
-          docName: String(j.name || '').trim(),
+          docName: name,
           jigId: j.id,
           runNo: String(j.doc_no || '').trim(),
           docNo,
@@ -919,10 +931,9 @@
         });
       });
 
-      const existing = new Set(allDocs.map(d => d.doc_no));
-      const toImport = rows.filter(r => r.docNo && r.docName && !existing.has(r.docNo));
+      const note = renamed ? `${renamed} รายการมี Doc No. ซ้ำกับ Part อื่น จึงต่อท้ายด้วยรหัส Part เพื่อไม่ให้ซ้ำ` : '';
       importSourceLabel = 'ดึงจาก Part ในระบบ';
-      renderImportPreview(toImport, { dupInFile: dupInList, alreadyExists: rows.length - toImport.length, totalInFile: parts.length });
+      renderImportPreview(rows, { dupInFile: 0, alreadyExists: alreadyImported, totalInFile: parts.length, note });
       box.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (e) {
       console.error('loadPartsAsDocs error:', e);
@@ -1023,6 +1034,7 @@
         <div style="font-size:11px; color:var(--muted); margin-bottom:10px; line-height:1.6;">
           ทั้งหมด ${stats.totalInFile} รายการ · มีอยู่แล้วในระบบแล้ว ${stats.alreadyExists} รายการ (ข้าม)
           ${stats.dupInFile ? ` · ซ้ำกันเองในไฟล์ ${stats.dupInFile} รายการ (ใช้แถวแรก)` : ''}
+          ${stats.note ? `<br>⚠️ ${esc(stats.note)}` : ''}
         </div>
 
         <label class="field-label">นำเข้าเป็นเอกสารของบริษัท</label>
