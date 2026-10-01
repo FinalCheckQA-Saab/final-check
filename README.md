@@ -1,2 +1,2 @@
-# final-check
-Final Check app
+# daily-quality-inspection
+Daily Quality Inspection Report (รายงานตรวจสอบคุณภาพประจำวัน)

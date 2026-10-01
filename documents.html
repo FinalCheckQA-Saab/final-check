@@ -365,7 +365,7 @@
   const SUPABASE_URL = 'https://YOUR-NEW-PROJECT.supabase.co'; // ⚠️ ใส่ URL ของ Supabase project ใหม่ (Final Check) — ห้ามใช้ของ Check Jig
   const SUPABASE_ANON_KEY = 'YOUR-NEW-ANON-KEY'; // ⚠️ ใส่ anon key ของ project ใหม่
   const SUPABASE_CONFIGURED = (SUPABASE_URL.startsWith('https://') && !SUPABASE_URL.includes('YOUR-NEW-PROJECT'));
-    if (!SUPABASE_CONFIGURED) console.warn('[Final Check] ยังไม่ได้ตั้งค่า Supabase');
+    if (!SUPABASE_CONFIGURED) console.warn('[Daily Quality Inspection] ยังไม่ได้ตั้งค่า Supabase');
     const sb = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
   // 🆕 Generic Confirm Modal — แทนที่ confirm() ของเบราว์เซอร์ในหน้านี้ (Promise-based)

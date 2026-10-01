@@ -268,7 +268,7 @@
   const SUPABASE_URL = 'https://YOUR-NEW-PROJECT.supabase.co'; // ⚠️ ใส่ URL ของ Supabase project ใหม่ (Final Check) — ห้ามใช้ของ Check Jig
   const SUPABASE_ANON_KEY = 'YOUR-NEW-ANON-KEY'; // ⚠️ ใส่ anon key ของ project ใหม่
   const SUPABASE_CONFIGURED = (SUPABASE_URL.startsWith('https://') && !SUPABASE_URL.includes('YOUR-NEW-PROJECT'));
-    if (!SUPABASE_CONFIGURED) console.warn('[Final Check] ยังไม่ได้ตั้งค่า Supabase');
+    if (!SUPABASE_CONFIGURED) console.warn('[Daily Quality Inspection] ยังไม่ได้ตั้งค่า Supabase');
     const sb = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
   // ✅ จำ PIN และชื่อผู้อนุมัติไว้ชั่วคราวระหว่างที่หน้านี้ยังเปิดอยู่ (หายไปเองถ้า refresh/ปิดหน้า)
@@ -529,7 +529,7 @@
   async function notifyBulkManagerPending(lineName, count, approverName) {
     const managerDashUrl = window.location.href.replace(/approve\.html.*$/, '').replace(/\/?$/, '/') + `manager-approve.html`;
     const text = `
-📋 *Final Check Report*
+📋 *Daily Quality Inspection Report*
 🔵 สถานะ: รอผู้จัดการฝ่ายผลิตอนุมัติ (ขั้นที่ 2) — ตรวจสอบแบบกลุ่ม
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 🏭 Model: ${esc(lineName)}
@@ -758,7 +758,7 @@
     const time = row.ts ? new Date(row.ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
 
     const text = `
-📋 *Final Check Report*
+📋 *Daily Quality Inspection Report*
 🔵 สถานะ: รอผู้จัดการฝ่ายผลิตอนุมัติ (ขั้นที่ 2)
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 *${esc(row.jig_name)}*

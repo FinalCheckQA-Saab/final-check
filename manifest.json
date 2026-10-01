@@ -1,6 +1,6 @@
 {
-  "name": "ใบตรวจสอบขั้นสุดท้าย - Final Check",
-  "short_name": "Final Check",
+  "name": "รายงานตรวจสอบคุณภาพประจำวัน - Daily Quality Inspection Report",
+  "short_name": "Daily Inspection",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f2137",

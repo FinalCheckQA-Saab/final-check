@@ -1,5 +1,5 @@
 /* =====================================================
-   Final Check Dashboard — app.js  v2
+   Daily Quality Inspection Dashboard — app.js  v2
    3-Level Filter (Dept → Model → Part) + Admin Panel
    ===================================================== */
 (function () {
@@ -72,7 +72,7 @@
   const SUPABASE_URL = 'https://knzzmurumqrhwotyrooj.supabase.co'; // ⚠️ ใส่ URL ของ Supabase project ใหม่ (Final Check) — ห้ามใช้ของ Check Jig
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU'; // ⚠️ ใส่ anon key ของ project ใหม่
   const SUPABASE_CONFIGURED = (SUPABASE_URL.startsWith('https://') && !SUPABASE_URL.includes('YOUR-NEW-PROJECT'));
-  if (!SUPABASE_CONFIGURED) console.warn('[Final Check] ยังไม่ได้ตั้งค่า Supabase — แอปทำงานโหมด local เท่านั้น (ไม่ส่งข้อมูลขึ้น server)');
+  if (!SUPABASE_CONFIGURED) console.warn('[Daily Quality Inspection] ยังไม่ได้ตั้งค่า Supabase — แอปทำงานโหมด local เท่านั้น (ไม่ส่งข้อมูลขึ้น server)');
   const sb = (SUPABASE_CONFIGURED && window.supabase && window.supabase.createClient)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
@@ -2435,7 +2435,7 @@
     const sl = stageLabel(cur), n = recordPieceCount(record) || DEFAULT_PIECE_COUNT;
     const ngNow = record.items.filter(i => i.pieces && i.pieces[cur] && i.pieces[cur].status === 'ng');
     let msg = `
-⚠️ *Final Check — พบ NG ที่ชิ้น ${sl.short} (${sl.th})*
+⚠️ *Daily Quality Inspection — พบ NG ที่ชิ้น ${sl.short} (${sl.th})*
 🟠 ตรวจไปแล้ว ${cur + 1}/${n} ชิ้น — ยังไม่เข้าขั้นตอนอนุมัติ
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 *${escHtml(record.jigName)}*
@@ -2743,7 +2743,7 @@ ${escHtml(record.jigId || '')}
         const time = fmtHM(nowIso);
 
         let telegramMsg = `
-📋 *Final Check Report* (ตรวจครบ S/M/E)
+📋 *Daily Quality Inspection Report* (ตรวจครบ S/M/E)
 🟡 สถานะ: รอหัวหน้างานตรวจสอบ
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 *${escHtml(record.jigName)}*
@@ -5302,7 +5302,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           <div class="pdf-header-title-cell">
             <div class="pdf-company-th">${escHtml(appSettings.companyNameTh || DEFAULT_COMPANY_NAME_TH)}</div>
             <div class="pdf-company-en">${escHtml(appSettings.companyNameEn || DEFAULT_COMPANY_NAME_EN)}</div>
-            <div class="pdf-title">Final Check Report</div>
+            <div class="pdf-title">Daily Quality Inspection Report</div>
             <div class="pdf-subtitle">รายงานตรวจสอบคุณภาพประจำวัน (Daily Quality Inspection Report)</div>
           </div>
           <div class="pdf-header-doc-cell">
@@ -5696,11 +5696,11 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 
       // ─── Add PDF metadata (ISO: traceable document properties) ───
       doc.setProperties({
-        title:    `Final Check Report — ${record.jigName}`,
+        title:    `Daily Quality Inspection Report — ${record.jigName}`,
         subject:  `IATF 16949 / ISO 9001 Inspection Record`,
         author:   record.inspector || 'System',
         keywords: `Part,Inspection,IATF,${record.jigId},${record.date}`,
-        creator:  'Final Check System v2',
+        creator:  'Daily Quality Inspection System v2',
       });
 
       const margin  = 8; // mm margin each side
