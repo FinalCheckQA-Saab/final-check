@@ -427,9 +427,8 @@
 
   let allDocs = [];
   let latestRevByDoc = {}; // document_id -> แถวประวัติแก้ไขล่าสุด (rev_no สูงสุด) — ใช้โชว์สรุปในหน้ารายการ
-  let lineNameByDocId = {}; // doc.id -> ชื่อ Line (หาจากการจับคู่กับ Part เมื่อเอกสารไม่มี source_jig_id)
-  let lineNameByJigId = {}; // source_jig_id (ของ master_documents) -> ชื่อ Model — ใช้จัดกลุ่มในหน้ารายการ
-  let filters = { company: params.get('company') || '', department: params.get('department') || '', line: params.get('line') || '', q: '' };
+  let docInfoById = {}; // doc.id -> { section: แผนก, line: Line, model: Model } หาจากการจับคู่กลับไปที่ Part ในระบบ (อ่านสดทุกครั้งที่โหลดหน้า)
+  let filters = { company: params.get('company') || '', section: '', line: '', model: '', q: '' };
   let currentDocId = params.get('doc') || null;
   let editingRevDocId = null;   // ← document_id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายการ"
   let editingRevIdDetail = null; // ← revision id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายละเอียด"
@@ -456,25 +455,37 @@
 
     // ── ดึงข้อมูล Model มาด้วย เพื่อจัดกลุ่มรายการเอกสารตาม Model ──
     // master_documents.source_jig_id -> jigs.id -> jigs.line_id -> lines.name
-    let [{ data: jigs, error: jigErr }, { data: lines, error: lineErr }] = await Promise.all([
+    // ลำดับในแอปหลัก: แผนก (departments.section) → Line (departments.name) → Model (lines.name) → Part (jigs)
+    let [{ data: jigs, error: jigErr }, { data: lines, error: lineErr }, { data: depts, error: deptErr }] = await Promise.all([
       sb.from('jigs').select('id, name, line_id, doc_no_override'),
-      sb.from('lines').select('id, name'),
+      sb.from('lines').select('id, name, dept_id'),
+      sb.from('departments').select('id, name, section'),
     ]);
     if (jigErr) { // เผื่อฐานข้อมูลยังไม่มีคอลัมน์ doc_no_override — ลองใหม่แบบไม่ขอคอลัมน์นี้
       ({ data: jigs, error: jigErr } = await sb.from('jigs').select('id, name, line_id'));
     }
-    lineNameByJigId = {};
-    lineNameByDocId = {};
-    if (!jigErr && !lineErr && jigs && lines) {
-      const lineNameById = {};
-      lines.forEach(l => { lineNameById[l.id] = l.name; });
-      jigs.forEach(j => { lineNameByJigId[j.id] = lineNameById[j.line_id] || null; });
+    if (deptErr) { // เผื่อยังไม่มีคอลัมน์ section — ลองใหม่ (แผนกจะขึ้นเป็น "ไม่ระบุแผนก")
+      ({ data: depts, error: deptErr } = await sb.from('departments').select('id, name'));
+    }
+    docInfoById = {};
+    if (!jigErr && !lineErr && !deptErr && jigs && lines && depts) {
+      const deptById = {}; depts.forEach(d => { deptById[d.id] = d; });
+      const lineById = {}; lines.forEach(l => { lineById[l.id] = l; });
+      const infoOfJig = j => {
+        const ln = lineById[j.line_id]; const dp = ln && deptById[ln.dept_id];
+        return {
+          section: (dp && dp.section && String(dp.section).trim()) || '',
+          line: (dp && dp.name) || '',
+          model: (ln && ln.name) || '',
+        };
+      };
+      const infoByJigId = {}; jigs.forEach(j => { infoByJigId[j.id] = infoOfJig(j); });
 
-      // เอกสารที่ดึงมาจาก Part ไม่ได้เก็บ source_jig_id จึงจับคู่กลับไปหา Part เพื่อรู้ว่าอยู่ Line ไหน:
+      // เอกสารที่ดึงมาจาก Part ไม่ได้เก็บ source_jig_id จึงจับคู่กลับไปหา Part:
       // 1) ชื่อเอกสาร = ชื่อ Part  2) ถ้ามีหลาย Part ชื่อซ้ำกัน ใช้ Doc No. แยก  3) ไม่ตรงชื่อ ลองจากรหัส Part ใน Doc No.
       const keyOf = j => ((j.doc_no_override && String(j.doc_no_override).trim()) || j.id);
       allDocs.forEach(d => {
-        if (d.source_jig_id && lineNameByJigId[d.source_jig_id]) return; // มี source_jig_id อยู่แล้ว ใช้ค่านั้น
+        if (d.source_jig_id && infoByJigId[d.source_jig_id]) { docInfoById[d.id] = infoByJigId[d.source_jig_id]; return; }
         const name = String(d.doc_name || '').trim();
         let cands = jigs.filter(j => String(j.name || '').trim() === name);
         if (cands.length > 1) {
@@ -482,8 +493,7 @@
           if (narrowed.length) cands = narrowed;
         }
         if (!cands.length) cands = jigs.filter(j => d.doc_no === j.id || d.doc_no === `${keyOf(j)} (${j.id})`);
-        const j = cands[0];
-        if (j && lineNameById[j.line_id]) lineNameByDocId[d.id] = lineNameById[j.line_id];
+        if (cands[0]) docInfoById[d.id] = infoByJigId[cands[0].id];
       });
     }
 
@@ -498,24 +508,36 @@
     }
   }
 
-  function departmentsFor(company) {
-    const set = new Set();
-    allDocs.filter(d => !company || d.company === company).forEach(d => set.add(d.department));
-    return [...set].sort();
-  }
+  const NO_SECTION_LABEL = 'ไม่ระบุแผนก';
+  const NO_LINE_LABEL = 'ไม่ระบุ Line';
+  const NO_MODEL_LABEL = 'ไม่ระบุ Model';
 
-  // ── รายชื่อ Model ที่มีให้เลือกในตัวกรอง (คำนวณจากเอกสารที่ผ่านตัวกรอง บริษัท/Line อยู่แล้ว ไม่รวมตัวกรอง Model เอง) ──
-  function linesFor(company, department) {
+  // แผนก / Line / Model ของเอกสาร — ถ้าจับคู่กับ Part ไม่เจอ Line จะใช้ค่าที่บันทึกไว้ตอนสร้างเอกสาร (docs.department)
+  function infoFor(d) {
+    const i = docInfoById[d.id] || {};
+    return {
+      section: i.section || NO_SECTION_LABEL,
+      line: i.line || (d.department && d.department !== 'ไม่ระบุ' ? d.department : '') || NO_LINE_LABEL,
+      model: i.model || NO_MODEL_LABEL,
+    };
+  }
+  const sortLabels = (arr, noLabel) => arr.sort((a, b) => {
+    if (a === noLabel) return 1;
+    if (b === noLabel) return -1;
+    return a.localeCompare(b, 'th');
+  });
+
+  // ตัวเลือกในแต่ละตัวกรอง คำนวณจากเอกสารที่ผ่านตัวกรองระดับบนแล้ว (บริษัท → แผนก → Line → Model)
+  function optionsFor(level, f) {
     const set = new Set();
-    allDocs
-      .filter(d => (!company || d.company === company) && (!department || d.department === department))
-      .forEach(d => set.add(lineNameFor(d)));
-    const arr = [...set].sort((a, b) => {
-      if (a === NO_LINE_LABEL) return 1;
-      if (b === NO_LINE_LABEL) return -1;
-      return a.localeCompare(b, 'th');
+    allDocs.forEach(d => {
+      const i = infoFor(d);
+      if (f.company && d.company !== f.company) return;
+      if (level !== 'section' && f.section && i.section !== f.section) return;
+      if (level === 'model' && f.line && i.line !== f.line) return;
+      set.add(i[level]);
     });
-    return arr;
+    return sortLabels([...set], { section: NO_SECTION_LABEL, line: NO_LINE_LABEL, model: NO_MODEL_LABEL }[level]);
   }
 
   // ── markup ของแถวเอกสาร 1 รายการ (แยกเป็นฟังก์ชันเพื่อใช้ซ้ำได้ทั้งตอนจัดกลุ่มตาม Model) ──
@@ -527,7 +549,7 @@
         <div style="flex:1; min-width:0;">
           <div class="doc-no">${esc(d.doc_no)}</div>
           <div class="doc-name">${esc(d.doc_name)}</div>
-          <div class="doc-meta">${esc(d.department)} · ${esc(d.company)}</div>
+          <div class="doc-meta">Model: ${esc(infoFor(d).model)} · ${esc(d.company)}</div>
           ${rev ? `
             <div class="doc-rev-info">
               <span>🕐 <b>${fmtDate(rev.rev_date)}</b></span>
@@ -548,35 +570,26 @@
     `;
   }
 
-  const NO_LINE_LABEL = 'ไม่ระบุ Line';
-
-  function lineNameFor(d) {
-    return (d.source_jig_id && lineNameByJigId[d.source_jig_id]) || lineNameByDocId[d.id] || NO_LINE_LABEL;
-  }
-
-  // ── จัดกลุ่มรายการเอกสารตาม Model (เอกสารที่ไม่มี Model ระบุ จะถูกจัดไว้กลุ่มท้ายสุด) ──
+  // ── จัดกลุ่มรายการเอกสารตาม Line (เอกสารที่ไม่มี Line ระบุ จะอยู่กลุ่มท้ายสุด) ──
   function groupByLine(docs) {
     const groups = {};
     docs.forEach(d => {
-      const key = lineNameFor(d);
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(d);
+      const key = infoFor(d).line;
+      (groups[key] = groups[key] || []).push(d);
     });
-    const orderedKeys = Object.keys(groups).sort((a, b) => {
-      if (a === NO_LINE_LABEL) return 1;
-      if (b === NO_LINE_LABEL) return -1;
-      return a.localeCompare(b, 'th');
-    });
-    return orderedKeys.map(key => ({ line: key, docs: groups[key] }));
+    return sortLabels(Object.keys(groups), NO_LINE_LABEL).map(key => ({ line: key, docs: groups[key] }));
   }
 
   function renderList() {
-    const departments = departmentsFor(filters.company);
-    const lineOptions = linesFor(filters.company, filters.department);
+    const sectionOptions = optionsFor('section', filters);
+    const lineOptions = optionsFor('line', filters);
+    const modelOptions = optionsFor('model', filters);
     let filtered = allDocs.filter(d => {
       if (filters.company && d.company !== filters.company) return false;
-      if (filters.department && d.department !== filters.department) return false;
-      if (filters.line && lineNameFor(d) !== filters.line) return false;
+      const i = infoFor(d);
+      if (filters.section && i.section !== filters.section) return false;
+      if (filters.line && i.line !== filters.line) return false;
+      if (filters.model && i.model !== filters.model) return false;
       if (filters.q) {
         const q = filters.q.toLowerCase();
         if (!(d.doc_no || '').toLowerCase().includes(q) && !(d.doc_name || '').toLowerCase().includes(q)) return false;
@@ -595,15 +608,19 @@
             <option value="">ทุกบริษัท</option>
             ${COMPANIES.map(c => `<option value="${escAttr(c)}" ${filters.company === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
           </select>
-          <select id="f-department">
+          <select id="f-section">
             <option value="">ทุกแผนก</option>
-            ${departments.map(dp => `<option value="${escAttr(dp)}" ${filters.department === dp ? 'selected' : ''}>${esc(dp)}</option>`).join('')}
+            ${sectionOptions.map(x => `<option value="${escAttr(x)}" ${filters.section === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}
           </select>
         </div>
         <div class="filter-row">
           <select id="f-line">
             <option value="">🏭 ทุก Line</option>
-            ${lineOptions.map(l => `<option value="${escAttr(l)}" ${filters.line === l ? 'selected' : ''}>${esc(l)}</option>`).join('')}
+            ${lineOptions.map(x => `<option value="${escAttr(x)}" ${filters.line === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}
+          </select>
+          <select id="f-model">
+            <option value="">ทุก Model</option>
+            ${modelOptions.map(x => `<option value="${escAttr(x)}" ${filters.model === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}
           </select>
         </div>
         <div class="filter-row">
@@ -636,17 +653,21 @@
 
     document.getElementById('f-company').addEventListener('change', e => {
       filters.company = e.target.value;
-      filters.department = ''; // เปลี่ยนบริษัทแล้วรีเซ็ตตัวกรอง Line
-      filters.line = ''; // ...และรีเซ็ตตัวกรอง Model ด้วย เพราะตัวเลือก Model ขึ้นกับบริษัท/Line ที่เลือก
+      filters.section = ''; filters.line = ''; filters.model = ''; // เปลี่ยนระดับบน รีเซ็ตตัวกรองระดับล่าง เพราะตัวเลือกเปลี่ยนตาม
       render();
     });
-    document.getElementById('f-department').addEventListener('change', e => {
-      filters.department = e.target.value;
-      filters.line = ''; // เปลี่ยน Line แล้วรีเซ็ตตัวกรอง Model เช่นกัน
+    document.getElementById('f-section').addEventListener('change', e => {
+      filters.section = e.target.value;
+      filters.line = ''; filters.model = '';
       render();
     });
     document.getElementById('f-line').addEventListener('change', e => {
       filters.line = e.target.value;
+      filters.model = '';
+      render();
+    });
+    document.getElementById('f-model').addEventListener('change', e => {
+      filters.model = e.target.value;
       render();
     });
     document.getElementById('f-search').addEventListener('input', e => {
@@ -1069,7 +1090,7 @@
 
         <div style="max-height:220px; overflow:auto; margin-top:10px; border:1px solid var(--border); border-radius:8px;">
           <table class="rev-table" style="margin-top:0;">
-            <thead><tr><th>Doc No.</th><th>ชื่อเอกสาร</th><th>แผนก</th><th>Rev เดิม</th></tr></thead>
+            <thead><tr><th>Doc No.</th><th>ชื่อเอกสาร</th><th>Line</th><th>Rev เดิม</th></tr></thead>
             <tbody>
               ${rows.map(r => `
                 <tr>
@@ -1185,7 +1206,9 @@
 
         <div class="meta-grid">
           <div><span>บริษัท:</span> ${esc(doc.company)}</div>
-          <div><span>แผนก:</span> ${esc(doc.department)}</div>
+          <div><span>แผนก:</span> ${esc(infoFor(doc).section)}</div>
+          <div><span>Line:</span> ${esc(infoFor(doc).line)}</div>
+          <div><span>Model:</span> ${esc(infoFor(doc).model)}</div>
           <div><span>Rev ปัจจุบัน:</span> ${doc.current_rev_no ?? 0}</div>
           <div><span>วันที่ Rev ล่าสุด:</span> ${fmtDate(doc.current_rev_date)}</div>
         </div>
