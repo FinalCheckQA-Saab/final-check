@@ -427,6 +427,7 @@
 
   let allDocs = [];
   let latestRevByDoc = {}; // document_id -> แถวประวัติแก้ไขล่าสุด (rev_no สูงสุด) — ใช้โชว์สรุปในหน้ารายการ
+  let lineNameByDocId = {}; // doc.id -> ชื่อ Line (หาจากการจับคู่กับ Part เมื่อเอกสารไม่มี source_jig_id)
   let lineNameByJigId = {}; // source_jig_id (ของ master_documents) -> ชื่อ Model — ใช้จัดกลุ่มในหน้ารายการ
   let filters = { company: params.get('company') || '', department: params.get('department') || '', line: params.get('line') || '', q: '' };
   let currentDocId = params.get('doc') || null;
@@ -455,15 +456,35 @@
 
     // ── ดึงข้อมูล Model มาด้วย เพื่อจัดกลุ่มรายการเอกสารตาม Model ──
     // master_documents.source_jig_id -> jigs.id -> jigs.line_id -> lines.name
-    const [{ data: jigs, error: jigErr }, { data: lines, error: lineErr }] = await Promise.all([
-      sb.from('jigs').select('id, line_id'),
+    let [{ data: jigs, error: jigErr }, { data: lines, error: lineErr }] = await Promise.all([
+      sb.from('jigs').select('id, name, line_id, doc_no_override'),
       sb.from('lines').select('id, name'),
     ]);
+    if (jigErr) { // เผื่อฐานข้อมูลยังไม่มีคอลัมน์ doc_no_override — ลองใหม่แบบไม่ขอคอลัมน์นี้
+      ({ data: jigs, error: jigErr } = await sb.from('jigs').select('id, name, line_id'));
+    }
     lineNameByJigId = {};
+    lineNameByDocId = {};
     if (!jigErr && !lineErr && jigs && lines) {
       const lineNameById = {};
       lines.forEach(l => { lineNameById[l.id] = l.name; });
       jigs.forEach(j => { lineNameByJigId[j.id] = lineNameById[j.line_id] || null; });
+
+      // เอกสารที่ดึงมาจาก Part ไม่ได้เก็บ source_jig_id จึงจับคู่กลับไปหา Part เพื่อรู้ว่าอยู่ Line ไหน:
+      // 1) ชื่อเอกสาร = ชื่อ Part  2) ถ้ามีหลาย Part ชื่อซ้ำกัน ใช้ Doc No. แยก  3) ไม่ตรงชื่อ ลองจากรหัส Part ใน Doc No.
+      const keyOf = j => ((j.doc_no_override && String(j.doc_no_override).trim()) || j.id);
+      allDocs.forEach(d => {
+        if (d.source_jig_id && lineNameByJigId[d.source_jig_id]) return; // มี source_jig_id อยู่แล้ว ใช้ค่านั้น
+        const name = String(d.doc_name || '').trim();
+        let cands = jigs.filter(j => String(j.name || '').trim() === name);
+        if (cands.length > 1) {
+          const narrowed = cands.filter(j => d.doc_no === keyOf(j) || d.doc_no === `${keyOf(j)} (${j.id})`);
+          if (narrowed.length) cands = narrowed;
+        }
+        if (!cands.length) cands = jigs.filter(j => d.doc_no === j.id || d.doc_no === `${keyOf(j)} (${j.id})`);
+        const j = cands[0];
+        if (j && lineNameById[j.line_id]) lineNameByDocId[d.id] = lineNameById[j.line_id];
+      });
     }
 
     render();
@@ -530,7 +551,7 @@
   const NO_LINE_LABEL = 'ไม่ระบุ Line';
 
   function lineNameFor(d) {
-    return (d.source_jig_id && lineNameByJigId[d.source_jig_id]) || NO_LINE_LABEL;
+    return (d.source_jig_id && lineNameByJigId[d.source_jig_id]) || lineNameByDocId[d.id] || NO_LINE_LABEL;
   }
 
   // ── จัดกลุ่มรายการเอกสารตาม Model (เอกสารที่ไม่มี Model ระบุ จะถูกจัดไว้กลุ่มท้ายสุด) ──
