@@ -589,7 +589,8 @@
           <input type="text" id="f-search" placeholder="ค้นหาเลขที่เอกสาร หรือ ชื่อเอกสาร..." value="${escAttr(filters.q)}">
         </div>
         <button class="btn btn-primary" id="btn-add-doc" type="button">➕ เพิ่มเอกสารใหม่</button>
-        <!-- 🚫 ซ่อนไว้: ไม่ต้องใช้แล้ว เพราะ Part ทุกตัว sync เข้ามาอัตโนมัติผ่าน trigger ในฐานข้อมูลแล้ว -->
+        <button class="btn-ghost" id="btn-import-parts" type="button" style="width:100%; margin-top:8px; box-sizing:border-box;">🔄 ดึงจาก Part ที่สร้างไว้ในระบบ</button>
+        <!-- 🚫 ซ่อนไว้: นำเข้าจาก Excel (ใช้ปุ่ม "ดึงจาก Part" ด้านบนแทน) -->
         <button class="btn-ghost" id="btn-import-excel" type="button" style="width:100%; margin-top:8px; box-sizing:border-box; display:none;">📥 นำเข้าจาก Excel (Master List Part)</button>
         <input type="file" id="import-file-input" accept=".xlsx,.xls" style="display:none">
       </div>
@@ -664,6 +665,7 @@
       if (addFormOpen) bindAddDocForm();
     });
 
+    document.getElementById('btn-import-parts').addEventListener('click', loadPartsAsDocs);
     document.getElementById('btn-import-excel').addEventListener('click', () => {
       document.getElementById('import-file-input').click();
     });
@@ -861,6 +863,76 @@
     return `${y}-${pad(mo)}-${pad(d)}`;
   }
 
+  // 🆕 ดึงรายการ Part ที่สร้างไว้ในระบบ (ตาราง jigs) มาเป็นเอกสารใน Master List
+  // - Doc No. = Doc No. ที่ตั้งเฉพาะ Part (doc_no_override) ถ้าไม่ได้ตั้ง ใช้รหัส Part (jigs.id) เพื่อไม่ให้ซ้ำกันทุก Part
+  // - ข้ามรายการที่ Doc No. มีอยู่ใน Master List แล้ว และแสดงตัวอย่างให้ตรวจก่อนบันทึกทุกครั้ง
+  let importSourceLabel = 'นำเข้าจาก Excel';
+  const isoToDmy = (v) => {
+    const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+  };
+  async function loadPartsAsDocs() {
+    const btn = document.getElementById('btn-import-parts');
+    const box = document.getElementById('import-preview');
+    btn.disabled = true;
+    const oldText = btn.textContent;
+    btn.textContent = 'กำลังอ่านรายการ Part...';
+    try {
+      const [dep, lin, jig, set] = await Promise.all([
+        sb.from('departments').select('id, name'),
+        sb.from('lines').select('id, name, dept_id'),
+        sb.from('jigs').select('*'),
+        sb.from('app_settings').select('key, value'),
+      ]);
+      const err = dep.error || lin.error || jig.error;
+      if (err) throw err;
+
+      const settings = {};
+      (set.data || []).forEach(r => { settings[r.key] = r.value; });
+      const deptName = {}; (dep.data || []).forEach(d => { deptName[d.id] = d.name; });
+      const lineById = {}; (lin.data || []).forEach(l => { lineById[l.id] = l; });
+
+      const parts = (jig.data || []).slice().sort((a, b) => (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9));
+      if (!parts.length) {
+        box.innerHTML = '<div class="card"><div class="center-msg">ยังไม่พบ Part ในระบบ — สร้าง Part ในหน้า Admin ของแอปหลักก่อนค่ะ</div></div>';
+        return;
+      }
+
+      const pick = (override, fallback) => (override && String(override).trim()) ? String(override).trim() : (fallback || '');
+      const seen = new Set();
+      const rows = [];
+      let dupInList = 0;
+      parts.forEach(j => {
+        const line = lineById[j.line_id];
+        const docNo = pick(j.doc_no_override, j.id);
+        if (seen.has(docNo)) { dupInList++; return; }
+        seen.add(docNo);
+        rows.push({
+          department: (line && deptName[line.dept_id]) || '',
+          docName: String(j.name || '').trim(),
+          jigId: j.id,
+          runNo: String(j.doc_no || '').trim(),
+          docNo,
+          revLevelText: pick(j.rev_level_override, settings.rev_level),
+          revDateText: isoToDmy(pick(j.rev_date_override, settings.rev_date)),
+          issuedText: isoToDmy(pick(j.issue_date_override, settings.issue_date)),
+        });
+      });
+
+      const existing = new Set(allDocs.map(d => d.doc_no));
+      const toImport = rows.filter(r => r.docNo && r.docName && !existing.has(r.docNo));
+      importSourceLabel = 'ดึงจาก Part ในระบบ';
+      renderImportPreview(toImport, { dupInFile: dupInList, alreadyExists: rows.length - toImport.length, totalInFile: parts.length });
+      box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) {
+      console.error('loadPartsAsDocs error:', e);
+      box.innerHTML = `<div class="card"><div class="center-msg">อ่านรายการ Part ไม่สำเร็จ: ${esc(e.message || e)}</div></div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = oldText;
+    }
+  }
+
   function handleImportFile(e) {
     const file = e.target.files[0];
     e.target.value = ''; // เคลียร์ input ไว้เผื่อเลือกไฟล์เดิมซ้ำ
@@ -920,6 +992,7 @@
         const toImport = deduped.filter(r => !existingDocNos.has(r.docNo));
         const alreadyExists = deduped.length - toImport.length;
 
+        importSourceLabel = 'นำเข้าจาก Excel';
         renderImportPreview(toImport, { dupInFile, alreadyExists, totalInFile: parsed.length });
       } catch (err) {
         alert('อ่านไฟล์ไม่สำเร็จ: ' + err.message);
@@ -933,7 +1006,7 @@
     if (!rows.length) {
       box.innerHTML = `
         <div class="card">
-          <div class="section-title"><span>📥 นำเข้าจาก Excel</span></div>
+          <div class="section-title"><span>📥 ${importSourceLabel}</span></div>
           <div class="center-msg" style="padding:12px 0;">
             ไม่มีรายการใหม่ให้นำเข้า (พบทั้งหมด ${stats.totalInFile} แถว —
             มีอยู่แล้วในระบบ ${stats.alreadyExists} รายการ${stats.dupInFile ? `, ซ้ำกันเองในไฟล์ ${stats.dupInFile} รายการ` : ''})
@@ -946,9 +1019,9 @@
 
     box.innerHTML = `
       <div class="card">
-        <div class="section-title"><span>📥 นำเข้าจาก Excel — พบ ${rows.length} รายการใหม่</span></div>
+        <div class="section-title"><span>📥 ${importSourceLabel} — พบ ${rows.length} รายการใหม่</span></div>
         <div style="font-size:11px; color:var(--muted); margin-bottom:10px; line-height:1.6;">
-          ทั้งหมดในไฟล์ ${stats.totalInFile} แถว · มีอยู่แล้วในระบบแล้ว ${stats.alreadyExists} รายการ (ข้าม)
+          ทั้งหมด ${stats.totalInFile} รายการ · มีอยู่แล้วในระบบแล้ว ${stats.alreadyExists} รายการ (ข้าม)
           ${stats.dupInFile ? ` · ซ้ำกันเองในไฟล์ ${stats.dupInFile} รายการ (ใช้แถวแรก)` : ''}
         </div>
 
