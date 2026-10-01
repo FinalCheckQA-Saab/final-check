@@ -265,8 +265,8 @@
   </div>
 
 <script>
-  const SUPABASE_URL = 'https://YOUR-NEW-PROJECT.supabase.co'; // ⚠️ ใส่ URL ของ Supabase project ใหม่ (Final Check) — ห้ามใช้ของ Check Jig
-  const SUPABASE_ANON_KEY = 'YOUR-NEW-ANON-KEY'; // ⚠️ ใส่ anon key ของ project ใหม่
+  const SUPABASE_URL = 'https://knzzmurumqrhwotyrooj.supabase.co'; // ⚠️ ใส่ URL ของ Supabase project ใหม่ (Final Check) — ห้ามใช้ของ Check Jig
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU'; // ⚠️ ใส่ anon key ของ project ใหม่
   const SUPABASE_CONFIGURED = (SUPABASE_URL.startsWith('https://') && !SUPABASE_URL.includes('YOUR-NEW-PROJECT'));
     if (!SUPABASE_CONFIGURED) console.warn('[Daily Quality Inspection] ยังไม่ได้ตั้งค่า Supabase');
     const sb = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
