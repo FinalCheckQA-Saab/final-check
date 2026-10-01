@@ -2245,6 +2245,11 @@
               const val = parseFloat(raw);
               if (isNaN(val)) return;
               piece.value = val;
+              // 🛡 กันเกณฑ์ไม่ครบ: หัวข้อตัวเลขต้องมีทั้ง min และ max (รวมค่า 0) — ถ้าขาดแปลว่าข้อมูลใน Catalog เสีย ต้องแจ้ง Admin
+              if (item.type === 'numeric' && (item.min == null || item.max == null) && !item._specWarned) {
+                item._specWarned = true;
+                toast('⚠ หัวข้อนี้ตั้งเกณฑ์ไม่ครบ (ขาดค่าต่ำสุด/สูงสุด) — ผลผ่าน/ไม่ผ่านอาจไม่ถูกต้อง แจ้ง Admin แก้เกณฑ์ก่อน', 'ng');
+              }
               const inRange = (item.min == null || val >= item.min) && (item.max == null || val <= item.max);
               piece.status = inRange ? 'ok' : 'ng';
               inp.classList.toggle('needs-value', !inRange); // แดงเบาๆ เตือนค่าที่เกินเกณฑ์ทันที
