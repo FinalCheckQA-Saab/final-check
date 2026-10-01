@@ -2125,24 +2125,66 @@
 
   /* ── กล่องข้อความบนแผนผัง: เก็บในอาร์เรย์เดียวกับลูกศร (jig.arrows) เป็น { id, type:'text', x, y, text, color, size }
         → ใช้คอลัมน์ arrows เดิมใน Supabase ได้เลย ไม่ต้องแก้ SQL/RPC  (x,y = มุมซ้ายบนของกล่อง) ── */
-  const TEXT_SIZES = { small: 10, normal: 14, large: 20 };
+  const TEXT_SIZES = { small: 10, normal: 14, large: 20, xlarge: 28 };
+  const TEXT_FILLS = ['#ffffff', '#fff3bf', '#d3f9d8', '#d0ebff', '#ffe3e3', '#111111', 'none'];   // 'none' = โปร่งใส
+  const TEXT_COLORS = ['#111111', '#ffffff', '#e03131', '#1d6fd1', '#2f9e44', '#f08c00'];
+  const TEXT_MIN_W = 30;
+  const thaiVis = t => t.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, '');   // สระ/วรรณยุกต์บนล่างไม่กินความกว้าง
+
+  // ตัดบรรทัดตามความกว้างกล่อง (ประมาณจากจำนวนตัวอักษร) — เว้นวรรคก่อน ถ้าไม่มีให้ตัดกลางคำ (ภาษาไทยไม่มีเว้นวรรค)
+  function wrapLine(line, maxCh) {
+    if (thaiVis(line).length <= maxCh) return [line];
+    const out = []; let cur = '', vis = 0, lastSp = -1;
+    for (const ch of Array.from(line)) {
+      const w = thaiVis(ch).length;
+      if (vis + w > maxCh && cur) {
+        if (lastSp > 0) { out.push(cur.slice(0, lastSp)); cur = cur.slice(lastSp + 1); vis = thaiVis(cur).length; }
+        else { out.push(cur); cur = ''; vis = 0; }
+        lastSp = -1;
+      }
+      if (ch === ' ') lastSp = cur.length;
+      cur += ch; vis += w;
+    }
+    if (cur) out.push(cur);
+    return out;
+  }
+
+  /* กล่องข้อความ: { id, type:'text', x, y, text, size, color(กรอบ), fill(พื้น), textColor, w?, h? }
+     ไม่มี w/h = ปรับขนาดตามข้อความอัตโนมัติ • มี w/h = ขนาดที่ Admin ลากกำหนดเอง (ข้อความตัดบรรทัดตามความกว้าง, ส่วนเกินความสูงถูกซ่อน) */
   function textBox(a) {
     const size = Number(a.size) || TEXT_SIZES.normal;
     const raw = String(a.text == null ? '' : a.text);
-    const lines = (raw.trim() ? raw : '…').split('\n');
-    const vis = t => t.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, '').length; // สระ/วรรณยุกต์ไทยบนล่างไม่กินความกว้าง
-    const maxCh = Math.max(2, ...lines.map(vis));
-    return { size, lines, w: Math.min(570, Math.round(maxCh * size * 0.58 + 16)), h: Math.round(lines.length * size * 1.35 + 10) };
+    const src = (raw.trim() ? raw : '…').split('\n');
+    const pitch = size * 1.35, minH = Math.round(pitch + 10);
+    let w, lines;
+    if (Number(a.w) > 0) {
+      w = Math.max(TEXT_MIN_W, Math.min(590, Math.round(a.w)));
+      const maxCh = Math.max(1, Math.floor((w - 16) / (size * 0.58)));
+      lines = [].concat(...src.map(l => wrapLine(l, maxCh)));
+    } else {
+      lines = src;
+      w = Math.min(570, Math.round(Math.max(2, ...lines.map(l => thaiVis(l).length)) * size * 0.58 + 16));
+    }
+    const h = Number(a.h) > 0 ? Math.max(minH, Math.min(330, Math.round(a.h))) : Math.round(lines.length * pitch + 10);
+    return { size, lines, w, h, minH, pitch };
   }
+
   function textSvg(a, selected) {
     const b = textBox(a);
     const color = a.color || ARROW_COLORS[1];
+    const fill = a.fill || '#ffffff', tcol = a.textColor || '#111111';
     const x = Number(a.x) || 0, y = Number(a.y) || 0;
     const tspans = b.lines.map((ln, i) =>
-      `<tspan x="${x + 8}" dy="${i === 0 ? 0 : Math.round(b.size * 1.35 * 10) / 10}">${escHtml(ln)}</tspan>`).join('');
+      `<tspan x="8" dy="${i === 0 ? 0 : Math.round(b.pitch * 10) / 10}">${escHtml(ln)}</tspan>`).join('');
+    const hs = 7;   // ขนาดจุดจับ (จัดการขนาด)
+    const handles = selected ? `
+      <rect class="arrow-handle text-resize rs-r"  data-end="r"  x="${x + b.w - hs / 2}" y="${y + b.h / 2 - hs}" width="${hs}" height="${hs * 2}" rx="3"/>
+      <rect class="arrow-handle text-resize rs-b"  data-end="b"  x="${x + b.w / 2 - hs}" y="${y + b.h - hs / 2}" width="${hs * 2}" height="${hs}" rx="3"/>
+      <rect class="arrow-handle text-resize rs-rb" data-end="rb" x="${x + b.w - hs}" y="${y + b.h - hs}" width="${hs * 2}" height="${hs * 2}" rx="3"/>` : '';
     return `<g class="cp-arrow cp-text${selected ? ' selected' : ''}" data-aid="${escHtml(String(a.id))}">
-      <rect class="text-box" x="${x}" y="${y}" width="${b.w}" height="${b.h}" rx="4" fill="#fff" fill-opacity="0.93" stroke="${color}" stroke-width="1.6"/>
-      <text x="${x + 8}" y="${y + 5 + b.size * 0.95}" font-size="${b.size}" fill="#111" style="font-family:inherit">${tspans}</text>
+      <rect class="text-box" x="${x}" y="${y}" width="${b.w}" height="${b.h}" rx="4" fill="${fill}" fill-opacity="${fill === 'none' ? 0 : 0.93}" stroke="${color}" stroke-width="1.6" pointer-events="all"/>
+      <svg x="${x}" y="${y}" width="${b.w}" height="${b.h}" style="overflow:hidden;pointer-events:none"><text x="8" y="${5 + b.size * 0.95}" font-size="${b.size}" fill="${tcol}" style="font-family:inherit">${tspans}</text></svg>
+      ${handles}
     </g>`;
   }
 
@@ -4238,9 +4280,14 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         if (document.activeElement !== ta) ta.value = sel.text || '';
         const sKey = Object.keys(TEXT_SIZES).find(k => TEXT_SIZES[k] === Number(sel.size)) || 'normal';
         $('adm-text-size').value = sKey;
+        const swatch = (c, cur, cls) => `<button type="button" class="arrow-swatch${cur === c ? ' on' : ''}${c === 'none' ? ' none' : ''}" data-color="${c}" style="${c === 'none' ? '' : 'background:' + c}" title="${c === 'none' ? 'โปร่งใส' : c}"></button>`;
+        if ($('adm-text-fills'))  $('adm-text-fills').innerHTML  = TEXT_FILLS.map(c => swatch(c, sel.fill || '#ffffff')).join('');
+        if ($('adm-text-colors')) $('adm-text-colors').innerHTML = TEXT_COLORS.map(c => swatch(c, sel.textColor || '#111111')).join('');
+        if ($('btn-text-autosize')) $('btn-text-autosize').classList.toggle('hidden', !(sel.w || sel.h));
       }
     }
     $('btn-arrow-del').textContent = isText ? 'ลบกล่องข้อความนี้' : 'ลบลูกศรนี้';
+    if ($('adm-color-label')) $('adm-color-label').textContent = isText ? 'สีกรอบ' : 'สี';
     if (sel) {
       $('adm-arrow-colors').innerHTML = ARROW_COLORS.map(c =>
         `<button type="button" class="arrow-swatch${(sel.color || ARROW_COLORS[0]) === c ? ' on' : ''}" data-color="${c}" style="background:${c}" title="${c}"></button>`).join('');
@@ -4248,7 +4295,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       $('adm-arrow-width').value = wKey;
     }
     $('adm-cp-map-hint-text').textContent = isText
-      ? 'กล่องข้อความ: พิมพ์ข้อความในช่องด้านบน • ลากกล่องเพื่อย้ายตำแหน่ง • เลือกสีกรอบได้'
+      ? 'กล่องข้อความ: พิมพ์ข้อความในช่องด้านบน • ลากกล่องเพื่อย้าย • ลากจุดสีขาวที่ขอบ/มุมกล่องเพื่อปรับขนาด • เลือกสีกรอบ/สีพื้น/สีตัวอักษรได้'
       : _arrowAddMode
       ? 'โหมดเพิ่มลูกศร: กดค้างที่จุดเริ่มต้น แล้วลากไปที่จุดปลาย (หัวลูกศร) แล้วปล่อย'
       : 'ลากจุดตรวจเพื่อจัดตำแหน่ง • แตะลูกศรเพื่อเลือก แล้วลากตัวเส้นเพื่อย้าย หรือลากวงกลมที่ปลายเพื่อปรับ';
@@ -4275,7 +4322,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         const handle = e.target.closest('.arrow-handle');
         const mode = handle ? handle.dataset.end : 'move';   // '1' = ปลายเริ่ม, '2' = หัวลูกศร, 'move' = ย้ายทั้งเส้น
         const start = arrowSvgPoint(svg, e);
-        const orig = { x1: arrow.x1, y1: arrow.y1, x2: arrow.x2, y2: arrow.y2, tx: arrow.x, ty: arrow.y };
+        const orig = { x1: arrow.x1, y1: arrow.y1, x2: arrow.x2, y2: arrow.y2, tx: arrow.x, ty: arrow.y, tw: arrow.type === 'text' ? textBox(arrow).w : 0, th: arrow.type === 'text' ? textBox(arrow).h : 0 };
         let moved = false;
         svg.setPointerCapture(e.pointerId);
 
@@ -4284,9 +4331,17 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           if (Math.abs(p.x - start.x) + Math.abs(p.y - start.y) < 2 && !moved) return;
           moved = true;
           if (arrow.type === 'text') {
-            const bb = textBox(arrow);
-            arrow.x = Math.round(Math.max(5, Math.min(595 - bb.w, orig.tx + p.x - start.x)));
-            arrow.y = Math.round(Math.max(5, Math.min(335 - bb.h, orig.ty + p.y - start.y)));
+            const dxm = p.x - start.x, dym = p.y - start.y;
+            if (mode === 'r' || mode === 'b' || mode === 'rb') {          // ลากจุดจับเพื่อปรับขนาดกล่อง
+              const minH = textBox(arrow).minH;
+              if (mode === 'r' || mode === 'rb') arrow.w = Math.round(Math.max(TEXT_MIN_W, Math.min(595 - arrow.x, orig.tw + dxm)));
+              else if (arrow.w == null) arrow.w = orig.tw;
+              if (mode === 'b' || mode === 'rb') arrow.h = Math.round(Math.max(minH, Math.min(335 - arrow.y, orig.th + dym)));
+            } else {                                                      // ลากตัวกล่องเพื่อย้าย
+              const bb = textBox(arrow);
+              arrow.x = Math.round(Math.max(5, Math.min(595 - bb.w, orig.tx + dxm)));
+              arrow.y = Math.round(Math.max(5, Math.min(335 - bb.h, orig.ty + dym)));
+            }
           }
           else if (mode === '1') { arrow.x1 = p.x; arrow.y1 = p.y; }
           else if (mode === '2') { arrow.x2 = p.x; arrow.y2 = p.y; }
@@ -4422,6 +4477,15 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         clearTimeout(_textSaveTimer); _textSaveTimer = setTimeout(commitText, 1200);
       });
       $('adm-text-input').addEventListener('change', commitText);
+      const bindSwatch = (id, key) => { if (!$(id)) return; $(id).addEventListener('click', e => {
+        const b = e.target.closest('.arrow-swatch'); const a = selText(); if (!b || !a) return;
+        a[key] = b.dataset.color; commitText(); renderAdmArrows(cpEditJigId);
+      }); };
+      bindSwatch('adm-text-fills', 'fill'); bindSwatch('adm-text-colors', 'textColor');
+      if ($('btn-text-autosize')) $('btn-text-autosize').addEventListener('click', () => {
+        const a = selText(); if (!a) return;
+        delete a.w; delete a.h; commitText(); renderAdmArrows(cpEditJigId);
+      });
       $('adm-text-size').addEventListener('change', () => {
         const a = selText(); if (!a) return;
         a.size = TEXT_SIZES[$('adm-text-size').value] || TEXT_SIZES.normal;

@@ -2876,3 +2876,7 @@ body.sidebar-collapsed .sidebar-nav a.side-nav-item { justify-content: center; p
 .text-edit { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .text-edit.hidden { display: none; }
 .text-edit textarea { flex: 1 1 100%; min-height: 54px; padding: 8px 10px; border: 1px solid var(--border-input, #cbd5e1); border-radius: 8px; font: inherit; resize: vertical; }
+.cp-text .text-resize { fill: #fff; stroke: var(--accent, #3b82f6); stroke-width: 1.8; }
+.cp-text .rs-r { cursor: ew-resize; } .cp-text .rs-b { cursor: ns-resize; } .cp-text .rs-rb { cursor: nwse-resize; }
+.arrow-swatch.none { background: linear-gradient(135deg, #fff 44%, #e03131 44% 56%, #fff 56%); }
+.btn-sec.hidden { display: none; }
