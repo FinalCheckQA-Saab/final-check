@@ -527,7 +527,7 @@
     `;
   }
 
-  const NO_LINE_LABEL = 'ไม่ระบุ Model';
+  const NO_LINE_LABEL = 'ไม่ระบุ Line';
 
   function lineNameFor(d) {
     return (d.source_jig_id && lineNameByJigId[d.source_jig_id]) || NO_LINE_LABEL;
@@ -575,13 +575,13 @@
             ${COMPANIES.map(c => `<option value="${escAttr(c)}" ${filters.company === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
           </select>
           <select id="f-department">
-            <option value="">ทุก Line</option>
+            <option value="">ทุกแผนก</option>
             ${departments.map(dp => `<option value="${escAttr(dp)}" ${filters.department === dp ? 'selected' : ''}>${esc(dp)}</option>`).join('')}
           </select>
         </div>
         <div class="filter-row">
           <select id="f-line">
-            <option value="">🏭 ทุก Model</option>
+            <option value="">🏭 ทุก Line</option>
             ${lineOptions.map(l => `<option value="${escAttr(l)}" ${filters.line === l ? 'selected' : ''}>${esc(l)}</option>`).join('')}
           </select>
         </div>
@@ -603,7 +603,7 @@
         ${grouped.length ? grouped.map(g => `
           <div class="line-group">
             <div class="line-group-header">
-              <span>🏭 MODEL: ${esc(g.line)}</span>
+              <span>🏭 LINE: ${esc(g.line)}</span>
               <span class="line-group-count">${g.docs.length}</span>
             </div>
             ${g.docs.map(d => renderDocRow(d)).join('')}
@@ -1048,7 +1048,7 @@
 
         <div style="max-height:220px; overflow:auto; margin-top:10px; border:1px solid var(--border); border-radius:8px;">
           <table class="rev-table" style="margin-top:0;">
-            <thead><tr><th>Doc No.</th><th>ชื่อเอกสาร</th><th>Line</th><th>Rev เดิม</th></tr></thead>
+            <thead><tr><th>Doc No.</th><th>ชื่อเอกสาร</th><th>แผนก</th><th>Rev เดิม</th></tr></thead>
             <tbody>
               ${rows.map(r => `
                 <tr>
@@ -1164,7 +1164,7 @@
 
         <div class="meta-grid">
           <div><span>บริษัท:</span> ${esc(doc.company)}</div>
-          <div><span>Line:</span> ${esc(doc.department)}</div>
+          <div><span>แผนก:</span> ${esc(doc.department)}</div>
           <div><span>Rev ปัจจุบัน:</span> ${doc.current_rev_no ?? 0}</div>
           <div><span>วันที่ Rev ล่าสุด:</span> ${fmtDate(doc.current_rev_date)}</div>
         </div>
