@@ -328,15 +328,30 @@
       }));
       // แบ่งส่งเป็นชุดๆ (มีรูปถ่าย base64 อยู่ในนั้น ก้อนใหญ่ได้) กันพัง request เดียวโตเกินไป
       // upsert ตาม id — แถวที่มีอยู่แล้วจะถูกอัปเดตทับ ส่วนแถวอื่นในตารางที่ไม่ได้ส่งมาจะไม่ถูกแตะต้อง
+      // 🛠 ถ้าทั้งก้อนพัง (เช่น 23502 not-null) ให้ลองทีละแถว: แถวดีขึ้นได้ แถวเสียถูกรายงานชื่อคอลัมน์ชัดๆ ไม่ลากแถวอื่นล้มตาม
+      const failedIds = new Set();
       for (let i = 0; i < rows.length; i += 40) {
-        const { error } = await sb.from('history').upsert(rows.slice(i, i + 40), { onConflict: 'id' });
-        if (error) throw error;
+        const chunk = rows.slice(i, i + 40);
+        const { error } = await sb.from('history').upsert(chunk, { onConflict: 'id' });
+        if (!error) continue;
+        console.warn('history batch failed:', error.code, error.message, error.details || '');
+        for (const row of chunk) {
+          const r = await sb.from('history').upsert([row], { onConflict: 'id' });
+          if (r.error) {
+            failedIds.add(String(row.id));
+            console.error('history row rejected id=' + row.id, '| code:', r.error.code, '| msg:', r.error.message, '| details:', r.error.details || '');
+          }
+        }
       }
       // ✅ ขึ้น Supabase สำเร็จ — mark เฉพาะ record ที่เพิ่ง push เป็น synced:true
       // (merge เข้ากับ local ล่าสุด แทนที่จะ overwrite ทั้งก้อน กันเขียนทับข้อมูลอื่นที่อาจเปลี่ยนระหว่างรอ push)
-      const pushedIds = new Set((arr || []).map(h => String(h.id)));
+      const pushedIds = new Set((arr || []).map(h => String(h.id)).filter(id => !failedIds.has(id)));
       const merged = loadHistory().map(h => pushedIds.has(String(h.id)) ? { ...h, synced: true } : h);
       localStorage.setItem(SK.history, JSON.stringify(merged));
+      if (failedIds.size) {
+        localStorage.setItem(SK.historySyncPending, String(Date.now()));
+        return false; // มีบางแถวถูก DB ปฏิเสธ — ดู console: 'history row rejected'
+      }
       if (typeof populateHistoryPanel === 'function') populateHistoryPanel(); // 🆕 รีเฟรช badge "รอซิงค์" ทันทีถ้าเปิดหน้าประวัติอยู่
       localStorage.removeItem(SK.historySyncPending);
       return true;
