@@ -86,7 +86,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- ⚠️ CACHE-BUST: เบราว์เซอร์/PWA มัก cache ไฟล์ .css ค้างไว้นานผิดปกติ (เหมือน app.js ด้านล่าง)
        เพิ่ม ?v= ให้บังคับโหลดไฟล์ใหม่ทุกครั้งที่แก้ style.css — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ style.css -->
-  <link rel="stylesheet" href="style.css?v=fc-arrow1">
+  <link rel="stylesheet" href="style.css?v=fc-text1">
 </head>
 <body>
 
@@ -929,18 +929,28 @@
         <div class="arrow-toolbar" id="adm-arrow-toolbar">
           <div class="arrow-toolbar-row">
             <button type="button" class="btn-sec" id="btn-arrow-add">➕ เพิ่มลูกศร</button>
+            <button type="button" class="btn-sec" id="btn-text-add">🔤 เพิ่มกล่องข้อความ</button>
             <span class="arrow-count" id="adm-arrow-count"></span>
-            <button type="button" class="btn-danger-sm" id="btn-arrow-clear" title="ลบลูกศรทั้งหมดของ Part นี้">ลบทั้งหมด</button>
+            <button type="button" class="btn-danger-sm" id="btn-arrow-clear" title="ลบลูกศรและกล่องข้อความทั้งหมดของ Part นี้">ลบทั้งหมด</button>
           </div>
           <div class="arrow-edit hidden" id="adm-arrow-edit">
             <span class="arrow-edit-label">สี</span>
             <span id="adm-arrow-colors" class="arrow-colors"></span>
-            <span class="arrow-edit-label">ความหนา</span>
-            <select id="adm-arrow-width" class="adm-sel">
-              <option value="thin">บาง</option><option value="normal">ปกติ</option><option value="thick">หนา</option>
-            </select>
-            <button type="button" class="btn-sec" id="btn-arrow-flip" title="สลับทิศทางหัวลูกศร">⇄ กลับทิศ</button>
+            <span id="adm-arrow-shape-ctl" class="arrow-shape-ctl">
+              <span class="arrow-edit-label">ความหนา</span>
+              <select id="adm-arrow-width" class="adm-sel">
+                <option value="thin">บาง</option><option value="normal">ปกติ</option><option value="thick">หนา</option>
+              </select>
+              <button type="button" class="btn-sec" id="btn-arrow-flip" title="สลับทิศทางหัวลูกศร">⇄ กลับทิศ</button>
+            </span>
             <button type="button" class="btn-danger-sm" id="btn-arrow-del">ลบลูกศรนี้</button>
+            <div class="text-edit hidden" id="adm-text-edit">
+              <textarea id="adm-text-input" rows="2" maxlength="200" placeholder="พิมพ์ข้อความที่ต้องการแสดงบนแผนผัง (กด Enter เพื่อขึ้นบรรทัดใหม่)"></textarea>
+              <span class="arrow-edit-label">ขนาดตัวอักษร</span>
+              <select id="adm-text-size" class="adm-sel">
+                <option value="small">เล็ก</option><option value="normal">กลาง</option><option value="large">ใหญ่</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -1142,7 +1152,7 @@
 <!-- 🆕 ใส่เลขเวอร์ชันต่อท้าย ?v=... เพื่อบังคับให้เบราว์เซอร์ (โดยเฉพาะ Safari บน iPhone ซึ่งแคชไฟล์ .js
      ค้างนานผิดปกติ) โหลด app.js ก้อนใหม่ทุกครั้งที่มีการอัปเดตโค้ด — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ app.js
      แล้ว push ขึ้นใหม่ ไม่งั้นเครื่องที่เคยเข้าเว็บมาก่อนจะยังใช้ไฟล์เก่าจากแคชอยู่ -->
-<script src="app.js?v=fc-fit1"></script>
+<script src="app.js?v=fc-text1"></script>
 <script>
 (function () {
   var collapseBtn = document.getElementById('sidebar-collapse-toggle');

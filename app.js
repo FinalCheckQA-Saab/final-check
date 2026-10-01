@@ -2123,7 +2123,31 @@
     return { w, bx, by, poly };
   }
 
+  /* ── กล่องข้อความบนแผนผัง: เก็บในอาร์เรย์เดียวกับลูกศร (jig.arrows) เป็น { id, type:'text', x, y, text, color, size }
+        → ใช้คอลัมน์ arrows เดิมใน Supabase ได้เลย ไม่ต้องแก้ SQL/RPC  (x,y = มุมซ้ายบนของกล่อง) ── */
+  const TEXT_SIZES = { small: 10, normal: 14, large: 20 };
+  function textBox(a) {
+    const size = Number(a.size) || TEXT_SIZES.normal;
+    const raw = String(a.text == null ? '' : a.text);
+    const lines = (raw.trim() ? raw : '…').split('\n');
+    const vis = t => t.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, '').length; // สระ/วรรณยุกต์ไทยบนล่างไม่กินความกว้าง
+    const maxCh = Math.max(2, ...lines.map(vis));
+    return { size, lines, w: Math.min(570, Math.round(maxCh * size * 0.58 + 16)), h: Math.round(lines.length * size * 1.35 + 10) };
+  }
+  function textSvg(a, selected) {
+    const b = textBox(a);
+    const color = a.color || ARROW_COLORS[1];
+    const x = Number(a.x) || 0, y = Number(a.y) || 0;
+    const tspans = b.lines.map((ln, i) =>
+      `<tspan x="${x + 8}" dy="${i === 0 ? 0 : Math.round(b.size * 1.35 * 10) / 10}">${escHtml(ln)}</tspan>`).join('');
+    return `<g class="cp-arrow cp-text${selected ? ' selected' : ''}" data-aid="${escHtml(String(a.id))}">
+      <rect class="text-box" x="${x}" y="${y}" width="${b.w}" height="${b.h}" rx="4" fill="#fff" fill-opacity="0.93" stroke="${color}" stroke-width="1.6"/>
+      <text x="${x + 8}" y="${y + 5 + b.size * 0.95}" font-size="${b.size}" fill="#111" style="font-family:inherit">${tspans}</text>
+    </g>`;
+  }
+
   function arrowSvg(a, selected) {
+    if (a && a.type === 'text') return textSvg(a, selected);
     const g = arrowGeometry(a);
     const color = a.color || ARROW_COLORS[0];
     return `<g class="cp-arrow${selected ? ' selected' : ''}" data-aid="${escHtml(String(a.id))}">
@@ -4199,16 +4223,33 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     $('btn-arrow-add').classList.toggle('active', _arrowAddMode);
     $('btn-arrow-add').textContent = _arrowAddMode ? '✋ ยกเลิกการเพิ่ม' : '➕ เพิ่มลูกศร';
     $('adm-cp-map').classList.toggle('arrow-mode', _arrowAddMode);
-    $('adm-arrow-count').textContent = arrows.length ? `${arrows.length} ลูกศร` : 'ยังไม่มีลูกศร';
+    const nText = arrows.filter(a => a.type === 'text').length, nArrow = arrows.length - nText;
+    $('adm-arrow-count').textContent = arrows.length
+      ? [nArrow ? `${nArrow} ลูกศร` : '', nText ? `${nText} กล่องข้อความ` : ''].filter(Boolean).join(' • ')
+      : 'ยังไม่มีลูกศร/กล่องข้อความ';
     const edit = $('adm-arrow-edit');
     edit.classList.toggle('hidden', !sel);
+    const isText = !!(sel && sel.type === 'text');
+    if ($('adm-arrow-shape-ctl')) $('adm-arrow-shape-ctl').classList.toggle('hidden', isText);
+    if ($('adm-text-edit')) {
+      $('adm-text-edit').classList.toggle('hidden', !isText);
+      if (isText) {
+        const ta = $('adm-text-input');
+        if (document.activeElement !== ta) ta.value = sel.text || '';
+        const sKey = Object.keys(TEXT_SIZES).find(k => TEXT_SIZES[k] === Number(sel.size)) || 'normal';
+        $('adm-text-size').value = sKey;
+      }
+    }
+    $('btn-arrow-del').textContent = isText ? 'ลบกล่องข้อความนี้' : 'ลบลูกศรนี้';
     if (sel) {
       $('adm-arrow-colors').innerHTML = ARROW_COLORS.map(c =>
         `<button type="button" class="arrow-swatch${(sel.color || ARROW_COLORS[0]) === c ? ' on' : ''}" data-color="${c}" style="background:${c}" title="${c}"></button>`).join('');
       const wKey = Object.keys(ARROW_WIDTHS).find(k => ARROW_WIDTHS[k] === Number(sel.width)) || 'normal';
       $('adm-arrow-width').value = wKey;
     }
-    $('adm-cp-map-hint-text').textContent = _arrowAddMode
+    $('adm-cp-map-hint-text').textContent = isText
+      ? 'กล่องข้อความ: พิมพ์ข้อความในช่องด้านบน • ลากกล่องเพื่อย้ายตำแหน่ง • เลือกสีกรอบได้'
+      : _arrowAddMode
       ? 'โหมดเพิ่มลูกศร: กดค้างที่จุดเริ่มต้น แล้วลากไปที่จุดปลาย (หัวลูกศร) แล้วปล่อย'
       : 'ลากจุดตรวจเพื่อจัดตำแหน่ง • แตะลูกศรเพื่อเลือก แล้วลากตัวเส้นเพื่อย้าย หรือลากวงกลมที่ปลายเพื่อปรับ';
   }
@@ -4234,7 +4275,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         const handle = e.target.closest('.arrow-handle');
         const mode = handle ? handle.dataset.end : 'move';   // '1' = ปลายเริ่ม, '2' = หัวลูกศร, 'move' = ย้ายทั้งเส้น
         const start = arrowSvgPoint(svg, e);
-        const orig = { x1: arrow.x1, y1: arrow.y1, x2: arrow.x2, y2: arrow.y2 };
+        const orig = { x1: arrow.x1, y1: arrow.y1, x2: arrow.x2, y2: arrow.y2, tx: arrow.x, ty: arrow.y };
         let moved = false;
         svg.setPointerCapture(e.pointerId);
 
@@ -4242,7 +4283,12 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           const p = arrowSvgPoint(svg, ev);
           if (Math.abs(p.x - start.x) + Math.abs(p.y - start.y) < 2 && !moved) return;
           moved = true;
-          if (mode === '1') { arrow.x1 = p.x; arrow.y1 = p.y; }
+          if (arrow.type === 'text') {
+            const bb = textBox(arrow);
+            arrow.x = Math.round(Math.max(5, Math.min(595 - bb.w, orig.tx + p.x - start.x)));
+            arrow.y = Math.round(Math.max(5, Math.min(335 - bb.h, orig.ty + p.y - start.y)));
+          }
+          else if (mode === '1') { arrow.x1 = p.x; arrow.y1 = p.y; }
           else if (mode === '2') { arrow.x2 = p.x; arrow.y2 = p.y; }
           else {
             const dx = Math.max(5 - Math.min(orig.x1, orig.x2), Math.min(595 - Math.max(orig.x1, orig.x2), p.x - start.x));
@@ -4346,10 +4392,46 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       if (selection.jigId === cpEditJigId) renderSvgMap();
       renderAdmArrows(cpEditJigId);
     });
+    // ── กล่องข้อความ ──
+    if ($('btn-text-add')) {
+      $('btn-text-add').addEventListener('click', () => {
+        if (!cpEditJigId) return;
+        _arrowAddMode = false;
+        const t = { id: 'T' + Date.now().toString(36), type: 'text', x: 240, y: 150, text: 'ข้อความ', color: ARROW_COLORS[1], size: TEXT_SIZES.normal };
+        getJigArrows(cpEditJigId).push(t);
+        _arrowSel = t.id; saveCatalog();
+        if (selection.jigId === cpEditJigId) renderSvgMap();
+        renderAdmArrows(cpEditJigId);
+        const ta = $('adm-text-input'); if (ta) { ta.focus(); ta.select(); }
+        toast('เพิ่มกล่องข้อความแล้ว — พิมพ์ข้อความ แล้วลากกล่องไปวางตำแหน่งที่ต้องการ', 'ok');
+      });
+      const selText = () => (cpEditJigId ? getJigArrows(cpEditJigId).find(x => String(x.id) === String(_arrowSel) && x.type === 'text') : null);
+      let _textSaveTimer = null;
+      const commitText = () => {
+        clearTimeout(_textSaveTimer);
+        if (!cpEditJigId) return;
+        saveCatalog();
+        if (selection.jigId === cpEditJigId) renderSvgMap();
+      };
+      $('adm-text-input').addEventListener('input', () => {
+        const a = selText(); if (!a) return;
+        a.text = $('adm-text-input').value;
+        const node = $('adm-cp-arrows-group').querySelector(`.cp-arrow[data-aid="${CSS.escape(String(a.id))}"]`);
+        if (node) node.outerHTML = arrowSvg(a, true);       // อัปเดตเฉพาะกล่อง ไม่ rebuild toolbar (เคอร์เซอร์ไม่เด้ง)
+        bindArrowDrag(cpEditJigId);
+        clearTimeout(_textSaveTimer); _textSaveTimer = setTimeout(commitText, 1200);
+      });
+      $('adm-text-input').addEventListener('change', commitText);
+      $('adm-text-size').addEventListener('change', () => {
+        const a = selText(); if (!a) return;
+        a.size = TEXT_SIZES[$('adm-text-size').value] || TEXT_SIZES.normal;
+        commitText(); renderAdmArrows(cpEditJigId);
+      });
+    }
     $('btn-arrow-flip').addEventListener('click', () => {
       if (!cpEditJigId) return;
       const a = getJigArrows(cpEditJigId).find(x => String(x.id) === String(_arrowSel));
-      if (!a) return;
+      if (!a || a.type === 'text') return;
       [a.x1, a.x2] = [a.x2, a.x1]; [a.y1, a.y2] = [a.y2, a.y1]; saveCatalog();
       if (selection.jigId === cpEditJigId) renderSvgMap();
       renderAdmArrows(cpEditJigId);
@@ -4363,13 +4445,13 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       arrows.splice(idx, 1); _arrowSel = null; saveCatalog();
       if (selection.jigId === cpEditJigId) renderSvgMap();
       renderAdmArrows(cpEditJigId);
-      toast('ลบลูกศรแล้ว', 'ok');
+      toast('ลบแล้ว', 'ok');
     });
     $('btn-arrow-clear').addEventListener('click', async () => {
       if (!cpEditJigId) return;
       const arrows = getJigArrows(cpEditJigId);
       if (!arrows.length) return;
-      if (!(await showConfirmModal(`ลบลูกศรทั้งหมด ${arrows.length} เส้นของ Part นี้หรือไม่?`, { confirmLabel: 'ลบทั้งหมด', danger: true }))) return;
+      if (!(await showConfirmModal(`ลบลูกศรและกล่องข้อความทั้งหมด ${arrows.length} รายการของ Part นี้หรือไม่?`, { confirmLabel: 'ลบทั้งหมด', danger: true }))) return;
       arrows.length = 0; _arrowSel = null; saveCatalog();
       if (selection.jigId === cpEditJigId) renderSvgMap();
       renderAdmArrows(cpEditJigId);
