@@ -202,6 +202,11 @@
     cursor: pointer; padding: 0 2px; font-family: inherit;
   }
   .btn-edit-rev:hover { text-decoration: underline; }
+  .btn-edit-doc {
+    border: 1px solid var(--border); background: #fff; color: var(--accent); font-size: 11px; font-weight: 600;
+    cursor: pointer; padding: 2px 8px; border-radius: 999px; margin-left: 8px; font-family: inherit; vertical-align: middle;
+  }
+  .btn-edit-doc:hover { background: #f1f5f9; }
 
   .back-link {
     display: inline-block; font-size: 13px; font-weight: 600; color: var(--navy);
@@ -431,6 +436,7 @@
   let filters = { company: params.get('company') || '', section: '', line: '', model: '', q: '' };
   let currentDocId = params.get('doc') || null;
   let editingRevDocId = null;   // ← document_id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายการ"
+  let editingDocId = null;       // ← id ของเอกสารที่กำลังเปิดฟอร์ม "แก้ไขข้อมูลเอกสาร" (เลขที่/ชื่อ/ประเภท/บริษัท/Line)
   let editingRevIdDetail = null; // ← revision id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายละเอียด"
 
   async function loadAll() {
@@ -547,7 +553,7 @@
     return `
       <div class="doc-row" data-id="${escAttr(d.id)}">
         <div style="flex:1; min-width:0;">
-          <div class="doc-no">${esc(d.doc_no)}</div>
+          <div class="doc-no">${esc(d.doc_no)}<button class="btn-edit-doc" type="button" data-edit-doc="${escAttr(d.id)}" title="แก้ไขข้อมูลเอกสาร">📝 แก้ไขเอกสาร</button></div>
           <div class="doc-name">${esc(d.doc_name)}</div>
           <div class="doc-meta">Model: ${esc(infoFor(d).model)} · ${esc(d.company)}</div>
           ${rev ? `
@@ -677,6 +683,19 @@
     document.querySelectorAll('.doc-row').forEach(row => {
       row.addEventListener('click', () => {
         currentDocId = row.dataset.id;
+        const p = new URLSearchParams(window.location.search);
+        p.set('doc', currentDocId);
+        history.pushState({}, '', '?' + p.toString());
+        render();
+      });
+    });
+
+    // ── ปุ่ม "📝 แก้ไขเอกสาร" ในแต่ละแถว — พาไปหน้ารายละเอียดพร้อมเปิดฟอร์มแก้ไขข้อมูลเอกสาร ──
+    document.querySelectorAll('.btn-edit-doc').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation(); // กันไม่ให้ bubble ไปโดน click ของ .doc-row
+        currentDocId = btn.dataset.editDoc;
+        editingDocId = currentDocId;
         const p = new URLSearchParams(window.location.search);
         p.set('doc', currentDocId);
         history.pushState({}, '', '?' + p.toString());
@@ -1219,6 +1238,7 @@
 
         <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
           <button class="btn-ghost" id="btn-add-rev" type="button">➕ บันทึกการแก้ไขใหม่</button>
+          <button class="btn-ghost" id="btn-edit-doc" type="button">📝 แก้ไขข้อมูลเอกสาร</button>
           ${doc.status === 'obsolete'
             ? `<button class="btn-ghost" id="btn-toggle-status" type="button">↩️ เปิดใช้งานอีกครั้ง</button>`
             : `<button class="btn-danger-ghost" id="btn-toggle-status" type="button">⛔ ยกเลิกเอกสารนี้</button>`}
@@ -1226,6 +1246,7 @@
       </div>
 
       <div id="add-rev-form"></div>
+      ${editingDocId === doc.id ? renderEditDocForm(doc) : ''}
 
       <div class="card">
         <div class="section-title"><span>🗂️ ประวัติการแก้ไข (Amendment Record) — ${revs.length} ครั้ง</span></div>
@@ -1261,9 +1282,19 @@
       currentDocId = null;
       const p = new URLSearchParams(window.location.search);
       p.delete('doc');
+      editingDocId = null;
       history.pushState({}, '', '?' + p.toString());
       render();
     });
+
+    document.getElementById('btn-edit-doc').addEventListener('click', () => {
+      editingDocId = (editingDocId === doc.id) ? null : doc.id;
+      render();
+    });
+    if (editingDocId === doc.id) {
+      document.getElementById('ed-cancel').addEventListener('click', () => { editingDocId = null; render(); });
+      document.getElementById('ed-submit').addEventListener('click', () => submitEditDoc(doc, document.getElementById('ed-submit')));
+    }
 
     let revFormOpen = false;
     document.getElementById('btn-add-rev').addEventListener('click', () => {
@@ -1299,6 +1330,71 @@
       _rememberedPin = pin;
       await loadAll();
     });
+  }
+
+  // ── ฟอร์มแก้ไขข้อมูลเอกสาร (เลขที่เอกสาร / ชื่อ / ประเภท / บริษัท / Line) — ต้องมีฟังก์ชัน doc_edit_master ใน Supabase ──
+  function renderEditDocForm(doc) {
+    const companies = COMPANIES.includes(doc.company) ? COMPANIES : [doc.company, ...COMPANIES].filter(Boolean);
+    return `
+      <div class="card">
+        <div class="section-title"><span>📝 แก้ไขข้อมูลเอกสาร</span></div>
+        <label class="field-label">บริษัท</label>
+        <select id="ed-company">
+          ${companies.map(c => `<option value="${escAttr(c)}" ${c === doc.company ? 'selected' : ''}>${esc(c)}</option>`).join('')}
+        </select>
+        <label class="field-label">ประเภทเอกสาร</label>
+        <input type="text" id="ed-category" value="${escAttr(doc.doc_category || '')}" placeholder="เช่น WI">
+        <label class="field-label">เลขที่เอกสาร (Doc No.)</label>
+        <input type="text" id="ed-docno" value="${escAttr(doc.doc_no || '')}">
+        <label class="field-label">ชื่อเอกสาร</label>
+        <textarea id="ed-docname">${esc(doc.doc_name || '')}</textarea>
+        <label class="field-label">Line (ใช้เมื่อเอกสารนี้ไม่ได้ผูกกับ Part ในระบบ)</label>
+        <input type="text" id="ed-department" value="${escAttr(doc.department || '')}">
+        <div style="font-size:11px; color:var(--muted); margin-top:6px; line-height:1.6;">
+          💡 แผนก / Line / Model ที่แสดงมาจาก Part ในระบบ ระบบจับคู่ด้วยชื่อเอกสาร (หรือรหัส Part ใน Doc No.)
+          ถ้าแก้ทั้งสองอย่างให้ต่างจาก Part อาจจับคู่ไม่เจอ และเอกสารจะไปอยู่ "ไม่ระบุ"
+        </div>
+        <label class="field-label">PIN ยืนยันตัวตน</label>
+        <input type="password" id="ed-pin" inputmode="numeric" placeholder="กรอก PIN" value="${_rememberedPin ? escAttr(_rememberedPin) : ''}">
+        <button class="btn btn-approve" id="ed-submit" type="button" style="margin-top:12px;">💾 บันทึกการแก้ไข</button>
+        <button class="btn-ghost" id="ed-cancel" type="button" style="width:100%; margin-top:8px; box-sizing:border-box;">ยกเลิก</button>
+        <div class="form-msg" id="ed-msg"></div>
+      </div>`;
+  }
+
+  async function submitEditDoc(doc, btn) {
+    const msgEl = document.getElementById('ed-msg');
+    const val = id => document.getElementById(id).value.trim();
+    const docNo = val('ed-docno'), docName = val('ed-docname'), pin = val('ed-pin');
+    msgEl.textContent = ''; msgEl.className = 'form-msg';
+    const fail = t => { msgEl.textContent = t; msgEl.classList.add('err'); };
+
+    if (!docNo) return fail('กรุณากรอกเลขที่เอกสาร');
+    if (!docName) return fail('กรุณากรอกชื่อเอกสาร');
+    if (!pin) return fail('กรุณากรอก PIN');
+
+    btn.disabled = true;
+    const oldText = btn.textContent;
+    btn.textContent = 'กำลังบันทึก...';
+    const { data: ok, error } = await sb.rpc('doc_edit_master', {
+      p_pin: pin, p_document_id: doc.id,
+      p_company: val('ed-company'), p_department: val('ed-department'), p_doc_category: val('ed-category'),
+      p_doc_no: docNo, p_doc_name: docName,
+    });
+    btn.disabled = false;
+    btn.textContent = oldText;
+
+    if (error) {
+      const m = error.message || '';
+      if (/duplicate|unique/i.test(m)) return fail('เลขที่เอกสารนี้มีอยู่แล้ว กรุณาใช้เลขอื่น');
+      if (/could not find|does not exist|schema cache/i.test(m)) return fail('ยังไม่ได้สร้างฟังก์ชัน doc_edit_master ใน Supabase — ให้รันไฟล์ doc_edit_master.sql ก่อน');
+      return fail('บันทึกไม่สำเร็จ: ' + m);
+    }
+    if (!ok) { clearRememberedPin(); return fail('PIN ไม่ถูกต้อง หรือไม่พบเอกสารนี้'); }
+
+    _rememberedPin = pin;
+    editingDocId = null;
+    await loadAll();
   }
 
   function renderAddRevForm(doc) {
