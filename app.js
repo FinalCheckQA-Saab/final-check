@@ -5303,7 +5303,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
             <div class="pdf-company-th">${escHtml(appSettings.companyNameTh || DEFAULT_COMPANY_NAME_TH)}</div>
             <div class="pdf-company-en">${escHtml(appSettings.companyNameEn || DEFAULT_COMPANY_NAME_EN)}</div>
             <div class="pdf-title">Final Check Report</div>
-            <div class="pdf-subtitle">ใบรายงานการตรวจสอบขั้นสุดท้าย (Final Check)</div>
+            <div class="pdf-subtitle">รายงานตรวจสอบคุณภาพประจำวัน (Daily Quality Inspection Report)</div>
           </div>
           <div class="pdf-header-doc-cell">
             <div class="pdf-doc-row">
@@ -6041,7 +6041,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
   ══════════════════════════════════════ */
   function bindTabNav() {
     const HEADER_BY_TAB = {
-      inspect:   { title: 'ใบรายงานการตรวจสอบขั้นสุดท้าย (Final Check)', sub: 'เลือก Line &rarr; Model &rarr; Part เพื่อเริ่มตรวจสอบ' },
+      inspect:   { title: 'รายงานตรวจสอบคุณภาพประจำวัน (Daily Quality Inspection Report)', sub: 'เลือกแผนก &rarr; Line &rarr; Model &rarr; Part เพื่อเริ่มตรวจสอบ' },
       dashboard: { title: 'Dashboard ภาพรวมการตรวจสอบ', sub: 'สรุปผลการตรวจสอบ Part ทั้งหมด แยกตามเดือนและ Model' },
     };
     document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
