@@ -2197,10 +2197,14 @@
     if (a && a.type === 'text') return textSvg(a, selected);
     const g = arrowGeometry(a);
     const color = a.color || ARROW_COLORS[0];
+    const op = Number(a.opacity);                       // ความโปร่งใส: 1 = ทึบ, ยิ่งน้อยยิ่งมองทะลุได้
+    const opAttr = op > 0 && op < 1 ? ` opacity="${op}"` : '';
     return `<g class="cp-arrow${selected ? ' selected' : ''}" data-aid="${escHtml(String(a.id))}">
       <line class="arrow-hit" x1="${a.x1}" y1="${a.y1}" x2="${a.x2}" y2="${a.y2}"/>
+      <g class="arrow-shape"${opAttr}>
       <line class="arrow-line" x1="${a.x1}" y1="${a.y1}" x2="${g.bx}" y2="${g.by}" stroke="${color}" stroke-width="${g.w}" stroke-linecap="round"/>
       <polygon class="arrow-head" points="${g.poly}" fill="${color}" stroke="${color}" stroke-width="1" stroke-linejoin="round"/>
+      </g>
       ${selected ? `<circle class="arrow-handle" data-end="1" cx="${a.x1}" cy="${a.y1}" r="6"/><circle class="arrow-handle" data-end="2" cx="${a.x2}" cy="${a.y2}" r="6"/>` : ''}
     </g>`;
   }
@@ -4301,6 +4305,10 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         `<button type="button" class="arrow-swatch${(sel.color || ARROW_COLORS[0]) === c ? ' on' : ''}" data-color="${c}" style="background:${c}" title="${c}"></button>`).join('');
       const wKey = Object.keys(ARROW_WIDTHS).find(k => ARROW_WIDTHS[k] === Number(sel.width)) || 'normal';
       $('adm-arrow-width').value = wKey;
+      if ($('adm-arrow-opacity')) {
+        const ops = [1, 0.7, 0.45, 0.25], cur = Number(sel.opacity) > 0 ? Number(sel.opacity) : 1;
+        $('adm-arrow-opacity').value = String(ops.reduce((best, o) => Math.abs(o - cur) < Math.abs(best - cur) ? o : best, 1));
+      }
     }
     $('adm-cp-map-hint-text').textContent = isText
       ? 'กล่องข้อความ: พิมพ์ข้อความในช่องด้านบน • ลากกล่องเพื่อย้าย • ลากจุดสีขาวที่ขอบ/มุมกล่องเพื่อปรับขนาด • เลือกสีกรอบ/สีพื้น/สีตัวอักษรได้'
@@ -4452,6 +4460,16 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       const a = getJigArrows(cpEditJigId).find(x => String(x.id) === String(_arrowSel));
       if (!a) return;
       a.width = ARROW_WIDTHS[$('adm-arrow-width').value] || ARROW_WIDTHS.normal; saveCatalog();
+      if (selection.jigId === cpEditJigId) renderSvgMap();
+      renderAdmArrows(cpEditJigId);
+    });
+    if ($('adm-arrow-opacity')) $('adm-arrow-opacity').addEventListener('change', () => {
+      if (!cpEditJigId) return;
+      const a = getJigArrows(cpEditJigId).find(x => String(x.id) === String(_arrowSel));
+      if (!a || a.type === 'text') return;
+      const v = Number($('adm-arrow-opacity').value);
+      if (v > 0 && v < 1) a.opacity = v; else delete a.opacity;     // ทึบ = ไม่เก็บค่า
+      saveCatalog();
       if (selection.jigId === cpEditJigId) renderSvgMap();
       renderAdmArrows(cpEditJigId);
     });
