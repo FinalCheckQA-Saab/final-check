@@ -39,7 +39,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- ⚠️ CACHE-BUST: เบราว์เซอร์/PWA มัก cache ไฟล์ .css ค้างไว้นานผิดปกติ (เหมือน app.js ด้านล่าง)
        เพิ่ม ?v= ให้บังคับโหลดไฟล์ใหม่ทุกครั้งที่แก้ style.css — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ style.css -->
-  <link rel="stylesheet" href="style.css?v=fc-text2">
+  <link rel="stylesheet" href="style.css?v=fc-text3">
 </head>
 <body>
 
@@ -871,7 +871,11 @@
               <textarea id="adm-text-input" rows="2" maxlength="200" placeholder="พิมพ์ข้อความที่ต้องการแสดงบนแผนผัง (กด Enter เพื่อขึ้นบรรทัดใหม่)"></textarea>
               <span class="arrow-edit-label">ขนาดตัวอักษร</span>
               <select id="adm-text-size" class="adm-sel">
-                <option value="small">เล็ก</option><option value="normal">กลาง</option><option value="large">ใหญ่</option><option value="xlarge">ใหญ่มาก</option>
+                <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="12">12</option><option value="14">14</option><option value="16">16</option><option value="20">20</option><option value="28">28</option>
+              </select>
+              <span class="arrow-edit-label">จัดข้อความ</span>
+              <select id="adm-text-align" class="adm-sel">
+                <option value="left">ชิดซ้าย</option><option value="center">กึ่งกลาง</option><option value="right">ชิดขวา</option>
               </select>
               <span class="arrow-edit-label">สีพื้น</span>
               <span id="adm-text-fills" class="arrow-colors"></span>
@@ -1080,7 +1084,7 @@
 <!-- 🆕 ใส่เลขเวอร์ชันต่อท้าย ?v=... เพื่อบังคับให้เบราว์เซอร์ (โดยเฉพาะ Safari บน iPhone ซึ่งแคชไฟล์ .js
      ค้างนานผิดปกติ) โหลด app.js ก้อนใหม่ทุกครั้งที่มีการอัปเดตโค้ด — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ app.js
      แล้ว push ขึ้นใหม่ ไม่งั้นเครื่องที่เคยเข้าเว็บมาก่อนจะยังใช้ไฟล์เก่าจากแคชอยู่ -->
-<script src="app.js?v=fc-text2"></script>
+<script src="app.js?v=fc-text3"></script>
 <script>
 (function () {
   var collapseBtn = document.getElementById('sidebar-collapse-toggle');
