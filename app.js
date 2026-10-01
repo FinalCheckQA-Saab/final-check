@@ -256,8 +256,8 @@
           x: row.x, 
           y: row.y,
           type: row.type || undefined,
-          min: row.min || undefined,
-          max: row.max || undefined,
+          min: row.min ?? undefined,
+          max: row.max ?? undefined,
           unit: row.unit || undefined
         });
       });
@@ -579,6 +579,70 @@
     return pieces.map(p => p.status === 'ok' ? '✔' : p.status === 'ng' ? '✖' : p.status === 'fixed' ? '🔧' : '-').join(' / ');
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     STAGE: S (Start) → M (Middle) → E (End)
+     หน้างานจริง: ตรวจทีละชิ้น ห่างกันคนละช่วงเวลา — ตรวจ S แล้ว "ส่งข้อมูล" → กลับมาตรวจ M แล้วส่ง → กลับมาตรวจ E แล้วส่ง
+     ถึงจะครบกระบวนการ 1 ชุดการตรวจ (1 Record ต่อ Part ต่อชุด)
+     - ไม่ต้องเพิ่มคอลัมน์ใหม่ใน Supabase: ความคืบหน้าคำนวณจาก items[].pieces[].status ที่เก็บอยู่แล้ว
+     - Record จะเข้าขั้นตอนอนุมัติ (Telegram → หัวหน้างาน → ผู้จัดการ) ก็ต่อเมื่อส่งครบทุกชิ้นแล้วเท่านั้น
+  ══════════════════════════════════════════════════════════════ */
+  const STAGES = [
+    { short: 'S', th: 'Start',  desc: 'ต้นงาน' },
+    { short: 'M', th: 'Middle', desc: 'กลางงาน' },
+    { short: 'E', th: 'End',    desc: 'ท้ายงาน' },
+  ];
+  function stageLabel(p) { return STAGES[p] || { short: String(p + 1), th: 'ชิ้น ' + (p + 1), desc: '' }; }
+  function fmtHM(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? '' : d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+  }
+  function recordPieceCount(h) {
+    const it = (h && h.items || [])[0];
+    return (it && (it.pieceCount || (it.pieces && it.pieces.length))) || 0; // 0 = รายการเก่าที่ไม่มีระบบชิ้น
+  }
+  // จำนวนชิ้น (รอบ) ที่ตรวจ+ส่งแล้วจริง — นับจากชิ้นแรกต่อเนื่องไป และต้องครบทุกหัวข้อ
+  function recordStagesDone(h) {
+    const items = (h && h.items) || [];
+    const n = recordPieceCount(h);
+    if (!items.length || !n) return n || DEFAULT_PIECE_COUNT;
+    let done = n;
+    items.forEach(i => {
+      let k = 0; const ps = i.pieces || [];
+      while (k < n && ps[k] && ps[k].status) k++;
+      done = Math.min(done, k);
+    });
+    return done;
+  }
+  function isRecordComplete(h) {
+    const n = recordPieceCount(h);
+    if (!n) return true; // รายการเก่า (ก่อนมีระบบ 3 ชิ้น) ถือว่าครบ
+    return recordStagesDone(h) >= n;
+  }
+  function recPass(h) {
+    return isRecordComplete(h) && (h.items || []).every(i => i.status === 'ok' || i.status === 'fixed');
+  }
+  function recProgressText(h) {
+    const n = recordPieceCount(h) || DEFAULT_PIECE_COUNT, d = recordStagesDone(h);
+    return Array.from({ length: n }, (_, k) => stageLabel(k).short + (k < d ? '✔' : '·')).join(' ');
+  }
+  // สถานะรวมของหัวข้อ: NG ถ้ามีชิ้นไหน NG (แจ้งเตือนได้ทันทีตั้งแต่ชิ้นแรก) / ว่างถ้ายังตรวจไม่ครบ / ครบแล้ว fixed > ok
+  function itemAggStatus(item) {
+    const n = item.pieceCount || (item.pieces || []).length || DEFAULT_PIECE_COUNT;
+    const filled = (item.pieces || []).filter(p => p.status);
+    if (!filled.length) return '';
+    if (filled.some(p => p.status === 'ng')) return 'ng';
+    if (filled.length < n) return '';
+    return filled.some(p => p.status === 'fixed') ? 'fixed' : 'ok';
+  }
+  function fmtSpec(item) {
+    return `${item.min != null ? item.min : '—'} ถึง ${item.max != null ? item.max : '—'}${item.unit ? ' ' + item.unit : ''}`;
+  }
+  function stageTimeline(rec) {
+    const first = ((rec.items || [])[0] || {}).pieces || [];
+    return first.filter(p => p.at).map((p, k) => `${stageLabel(k).short} ${fmtHM(p.at)}`).join(' → ');
+  }
+
   /* ══════════════════════════════════════
      STATE
   ══════════════════════════════════════ */
@@ -609,6 +673,8 @@
   let _submitInProgress = false; // 🆕 กันกดปุ่ม "บันทึกผลการตรวจ" ซ้ำรัวๆ ระหว่างที่ยังรอ GPS/ส่งขึ้นระบบอยู่ — ต้นเหตุที่ทำให้ประวัติซ้ำกัน
   let jigSearchTerm = ''; // filters the Level-3 Part chip list
   let checkState = [];  // current inspection items
+  // 🆕 ชุดการตรวจที่กำลังทำอยู่: record = ชุดที่ตรวจค้างไว้ (S/M ส่งแล้ว รอรอบถัดไป) หรือ null = เริ่มชุดใหม่ / stageIdx = ชิ้นที่กำลังตรวจรอบนี้ (0=S 1=M 2=E)
+  let session = { record: null, stageIdx: 0 };
   let cpEditJigId = null; // Part ที่กำลังแก้ไขจุดตรวจ/รูปพื้นหลังใน Admin Panel
 
   /* ══════════════════════════════════════
@@ -1519,6 +1585,13 @@
     dbgLog('เริ่มดึง catalog + history จาก Supabase (sb=' + (sb ? 'พร้อมใช้งาน' : '❌ NULL — client สร้างไม่สำเร็จ!') + ')');
     // 🆕 ข้าม pull catalog (มีรูปพื้นหลัง Part ทุกตัวฝังอยู่ — หนักสุดในบรรดาข้อมูลที่โหลด) ถ้า cache ในเครื่องยังสดอยู่ ไม่เกิน 12 ชม.
     // เพราะ Realtime คอยอัปเดตให้สดระหว่างเปิดแอปค้างไว้อยู่แล้ว ไม่จำเป็นต้อง pull ซ้ำทุกครั้งที่เปิดแอปใหม่
+    // 🆕 One-time: cache catalog เดิมในเครื่องอาจทำเกณฑ์ขั้นต่ำ "0" หาย (บั๊ก row.min || undefined) — บังคับดึงใหม่จาก Supabase 1 ครั้งหลังอัปเดตโค้ด
+    try {
+      if (!localStorage.getItem('fc_fix_numeric_min0_v1')) {
+        localStorage.removeItem(SK.catalogPulledAt);
+        localStorage.setItem('fc_fix_numeric_min0_v1', '1');
+      }
+    } catch (e) { /* Private Browsing — ข้าม */ }
     const skipCatalogPull = isCatalogCacheFresh();
     dbgLog('เช็ค catalog cache freshness', skipCatalogPull ? `ยังสดอยู่ (< ${CATALOG_CACHE_HOURS} ชม.) — ข้าม pull ประหยัด Egress` : 'เก่าเกิน/ไม่เคยมี — จะ pull ใหม่');
     const [remoteCat, remoteHist] = await Promise.all([
@@ -1674,7 +1747,7 @@
       const lineJigs = catalog.jigs.filter(j => j.lineId === l.id);
       const skippedCount = lineJigs.filter(j => skippedJigIds.has(j.id)).length;
       const totalJigs = lineJigs.length - skippedCount;
-      const checkedCount = lineJigs.filter(j => !skippedJigIds.has(j.id) && getJigCheckedTodayInfo(j.id)).length;
+      const checkedCount = lineJigs.filter(j => { if (skippedJigIds.has(j.id)) return false; const ci = getJigCheckedTodayInfo(j.id); return !!ci && !ci.inProgress; }).length;
       const sel = selection.lineId === l.id ? 'selected' : '';
       // โชว์รหัส Model ต่อเมื่อไม่ซ้ำกับชื่อเท่านั้น (บาง Model ตั้งชื่อ = รหัสเป๊ะ โชว์ซ้ำ 2 บรรทัดไม่มีประโยชน์)
       const codeHtml = l.id !== l.name ? `<span class="chip-code">${escHtml(l.id)}</span>` : '';
@@ -1738,14 +1811,16 @@
         ? `<img src="${escHtml(j.bgImage)}" alt="" loading="lazy" decoding="async">`
         : `<span class="jig-chip-thumb-icon">🔧</span>`;
       let checkedBadge = '';
-      if (checkedInfo) {
+      if (checkedInfo && checkedInfo.inProgress) {
+        checkedBadge = `<span class="jig-checked-badge jig-checked-badge-prog">⏳ กำลังตรวจ ${escHtml(checkedInfo.progress)}</span>`;
+      } else if (checkedInfo) {
         const badgeClass = checkedInfo.status === 'ng' ? 'jig-checked-badge-ng' : 'jig-checked-badge-ok';
         const badgeIcon = checkedInfo.status === 'ng' ? '⚠️' : '✅';
         const dupNote = checkedInfo.count > 1 ? ` ×${checkedInfo.count}` : '';
         checkedBadge = `<span class="jig-checked-badge ${badgeClass}">${badgeIcon} ตรวจแล้ว ${checkedInfo.time}${dupNote}</span>`;
       }
       return `
-        <div class="chip jig-chip ${sel} ${skipped ? 'jig-skipped' : ''} ${checkedInfo ? 'jig-checked-today' : ''}" data-jig="${escHtml(j.id)}">
+        <div class="chip jig-chip ${sel} ${skipped ? 'jig-skipped' : ''} ${checkedInfo && !checkedInfo.inProgress ? 'jig-checked-today' : ''}" data-jig="${escHtml(j.id)}">
           <span class="jig-chip-main" data-jig="${escHtml(j.id)}">
             <span class="jig-chip-thumb${j.bgImage ? '' : ' jig-chip-thumb-empty'}">${thumb}</span>
             <span class="jig-chip-text">
@@ -1770,7 +1845,7 @@
         // ทั้งที่มี badge "ตรวจแล้ว" โชว์อยู่แล้ว ใส่ modal ยืนยันก่อน (ปุ่มยกเลิกเป็นค่าเริ่มต้นที่ปลอดภัย)
         // ยังอนุญาตให้ตรวจซ้ำได้ถ้าตั้งใจจริง (เช่น แก้ NG แล้วต้องตรวจยืนยันใหม่) แค่ต้องกดยืนยันอีกที
         const info = getJigCheckedTodayInfo(jigId);
-        if (info) {
+        if (info && !info.inProgress) { // ตรวจครบแล้ววันนี้ → ถามก่อนตรวจซ้ำ / ตรวจค้างอยู่ → เข้าไปตรวจต่อได้เลย
           const j = catalog.jigs.find(x => x.id === jigId);
           showRecheckConfirmModal(jigId, j ? j.name : jigId, info);
           return;
@@ -1860,10 +1935,49 @@
     renderFilter();
   }
 
-  function selectJig(id) {
+  /* ── หาชุดที่ตรวจค้างไว้ (ส่ง S/M ไปแล้ว ยังไม่ครบ E) ของ Part นี้ — มองย้อนหลัง 24 ชม. (รองรับกะดึกข้ามวัน) ── */
+  let _ignoredRecordId = null; // ชุดที่ผู้ใช้เลือก "เริ่มชุดใหม่" ทิ้งไว้ (ไม่ลบ ยังเห็นในประวัติว่าตรวจไม่ครบ)
+  const SESSION_MAX_AGE_MS = 24 * 3600 * 1000;
+
+  function findInProgressLocal(jigId) {
+    const now = Date.now();
+    const list = loadHistory().filter(h => h.jigId === jigId && !isRecordComplete(h)
+      && String(h.id) !== String(_ignoredRecordId)
+      && (now - new Date(h.timestamp || 0).getTime()) < SESSION_MAX_AGE_MS);
+    if (!list.length) return null;
+    return list.reduce((a, b) => (new Date(b.timestamp || 0) > new Date(a.timestamp || 0) ? b : a));
+  }
+
+  // เผื่อ S ตรวจจากมือถืออีกเครื่อง — ดึงชุดล่าสุดของ Part นี้จาก Supabase มา merge (เฉพาะ Part เดียว 24 ชม. ปริมาณน้อยมาก)
+  async function fetchInProgressRemote(jigId) {
+    if (!sb || navigator.onLine === false) return;
+    const since = new Date(Date.now() - SESSION_MAX_AGE_MS).toISOString();
+    const rows = await withTimeout((async () => {
+      const { data, error } = await sb.from('history').select('*').eq('jig_id', jigId).gte('ts', since).order('ts', { ascending: false }).limit(5);
+      return error ? null : data;
+    })(), 4000, null);
+    if (!rows || !rows.length) return;
+    const hist = loadHistory(); let changed = false;
+    rows.map(mapHistoryRow).forEach(r => {
+      const i = hist.findIndex(h => String(h.id) === String(r.id));
+      if (i < 0) { hist.unshift({ ...r, synced: true }); changed = true; }
+      else if (hist[i].synced !== false && recordStagesDone(r) > recordStagesDone(hist[i])) { hist[i] = { ...r, synced: true }; changed = true; }
+    });
+    if (changed) { try { localStorage.setItem(SK.history, JSON.stringify(hist)); } catch (e) { /* พื้นที่เต็ม — ใช้ต่อไปได้ แค่ไม่ cache */ } }
+  }
+
+  async function resolveSessionForJig(jigId) {
+    session.record = null;
+    try { await fetchInProgressRemote(jigId); } catch (e) { console.warn('fetchInProgressRemote error:', e); }
+    session.record = findInProgressLocal(jigId);
+  }
+
+  async function selectJig(id) {
     if (selection.jigId === id) return;
     selection.jigId = id;
     renderFilter();
+    await resolveSessionForJig(id);
+    if (selection.jigId !== id) return; // ระหว่างรอ ผู้ใช้เปลี่ยน Part ไปแล้ว
     showInspectionCards();
   }
 
@@ -1904,16 +2018,17 @@
 
   /* ── Show / hide inspection section ── */
   function showInspectionCards() {
-    ['meta-card','map-card','checklist-card','notes-card','sig-card','action-row']
+    ['meta-card','map-card','stage-banner','checklist-card','notes-card','sig-card','action-row']
       .forEach(id => $(id).classList.remove('hidden'));
     initCheckState();
     renderChecklist();
     updateStats();
+    renderStageBanner();
     $(  'meta-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function hideInspectionCards() {
-    ['meta-card','map-card','checklist-card','notes-card','sig-card','action-row']
+    ['meta-card','map-card','stage-banner','checklist-card','notes-card','sig-card','action-row']
       .forEach(id => $(id).classList.add('hidden'));
   }
 
@@ -1930,10 +2045,45 @@
       id: i.id, label: i.label, sub: i.sub, method: i.method,
       status: '', note: '', photos: [], markedAt: null,
       type: i.type || null, min: i.min, max: i.max, unit: i.unit,
-      // 🆕 Final Check: ตรวจทีละ 3 ชิ้นต่อ Part — เก็บค่า/ผลของแต่ละชิ้นแยกกัน แล้วรวมเป็น status ข้างบน
+      // Final Check: ตรวจทีละชิ้น S/M/E — เก็บค่า/ผลของแต่ละชิ้นแยกกัน (status ด้านบน = ผลรวม)
       pieceCount: n,
       pieces: Array.from({ length: n }, () => ({ value: null, status: '' })),
     }));
+
+    // ── ต่อจากชุดที่ตรวจค้างไว้: ชิ้นที่ส่งแล้วถูกล็อก (อ่านอย่างเดียว) ตรวจต่อที่ชิ้นถัดไป ──
+    session.stageIdx = 0;
+    const rec = session.record;
+    const dateEl = $('inp-date'), shiftEl = $('inp-shift');
+    let resumed = false;
+    if (rec) {
+      const sameShape = recordPieceCount(rec) === n && (rec.items || []).length === checkState.length
+        && rec.items.every((ri, k) => ri.id === checkState[k].id);
+      if (sameShape && recordStagesDone(rec) < n) {
+        rec.items.forEach((ri, k) => {
+          const it = checkState[k];
+          it.pieces = Array.from({ length: n }, (_, p) => (ri.pieces && ri.pieces[p]) ? { ...ri.pieces[p] } : { value: null, status: '' });
+          it.note = ri.note || '';
+          it.photos = Array.isArray(ri.photos) ? ri.photos.slice() : [];
+          it.markedAt = ri.markedAt || null;
+          it.status = itemAggStatus(it);
+        });
+        session.stageIdx = recordStagesDone(rec);
+        resumed = true;
+        if (dateEl) { dateEl.value = rec.date || dateEl.value; dateEl.disabled = true; }
+        if (shiftEl) { shiftEl.value = rec.shift || shiftEl.value; shiftEl.disabled = true; }
+        if ($('inp-month') && rec.month) $('inp-month').value = rec.month;
+        $('report-notes').value = rec.notes || '';
+      } else {
+        toast('⚠️ จุดตรวจของ Part นี้ถูกแก้ไขหลังเริ่มตรวจชุดเดิม — เริ่มชุดใหม่ให้อัตโนมัติ (ชุดเดิมยังเก็บในประวัติ)', 'ng');
+        _ignoredRecordId = rec.id;
+        session.record = null;
+      }
+    }
+    if (!resumed) {
+      if (dateEl) { if (dateEl.disabled) dateEl.value = localDateStr(); dateEl.disabled = false; }
+      if (shiftEl) shiftEl.disabled = false;
+      const notesEl = $('report-notes'); if (notesEl) notesEl.value = '';
+    }
     renderSvgMap();
   }
 
@@ -1996,21 +2146,33 @@
   function renderChecklist() {
     const wrap = $('checklist-wrapper');
     wrap.innerHTML = '';
+    const cur = session.stageIdx; // ชิ้นที่กำลังตรวจรอบนี้ — ก่อนหน้า = ล็อกแล้ว, หลังจากนี้ = รอรอบถัดไป
     checkState.forEach((item, idx) => {
       const isNumeric = item.type === 'numeric';
-      // 🆕 Final Check: หัวข้อที่เกณฑ์ขั้นต่ำติดลบ (เช่น -1 ถึง 1) ต้องมีปุ่ม ± เพราะคีย์บอร์ดตัวเลขบนมือถือบางรุ่นไม่มีปุ่ม "-"
+      // หัวข้อที่เกณฑ์ขั้นต่ำติดลบ (เช่น -1 ถึง 1) ต้องมีปุ่ม ± เพราะคีย์บอร์ดตัวเลขบนมือถือบางรุ่นไม่มีปุ่ม "-"
       const allowNeg = isNumeric && item.min != null && item.min < 0;
       const pieceCount = item.pieceCount || DEFAULT_PIECE_COUNT;
       const div = document.createElement('div');
       div.className = 'check-item';
       div.dataset.idx = idx;
 
-      // 🆕 Final Check: ตรวจทีละ ${pieceCount} ชิ้น — แต่ละชิ้นมีช่องกรอก/ปุ่มของตัวเอง แล้วรวมผลเป็นสถานะเดียวของข้อ (ดู aggregateStatus)
       const pieceColsHtml = Array.from({ length: pieceCount }, (_, p) => {
+        const sl = stageLabel(p);
+        const head = `<div class="piece-label"><b>${escHtml(sl.short)}</b> ${escHtml(sl.th)}</div>`;
+        if (p < cur) { // ส่งไปแล้ว — แสดงผลอย่างเดียว
+          const pc = item.pieces[p] || {};
+          const shown = isNumeric
+            ? (pc.value != null ? pc.value : '–')
+            : (pc.status === 'ok' ? '✔' : pc.status === 'ng' ? '✖' : pc.status === 'fixed' ? '🔧' : '–');
+          return `<div class="piece-col is-done" data-piece="${p}">${head}<div class="piece-readonly ${escHtml(pc.status || '')}">${escHtml(String(shown))}</div></div>`;
+        }
+        if (p > cur) { // ยังไม่ถึงรอบ
+          return `<div class="piece-col is-locked" data-piece="${p}">${head}<div class="piece-locked">รอรอบ ${escHtml(sl.short)}</div></div>`;
+        }
         if (isNumeric) {
           return `
-          <div class="piece-col" data-piece="${p}">
-            <div class="piece-label">ชิ้น ${p + 1}</div>
+          <div class="piece-col is-active" data-piece="${p}">
+            ${head}
             <div class="check-numeric-row">
               ${allowNeg ? `<button type="button" class="check-numeric-sign" id="numsign-${idx}-${p}" title="สลับค่าบวก/ลบ">±</button>` : ''}
               <input type="number" step="any" inputmode="decimal" class="check-numeric-input" id="numval-${idx}-${p}" placeholder="ค่า">
@@ -2018,8 +2180,8 @@
           </div>`;
         }
         return `
-          <div class="piece-col" data-piece="${p}">
-            <div class="piece-label">ชิ้น ${p + 1}</div>
+          <div class="piece-col is-active" data-piece="${p}">
+            ${head}
             <div class="radio-group piece-radio" data-piece="${p}">
               <button class="rbtn ok" data-v="ok" title="ปกติ">✔</button>
               <button class="rbtn ng" data-v="ng" title="ไม่ปกติ">✖</button>
@@ -2035,7 +2197,7 @@
             ${escHtml(item.label)}
             <small>${escHtml(item.sub)} — ${escHtml(item.method)}</small>
             <div class="check-numeric-range">
-              ${isNumeric ? `เกณฑ์ ${item.min}-${item.max}${item.unit ? ' ' + escHtml(item.unit) : ''} • ` : ''}ตรวจ ${pieceCount} ชิ้น
+              ${isNumeric ? `เกณฑ์ ${escHtml(fmtSpec(item))} • ` : ''}ตรวจ ${pieceCount} ชิ้น (S / M / E)
             </div>
           </div>
           <span class="check-overall-badge" id="overall-badge-${idx}">รอตรวจ</span>
@@ -2043,7 +2205,7 @@
         <div class="piece-grid" id="piece-grid-${idx}">${pieceColsHtml}</div>
         <div class="ng-zone" id="ng-zone-${idx}">
           <div class="ng-zone-title">⚠ รายละเอียดความผิดปกติ</div>
-          <textarea class="ng-note-input" id="ng-note-${idx}" placeholder="ระบุรายละเอียด..."></textarea>
+          <textarea class="ng-note-input" id="ng-note-${idx}" placeholder="ระบุรายละเอียด...">${escHtml(item.note || '')}</textarea>
           <div class="photo-row" id="photo-row-${idx}">
             <label class="btn-camera">
               <input type="file" accept="image/*" capture="environment" class="file-input" data-idx="${idx}">
@@ -2053,22 +2215,25 @@
         </div>`;
       wrap.appendChild(div);
 
-      // 🆕 รวมผลของ ${pieceCount} ชิ้นเป็นสถานะเดียวของหัวข้อ แล้วอัปเดต badge / จุดบนแผนผัง / NG zone / สถิติรวม
+      // รวมผลทุกชิ้นที่ตรวจแล้วเป็นสถานะของหัวข้อ + อัปเดต badge / จุดบนแผนผัง / NG zone / สถิติ
       function refreshAggregate() {
-        const agg = aggregateStatus(item.pieces);
-        item.status = agg;
+        const sl = stageLabel(cur);
+        const here = (item.pieces[cur] && item.pieces[cur].status) || '';
+        item.status = itemAggStatus(item);
         const badge = $(`overall-badge-${idx}`);
         if (badge) {
-          badge.textContent = agg === 'ok' ? `ผ่านครบ ${pieceCount} ชิ้น` : agg === 'ng' ? 'ไม่ผ่าน (NG)' : agg === 'fixed' ? 'แก้ไขแล้ว' : 'รอตรวจ';
-          badge.className = 'check-overall-badge' + (agg ? ` ${agg}` : '');
+          badge.textContent = here === 'ok' ? `${sl.short} ผ่าน` : here === 'ng' ? `${sl.short} ไม่ผ่าน (NG)` : here === 'fixed' ? `${sl.short} แก้ไขแล้ว` : `รอตรวจ ${sl.short}`;
+          badge.className = 'check-overall-badge' + (here ? ` ${here}` : '');
         }
-        $(`ng-zone-${idx}`).classList.toggle('show', agg === 'ng' || agg === 'fixed');
-        updateSvgPoint(item.id, agg);
+        const anyIssue = item.pieces.some(pc => pc.status === 'ng' || pc.status === 'fixed');
+        $(`ng-zone-${idx}`).classList.toggle('show', anyIssue);
+        updateSvgPoint(item.id, item.status === 'ng' ? 'ng' : here);
         updateStats();
       }
 
-      if (isNumeric) {
-        for (let p = 0; p < pieceCount; p++) {
+      if (cur < pieceCount) {
+        if (isNumeric) {
+          const p = cur;
           const inp = $(`numval-${idx}-${p}`);
           inp.addEventListener('input', e => {
             const raw = e.target.value;
@@ -2082,7 +2247,7 @@
               piece.value = val;
               const inRange = (item.min == null || val >= item.min) && (item.max == null || val <= item.max);
               piece.status = inRange ? 'ok' : 'ng';
-              inp.classList.toggle('needs-value', !inRange); // แดงเบาๆ เตือนชิ้นที่ NG โดยไม่ต้องเลื่อนไปดู badge
+              inp.classList.toggle('needs-value', !inRange); // แดงเบาๆ เตือนค่าที่เกินเกณฑ์ทันที
             }
             item.markedAt = new Date().toISOString();
             refreshAggregate();
@@ -2096,24 +2261,104 @@
               el.dispatchEvent(new Event('input', { bubbles: true }));
             });
           }
-        }
-      } else {
-        div.querySelectorAll('.piece-radio').forEach(group => {
-          const p = parseInt(group.dataset.piece);
-          group.querySelectorAll('.rbtn').forEach(btn => {
-            btn.addEventListener('click', () => {
-              item.pieces[p].status = btn.dataset.v;
-              group.querySelectorAll('.rbtn').forEach(b => b.classList.toggle('active', b === btn));
-              item.markedAt = new Date().toISOString();
-              refreshAggregate();
+        } else {
+          div.querySelectorAll('.piece-radio').forEach(group => {
+            const p = parseInt(group.dataset.piece);
+            group.querySelectorAll('.rbtn').forEach(btn => {
+              btn.addEventListener('click', () => {
+                item.pieces[p].status = btn.dataset.v;
+                group.querySelectorAll('.rbtn').forEach(b => b.classList.toggle('active', b === btn));
+                item.markedAt = new Date().toISOString();
+                refreshAggregate();
+              });
             });
           });
-        });
+        }
       }
 
       $(`ng-note-${idx}`).addEventListener('input', e => { item.note = e.target.value; });
       div.querySelector('.file-input').addEventListener('change', e => handlePhoto(e, idx));
+      if (item.photos && item.photos.length) renderPhotos(idx);
+      refreshAggregate(); // วาดสถานะเริ่มต้น (กรณีต่อจากชุดเดิมที่มี NG จากรอบก่อน จะขึ้นสีแดงบนแผนผังทันที)
     });
+  }
+
+
+  /* ══════════════════════════════════════
+     STAGE BANNER — แถบบอกความคืบหน้า S → M → E + ปรับข้อความปุ่มส่งตามรอบ
+  ══════════════════════════════════════ */
+  let _submitBtnSvg = null, _stageBannerBound = false;
+  function renderStageBanner() {
+    const box = $('stage-banner');
+    if (!box) return;
+    const n = getPieceCount(), cur = session.stageIdx, rec = session.record;
+    const first = rec ? ((rec.items || [])[0] || {}).pieces || [] : [];
+    const steps = Array.from({ length: n }, (_, k) => {
+      const sl = stageLabel(k);
+      const st = k < cur ? 'done' : k === cur ? 'active' : 'todo';
+      const sub = k < cur ? `ส่งแล้ว ${escHtml(fmtHM(first[k] && first[k].at))}` : k === cur ? 'กำลังตรวจ' : 'รอรอบถัดไป';
+      return `<div class="stage-step ${st}">
+        <span class="stage-dot">${k < cur ? '✔' : escHtml(sl.short)}</span>
+        <span class="stage-name">${escHtml(sl.th)}</span>
+        <span class="stage-sub">${sub}</span>
+      </div>`;
+    }).join('<span class="stage-line"></span>');
+
+    const sl = stageLabel(cur);
+    const isLast = cur === n - 1;
+    const info = rec
+      ? `ต่อจากชุดเดิม — เริ่มเมื่อ ${escHtml(fmtHM(rec.timestamp))} โดย ${escHtml(rec.inspector || '-')} · ตอนนี้ตรวจชิ้น <b>${escHtml(sl.short)} (${escHtml(sl.th)})</b>`
+      : `เริ่มชุดการตรวจใหม่ — ตรวจชิ้น <b>${escHtml(sl.short)} (${escHtml(sl.th)})</b> แล้วกด "ส่งข้อมูล" ได้เลย กลับมาตรวจ ${n > 1 ? escHtml(stageLabel(1).short) : ''} ต่อได้ทุกเมื่อ`;
+    box.innerHTML = `
+      <div class="stage-steps">${steps}</div>
+      <div class="stage-info">
+        <span>${info}</span>
+        ${rec ? `<button type="button" class="stage-restart" id="btn-stage-restart">เริ่มชุดใหม่</button>` : ''}
+      </div>`;
+
+    if (!_stageBannerBound) {
+      _stageBannerBound = true;
+      box.addEventListener('click', async (e) => {
+        if (!e.target.closest('#btn-stage-restart')) return;
+        if (!(await showConfirmModal('ทิ้งชุดที่ตรวจค้างไว้ แล้วเริ่มชุดใหม่ที่ชิ้น S หรือไม่?\n(ชุดเดิมยังเก็บในประวัติเป็น "ตรวจไม่ครบ")', { confirmLabel: 'เริ่มชุดใหม่', danger: true }))) return;
+        _ignoredRecordId = session.record && session.record.id;
+        session.record = null;
+        initCheckState(); renderChecklist(); updateStats(); renderStageBanner();
+        toast('เริ่มชุดการตรวจใหม่แล้ว', 'ok');
+      });
+    }
+
+    const btn = $('btn-submit');
+    if (btn) {
+      if (_submitBtnSvg === null) { const sv = btn.querySelector('svg'); _submitBtnSvg = sv ? sv.outerHTML : ''; }
+      btn.innerHTML = `${_submitBtnSvg} ${isLast ? `ส่งข้อมูล ${escHtml(sl.short)} · จบการตรวจ` : `ส่งข้อมูล ${escHtml(sl.short)} (${escHtml(sl.th)})`}`;
+    }
+  }
+
+  /* ── ส่ง Telegram แจ้ง NG ทันที แม้ยังตรวจไม่ครบทุกชิ้น (ไม่ต้องรอจนถึง E) ── */
+  function buildStageNgTelegram(record, cur) {
+    const sl = stageLabel(cur), n = recordPieceCount(record) || DEFAULT_PIECE_COUNT;
+    const ngNow = record.items.filter(i => i.pieces && i.pieces[cur] && i.pieces[cur].status === 'ng');
+    let msg = `
+⚠️ *Final Check — พบ NG ที่ชิ้น ${sl.short} (${sl.th})*
+🟠 ตรวจไปแล้ว ${cur + 1}/${n} ชิ้น — ยังไม่เข้าขั้นตอนอนุมัติ
+━━━━━━━━━━━━━━━━━━━━━━━━━
+*${escHtml(record.jigName)}*
+${escHtml(record.jigId)}
+${record.jigDocNo ? `_${escHtml(record.jigDocNo)}_` : ''}
+
+📅 วันที่: ${record.date}   🔄 กะ: ${record.shift}
+👤 ผู้ตรวจ: ${escHtml(record.items[0].pieces[cur].by || record.inspector)}
+
+*🔴 รายการที่ไม่ผ่านในชิ้น ${sl.short}:*
+`;
+    ngNow.forEach((item, k) => {
+      const pc = item.pieces[cur];
+      const val = item.type === 'numeric' && pc.value != null ? ` (${pc.value}${item.unit ? ' ' + item.unit : ''}, เกณฑ์ ${fmtSpec(item)})` : '';
+      const note = item.note ? ` - _${escHtml(item.note)}_` : '';
+      msg += `${k + 1}. ${escHtml(item.label)}${val}${note}\n`;
+    });
+    return msg;
   }
 
   function updateSvgPoint(pointId, status) {
@@ -2124,10 +2369,12 @@
   }
 
   function updateStats() {
+    const cur = session.stageIdx;
     let ok = 0, ng = 0, pending = 0;
     checkState.forEach(i => {
-      if (i.status === 'ok' || i.status === 'fixed') ok++;
-      else if (i.status === 'ng') ng++;
+      const st = (i.pieces && i.pieces[cur] && i.pieces[cur].status) || '';
+      if (st === 'ok' || st === 'fixed') ok++;
+      else if (st === 'ng') ng++;
       else pending++;
     });
     $('stat-ok').textContent = ok;
@@ -2277,34 +2524,53 @@ ${escHtml(record.jigId || '')}
   }
 
   async function submitReport() {
-    if (_submitInProgress) return; // 🆕 กันกดซ้ำระหว่างที่ยังทำงานอยู่ (รอ GPS/บันทึก/ส่ง Telegram) — ต้นเหตุประวัติซ้ำ
+    if (_submitInProgress) return; // กันกดซ้ำระหว่างที่ยังรอ GPS/บันทึก/ส่ง Telegram — ต้นเหตุประวัติซ้ำ
     if (!selection.jigId) { toast('กรุณาเลือก Part ก่อนบันทึก', 'ng'); return; }
     if (!$('inp-inspector').value.trim()) { toast('กรุณาระบุชื่อผู้ตรวจสอบ', 'ng'); $('inp-inspector').focus(); return; }
     if (!$('inp-date').value) { toast('กรุณาเลือกวันที่', 'ng'); return; }
     if (!$('inp-shift').value) { toast('กรุณาเลือกกะ', 'ng'); return; }
-    const unchecked = checkState.filter(i => !i.status);
-    if (unchecked.length) { toast(`ยังมี ${unchecked.length} รายการที่ยังไม่ตรวจ`, 'ng'); return; }
 
-    // 🆕 ผ่านทุกเงื่อนไขแล้ว เริ่มขั้นตอนที่ใช้เวลา (GPS/บันทึก/Telegram) — ล็อกปุ่มไว้กันกดซ้ำ จนกว่าจะจบไม่ว่าสำเร็จหรือพลาด (ดู finally ท้ายฟังก์ชัน)
+    const n = getPieceCount();
+    const cur = session.stageIdx;
+    if (cur >= n) { toast('ชุดนี้ตรวจครบทุกชิ้นแล้ว', 'ng'); return; }
+    const sl = stageLabel(cur);
+    const isLast = cur === n - 1;
+
+    // ต้องกรอกครบทุกหัวข้อ "ของชิ้นที่กำลังตรวจรอบนี้" เท่านั้น (ชิ้นถัดไปรอรอบหน้า)
+    const unchecked = checkState.filter(i => !(i.pieces[cur] && i.pieces[cur].status));
+    if (unchecked.length) { toast(`ชิ้น ${sl.short}: ยังมี ${unchecked.length} รายการที่ยังไม่ตรวจ`, 'ng'); return; }
+    // NG ต้องมีรายละเอียดอย่างน้อยหนึ่งอย่าง (ข้อความหรือรูป) — กันส่ง NG เปล่าๆ ที่หัวหน้าตามต่อไม่ได้
+    const ngNoDetail = checkState.filter(i => i.pieces[cur].status === 'ng' && !(i.note && i.note.trim()) && !(i.photos && i.photos.length));
+    if (ngNoDetail.length) {
+      toast(`ข้อ ${ngNoDetail.map(i => checkState.indexOf(i) + 1).join(', ')} เป็น NG — กรุณาระบุรายละเอียดหรือแนบรูปก่อนส่ง`, 'ng');
+      const first = $('checklist-wrapper').querySelector(`.check-item[data-idx="${checkState.indexOf(ngNoDetail[0])}"]`);
+      if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    const ngNow = checkState.filter(i => i.pieces[cur].status === 'ng').length;
+    const confirmMsg = `ส่งผลการตรวจชิ้น ${sl.short} (${sl.th}) ใช่หรือไม่?\n`
+      + `ผ่าน ${checkState.length - ngNow} รายการ • NG ${ngNow} รายการ\n`
+      + (isLast ? 'นี่คือชิ้นสุดท้าย — ส่งแล้วระบบจะแจ้งหัวหน้างานให้ตรวจสอบ' : `ส่งแล้วจะแก้ไขชิ้นนี้ไม่ได้ — กลับมาตรวจชิ้น ${stageLabel(cur + 1).short} ได้เมื่อถึงรอบ`);
+    if (!(await showConfirmModal(confirmMsg, { confirmLabel: `ส่งข้อมูล ${sl.short}` }))) return;
+
+    // ผ่านทุกเงื่อนไขแล้ว เริ่มขั้นตอนที่ใช้เวลา (GPS/บันทึก/Telegram) — ล็อกปุ่มไว้กันกดซ้ำจนกว่าจะจบ (ดู finally)
     _submitInProgress = true;
     const submitBtn = $('btn-submit');
     if (submitBtn) submitBtn.disabled = true;
 
     try {
-    // ─── ขอ GPS พอดีกดบันทึก (บังคับต้องได้) ─── 
     toast('🔄 กำลังเก็บค่า GPS... (ต้องได้พิกัดก่อนบันทึกได้)', 'ok');
     const gpsData = await getGPSCoordinates();
 
-    // ─── ตรวจสอบว่าได้พิกัด GPS สำเร็จหรือไม่ ───
     if (gpsData.status !== 'success' || gpsData.latitude === null || gpsData.longitude === null) {
-      // ไม่ได้พิกัด → ไม่ให้บันทึก
       let errMsg = '';
       if (gpsData.status === 'denied') {
         errMsg = '❌ คุณปฏิเสธการใช้ GPS — ต้องเปิดให้ browser ใช้ GPS ก่อนจึงจะบันทึกได้ (ไปที่ Settings หรือลองใหม่)';
       } else if (gpsData.status === 'timeout') {
-        errMsg = '⏱️ GPS หาพิกัดไม่ได้ (หมดเวลา) — เลื่อนไปที่กลางแจ้ง เปิด GPS ให้เต็มที่ แล้วลองบันทึกใหม่';
+        errMsg = '⏱️ GPS หาพิกัดไม่ได้ (หมดเวลา) — เลื่อนไปที่กลางแจ้ง เปิด GPS ให้เต็มที่ แล้วลองส่งใหม่ (ข้อมูลที่กรอกยังอยู่ครบ)';
       } else if (gpsData.status === 'error') {
-        errMsg = '⚠️ GPS เกิดข้อผิดพลาด — ลองปิด/เปิด GPS แล้วบันทึกใหม่';
+        errMsg = '⚠️ GPS เกิดข้อผิดพลาด — ลองปิด/เปิด GPS แล้วส่งใหม่ (ข้อมูลที่กรอกยังอยู่ครบ)';
       } else if (gpsData.status === 'unsupported') {
         errMsg = '❓ อุปกรณ์ของคุณไม่รองรับ GPS — ต้องใช้ smartphone ที่มี GPS';
       } else {
@@ -2314,75 +2580,75 @@ ${escHtml(record.jigId || '')}
       return;
     }
 
-    // ─── ได้พิกัด → ดำเนินการบันทึก ───
     const jig  = catalog.jigs.find(j => j.id === selection.jigId);
     const line = catalog.lines.find(l => l.id === selection.lineId);
     const dept = catalog.depts.find(d => d.id === selection.deptId);
+    const nowIso = new Date().toISOString();
+    const inspectorName = $('inp-inspector').value.trim();
 
-    const record = {
-      id:         genId(),
-      timestamp:  new Date().toISOString(),
-      deptId:     selection.deptId,
-      deptName:   dept ? dept.name : '',
-      lineId:     selection.lineId,
-      lineName:   line ? line.name : '',
-      jigId:      selection.jigId,
-      jigName:    jig  ? jig.name  : '',
-      jigDocNo:   jig  ? (jig.docNo || '') : '', // ไม่ fallback ไปใช้รหัส Part (jig.id) แล้ว — ถ้ายังไม่กำหนด Doc No. ให้เว้นว่างไว้ เพื่อไม่ให้สับสนกับเลขคุมเอกสารจริง
-      date:       $('inp-date').value,
-      shift:      $('inp-shift').value,
-      month:      $('inp-month').value,
-      inspector:  $('inp-inspector').value.trim(),
-      notes:      $('report-notes').value,
-      items:      checkState.map(i => ({
-        id: i.id, label: i.label, sub: i.sub || '', method: i.method || '',
-        status: i.status, note: i.note, photos: i.photos,
-        type: i.type || null, min: i.min ?? null, max: i.max ?? null, unit: i.unit || '',
-        // 🆕 Final Check: ผลของแต่ละชิ้น (ปกติ 3 ชิ้นต่อ Part ต่อกะ) — status ด้านบนคือผลรวมของ pieces นี้
-        pieceCount: i.pieceCount || DEFAULT_PIECE_COUNT,
-        pieces: i.pieces || [],
-        markedAt: i.markedAt || null, // 🆕 เวลาที่กดติ๊กจุดนี้จริง — เก็บใน items (jsonb เดิม) ไม่ต้องเพิ่มคอลัมน์ใหม่ใน Supabase
-      })),
-      sigInspector:  $('sig-inspector').value.trim(),
-      // หมายเหตุ: ตัด sigSupervisor ออกแล้ว — ชื่อหัวหน้างานจะถูกบันทึกตอนกดอนุมัติจริงผ่าน Telegram (ดู approvedBy ด้านล่าง) ไม่ต้องพิมพ์ซ้ำตรงนี้
-      // ─── Approval Workflow — รอหัวหน้างานกดตรวจสอบผ่าน Telegram ───
-      approvalStatus:     'pending',
-      approvedBy:         null,
-      approvedAt:         null,
-      supervisorComment:  null,
-      // ─── Approval Workflow (Stage 2) — รอผู้จัดการฝ่ายผลิตกดอนุมัติต่อ หลังหัวหน้างานตรวจสอบแล้ว ───
-      managerApprovalStatus: 'pending',
-      managerApprovedBy:     null,
-      managerApprovedAt:     null,
-      managerComment:        null,
-      // ─── GPS Data ─── (บันทึกพิกัด - ตรวจสอบแล้วว่าได้พิกัด)
-      gps: {
-        latitude:   gpsData.latitude,
-        longitude:  gpsData.longitude,
-        accuracy:   gpsData.accuracy,
-        timestamp:  gpsData.timestamp,
-        status:     gpsData.status // 'success' เท่านั้น
-      },
-      // 🆕 สถานะซิงค์ขึ้น Supabase (เฉพาะ local ไม่ถูกส่งขึ้น Supabase — ดู pushHistoryToSupabase)
-      // เริ่มต้น false เสมอตอนสร้างใหม่ แล้วจะถูกเปลี่ยนเป็น true เมื่อ push ขึ้น Supabase สำเร็จ
-      synced: false,
-    };
+    // ประทับเวลา/ผู้ตรวจ/พิกัดของชิ้นที่ส่งรอบนี้ (ใช้ตรวจสอบย้อนหลังว่า S/M/E ตรวจเมื่อไหร่ ใครตรวจ ที่ไหน)
+    checkState.forEach(i => { const pc = i.pieces[cur]; pc.at = nowIso; pc.by = inspectorName; });
+    checkState[0].pieces[cur].gps = { latitude: gpsData.latitude, longitude: gpsData.longitude, accuracy: gpsData.accuracy };
+
+    const builtItems = checkState.map(i => ({
+      id: i.id, label: i.label, sub: i.sub || '', method: i.method || '',
+      status: itemAggStatus(i), note: i.note, photos: i.photos,
+      type: i.type || null, min: i.min ?? null, max: i.max ?? null, unit: i.unit || '',
+      pieceCount: i.pieceCount || DEFAULT_PIECE_COUNT,
+      pieces: i.pieces || [],
+      markedAt: i.markedAt || null,
+    }));
+
+    // ชุดเดิม → อัปเดต Record เดิม (id เดิม) / ชุดใหม่ → สร้าง Record ใหม่ตอนส่งชิ้น S
+    let record = session.record;
+    if (!record) {
+      record = {
+        id:         genId(),
+        timestamp:  nowIso,
+        deptId:     selection.deptId,
+        deptName:   dept ? dept.name : '',
+        lineId:     selection.lineId,
+        lineName:   line ? line.name : '',
+        jigId:      selection.jigId,
+        jigName:    jig  ? jig.name  : '',
+        jigDocNo:   jig  ? (jig.docNo || '') : '', // ไม่ fallback ไปใช้รหัส Part — ถ้ายังไม่กำหนด Doc No. ให้เว้นว่างไว้
+        date:       $('inp-date').value,
+        shift:      $('inp-shift').value,
+        month:      $('inp-month').value,
+        inspector:  inspectorName,
+        approvalStatus: 'pending', approvedBy: null, approvedAt: null, supervisorComment: null,
+        managerApprovalStatus: 'pending', managerApprovedBy: null, managerApprovedAt: null, managerComment: null,
+      };
+    }
+    record.items = builtItems;
+    record.notes = $('report-notes').value;
+    record.sigInspector = $('sig-inspector').value.trim() || record.sigInspector || '';
+    record.gps = { latitude: gpsData.latitude, longitude: gpsData.longitude, accuracy: gpsData.accuracy, timestamp: gpsData.timestamp, status: gpsData.status };
+    record.synced = false; // จะเปลี่ยนเป็น true เมื่อ push ขึ้น Supabase สำเร็จ
 
     let hist = loadHistory();
-    hist.unshift(record);
+    const hi = hist.findIndex(h => String(h.id) === String(record.id));
+    if (hi >= 0) hist[hi] = record; else hist.unshift(record);
     if (hist.length > 100) hist = hist.slice(0, 100);
+
     if (saveHistory(hist)) {
-      toast(`✅ บันทึกในเครื่องสำเร็จ! (กำลังซิงค์ขึ้นระบบ...) GPS: ${gpsData.latitude.toFixed(6)}, ${gpsData.longitude.toFixed(6)} (±${Math.round(gpsData.accuracy)}m)`, 'ok');
-      renderFilter(); // อัปเดต badge "ตรวจแล้ววันนี้" บนการ์ด Part ทันที กันตรวจซ้ำ
-      
-      // ─── ส่ง Telegram Notification ───
-      const okCount = checkState.filter(i => i.status === 'ok' || i.status === 'fixed').length;
-      const ngCount = checkState.filter(i => i.status === 'ng').length;
-      const ngItems = checkState.filter(i => i.status === 'ng');
-      const time = new Date(record.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-      
-      let telegramMsg = `
-📋 *Final Check Report*
+      const complete = isRecordComplete(record);
+      const where = `GPS: ${gpsData.latitude.toFixed(6)}, ${gpsData.longitude.toFixed(6)} (±${Math.round(gpsData.accuracy)}m)`;
+
+      if (!complete) {
+        const nextSl = stageLabel(cur + 1);
+        toast(`✅ ส่งชิ้น ${sl.short} สำเร็จ! — กลับมาตรวจชิ้น ${nextSl.short} (${nextSl.th}) ได้เลยเมื่อถึงรอบ • ${where}`, 'ok');
+        if (ngNow > 0) await sendTelegramMessage(buildStageNgTelegram(record, cur)); // NG แจ้งทันที ไม่ต้องรอให้ครบ 3 ชิ้น
+      } else {
+        toast(`✅ ตรวจครบทุกชิ้น (S/M/E) และส่งเข้าระบบแล้ว! • ${where}`, 'ok');
+        const items = record.items;
+        const okCount = items.filter(i => i.status === 'ok' || i.status === 'fixed').length;
+        const ngItems = items.filter(i => i.status === 'ng');
+        const ngCount = ngItems.length;
+        const time = fmtHM(nowIso);
+
+        let telegramMsg = `
+📋 *Final Check Report* (ตรวจครบ S/M/E)
 🟡 สถานะ: รอหัวหน้างานตรวจสอบ
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 *${escHtml(record.jigName)}*
@@ -2390,51 +2656,45 @@ ${escHtml(record.jigId)}
 ${record.jigDocNo ? `_${escHtml(record.jigDocNo)}_` : ''}
 
 📅 วันที่: ${record.date}
-🕐 เวลา: ${time}
+🕐 ส่งชิ้นสุดท้าย: ${time}
+⏱ ${escHtml(stageTimeline(record))}
 🔄 กะ: ${record.shift}
 👤 ผู้ตรวจ: ${escHtml(record.inspector)}
 
-🔍 จุดเช็คทั้งหมด: ${checkState.length} จุด
+🔍 จุดเช็คทั้งหมด: ${items.length} จุด × ${n} ชิ้น
 ✅ ผ่าน (OK): ${okCount}
 ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 `;
-
-      // เพิ่มรายละเอียด NG items
-      if (ngItems.length > 0) {
-        telegramMsg += `\n*🔴 รายการที่ไม่ผ่าน:*\n`;
-        ngItems.forEach((item, idx) => {
-          const value = ` (${pieceSummaryText(item)})`; // 🆕 โชว์ผลทั้ง 3 ชิ้น ไม่ใช่แค่ค่าเดียว
-          const note = item.note ? ` - _${escHtml(item.note)}_` : '';
-          telegramMsg += `${idx + 1}. ${escHtml(item.label)}${value}${note}\n`;
-        });
-      }
-
-      // 🆕 [แก้ข้อ 3] เพิ่มหมายเหตุทั่วไปที่ผู้ตรวจกรอกไว้ท้ายฟอร์ม — เดิมบันทึกลง PDF อย่างเดียว ไม่เคยส่งเข้า Telegram เลย
-      if (record.notes && record.notes.trim()) {
-        telegramMsg += `\n📝 *หมายเหตุเพิ่มเติม:*\n_${escHtml(record.notes.trim())}_\n`;
-      }
-
-      telegramMsg += `
+        if (ngItems.length > 0) {
+          telegramMsg += `\n*🔴 รายการที่ไม่ผ่าน:*\n`;
+          ngItems.forEach((item, idx) => {
+            const value = ` (${pieceSummaryText(item)})`; // โชว์ผลทั้ง S / M / E
+            const note = item.note ? ` - _${escHtml(item.note)}_` : '';
+            telegramMsg += `${idx + 1}. ${escHtml(item.label)}${value}${note}\n`;
+          });
+        }
+        if (record.notes && record.notes.trim()) {
+          telegramMsg += `\n📝 *หมายเหตุเพิ่มเติม:*\n_${escHtml(record.notes.trim())}_\n`;
+        }
+        telegramMsg += `
 📍 GPS: ${gpsData.latitude.toFixed(6)}, ${gpsData.longitude.toFixed(6)}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
+        const approveUrl = window.location.href.replace(/index\.html.*$/, '').replace(/\/?$/, '/')
+          + `approve.html?id=${encodeURIComponent(record.id)}`;
+        await sendTelegramMessage(telegramMsg, approveUrl, '✅ เปิดเพื่อตรวจสอบ');
+      }
 
-      // ลิงก์หน้าตรวจสอบ — ใช้ path เดียวกับที่ deploy อยู่จริง (รองรับทั้ง root และ subpath)
-      const approveUrl = window.location.href.replace(/index\.html.*$/, '').replace(/\/?$/, '/')
-        + `approve.html?id=${encodeURIComponent(record.id)}`;
-
-      await sendTelegramMessage(telegramMsg, approveUrl, '✅ เปิดเพื่อตรวจสอบ');
-
-      // 🆕 กลับไปหน้า "เลือก Model" ทันทีหลังบันทึกสำเร็จ — ตามที่พี่บีขอ
-      // กันปัญหาคนหน้างานกดบันทึกซ้ำที่ฟอร์มเดิม (ทำให้ประวัติซ้ำ) เพราะฟอร์มนี้จะถูกซ่อนไปเลย
-      // ต้องเลือก Part ใหม่ทั้งกระบวนการถึงจะกดบันทึกได้อีกครั้ง
+      // กลับไปหน้า "เลือก Model" ทันที — กันกดส่งซ้ำที่ฟอร์มเดิม ต้องเลือก Part ใหม่ทั้งกระบวนการ (รอบถัดไปจะต่อชุดเดิมให้เอง)
+      session.record = null;
+      _ignoredRecordId = null;
       selection.lineId = null;
       selection.jigId  = null;
       hideInspectionCards();
       renderFilter();
     }
     } finally {
-      // 🆕 คืนสถานะปุ่มเสมอไม่ว่าจะสำเร็จ/ไม่สำเร็จ/ error กลางทาง — กันปุ่มค้าง disabled ถ้าเกิด error ที่ไม่คาดคิด
+      // คืนสถานะปุ่มเสมอไม่ว่าสำเร็จ/ไม่สำเร็จ/error กลางทาง
       _submitInProgress = false;
       if (submitBtn) submitBtn.disabled = false;
     }
@@ -2478,6 +2738,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           'ความเห็นผู้จัดการฝ่ายผลิต': h.managerComment || '',
           'GPS ละติจูด': h.gps?.latitude ?? '',
           'GPS ลองจิจูด': h.gps?.longitude ?? '',
+          'ความคืบหน้า S/M/E': isRecordComplete(h) ? 'ครบ' : recProgressText(h),
         };
       });
 
@@ -4577,11 +4838,14 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 
     const hist = getFilteredHistory();
 
-    const totalOk = hist.filter(h => h.items.every(i => i.status === 'ok' || i.status === 'fixed')).length;
+    const totalOk = hist.filter(recPass).length;
+    const totalNg = hist.filter(h => (h.items || []).some(i => i.status === 'ng')).length;
+    const totalProg = hist.filter(h => !isRecordComplete(h)).length;
     $('hist-summary').innerHTML = `
       <div class="hist-stat all"><span class="n">${hist.length}</span><span class="l">ทั้งหมด</span></div>
       <div class="hist-stat ok"><span class="n">${totalOk}</span><span class="l">ผ่าน</span></div>
-      <div class="hist-stat ng"><span class="n">${hist.length - totalOk}</span><span class="l">มี NG</span></div>`;
+      <div class="hist-stat ng"><span class="n">${totalNg}</span><span class="l">มี NG</span></div>
+      ${totalProg ? `<div class="hist-stat prog"><span class="n">${totalProg}</span><span class="l">กำลังตรวจ</span></div>` : ''}`;
 
     const list = $('hist-list');
     if (!hist.length) { list.innerHTML = '<div class="no-records">ไม่พบประวัติ</div>'; refreshSelectionUI(hist); return; }
@@ -4620,6 +4884,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
             <span class="badge ok">OK ${okCount}</span>
             ${ngItems.length ? `<span class="badge ng">NG ${ngItems.length}</span>` : ''}
             ${(() => {
+              if (!isRecordComplete(h)) return `<span class="badge partial" title="ตรวจยังไม่ครบ S/M/E — ยังไม่เข้าขั้นตอนอนุมัติ">⏳ ตรวจแล้ว ${escHtml(recProgressText(h))}</span>`;
               const st = approvalStage(h);
               const title = st.key === 'approved'
                 ? `หัวหน้างาน: ${escHtml(h.approvedBy || '')} · ผู้จัดการฝ่ายผลิต: ${escHtml(h.managerApprovedBy || '')} เมื่อ ${h.managerApprovedAt ? new Date(h.managerApprovedAt).toLocaleString('th-TH') : ''}`
@@ -4776,7 +5041,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     const okCount    = record.items.filter(i => i.status === 'ok' || i.status === 'fixed').length;
     const ngCount    = record.items.filter(i => i.status === 'ng').length;
     const totalCount = record.items.length;
-    const allPass    = ngCount === 0;
+    const complete   = isRecordComplete(record);
+    const allPass    = ngCount === 0 && complete;
 
     // ── GPS ──
     const gpsText = record.gps && record.gps.status === 'success'
@@ -4908,12 +5174,12 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
             <thead>
               <tr>
                 <th style="width:5%">No.</th>
-                <th style="width:26%;text-align:left">Inspection Item / จุดตรวจสอบ</th>
+                <th style="width:24%;text-align:left">Inspection Item / จุดตรวจสอบ</th>
                 <th style="width:13%">Method / วิธี</th>
                 <th style="width:13%">Standard / มาตรฐาน</th>
-                <th style="width:10%">Actual / ค่าจริง</th>
+                <th style="width:17%">Actual S / M / E</th>
                 <th style="width:8%">Result</th>
-                <th style="width:25%;text-align:left">Remark / หมายเหตุ</th>
+                <th style="width:20%;text-align:left">Remark / หมายเหตุ</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -4938,7 +5204,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
             <div>
               <div class="pdf-result-label">Overall Result / ผลการตรวจ</div>
               <div class="pdf-result-verdict ${allPass ? 'pdf-verdict-pass' : 'pdf-verdict-fail'}">
-                ${allPass ? '✅ PASS — ผ่านทุกจุดตรวจ' : '❌ FAIL — พบ NG ' + ngCount + ' จุด'}
+                ${ngCount === 0 && !complete ? '⏳ ตรวจยังไม่ครบ ' + escHtml(recProgressText(record)) : allPass ? '✅ PASS — ผ่านทุกจุดตรวจ' : '❌ FAIL — พบ NG ' + ngCount + ' จุด'}
               </div>
             </div>
           </div>
@@ -5329,11 +5595,14 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       initCheckState();
       renderChecklist();
       updateStats();
+      renderStageBanner();
       $('inp-inspector').value = (currentAppUser && currentAppUser.full_name) || '';
-      $('inp-date').value = localDateStr();
-      $('inp-shift').value = 'กะ 1';
-      $('inp-month').value = currentThaiMonthAbbr();
-      $('report-notes').value = '';
+      if (!session.record) { // ชุดที่ตรวจค้างต้องคงวันที่/กะเดิมของชุดไว้
+        $('inp-date').value = localDateStr();
+        $('inp-shift').value = 'กะ 1';
+        $('inp-month').value = currentThaiMonthAbbr();
+        $('report-notes').value = '';
+      }
       syncSigInspectorFromInpInspector(); // ให้ช่องลายเซ็นตามชื่อผู้ตรวจสอบไปด้วยตอนล้างฟอร์ม
       toast('เริ่มต้นใหม่เรียบร้อย', 'ok');
     });
@@ -5836,12 +6105,18 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
   // คืนค่า null ถ้ายังไม่ตรวจ, หรือ { status: 'ok'|'ng', time } ถ้าตรวจแล้ว (เอารายการล่าสุดของวันนี้)
   function getJigCheckedTodayInfo(jigId) {
     const t = todayStr();
-    const records = loadHistory().filter(r => r.date === t && r.jigId === jigId);
+    const now = Date.now();
+    // วันนี้ + ชุดที่ตรวจค้าง (ยังไม่ครบ S/M/E) ภายใน 24 ชม. แม้ข้ามวัน (กะดึก)
+    const records = loadHistory().filter(r => r.jigId === jigId
+      && (r.date === t || (!isRecordComplete(r) && (now - new Date(r.timestamp || 0).getTime()) < SESSION_MAX_AGE_MS)));
     if (!records.length) return null;
-    // เอารายการล่าสุด (timestamp ใหม่สุด) เผื่อมีการตรวจซ้ำจริงๆ หลายรอบในวันเดียว
     const latest = records.reduce((a, b) => (new Date(b.timestamp || 0) > new Date(a.timestamp || 0) ? b : a));
-    const hasNg = (latest.items || []).some(i => i.status === 'ng');
     const time = latest.timestamp ? new Date(latest.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+    const hasNg = (latest.items || []).some(i => i.status === 'ng');
+    if (!isRecordComplete(latest)) {
+      // ตรวจค้างอยู่: บอกว่าไปถึงชิ้นไหนแล้ว (ยังไม่นับว่า "ตรวจแล้ว" ของ Model)
+      return { status: hasNg ? 'ng' : 'progress', inProgress: true, progress: recProgressText(latest), time, count: records.length };
+    }
     return { status: hasNg ? 'ng' : 'ok', time, count: records.length };
   }
 
@@ -6221,7 +6496,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
      - ยังไม่ตรวจเลยสักจุด = ไม่มี key ใน map (แสดงสีเทา) */
   function computeLineStatusToday() {
     const t = todayStr();
-    const hist = loadHistory();
+    const hist = loadHistory().filter(isRecordComplete); // นับเฉพาะชุดที่ตรวจครบ S/M/E
     const skippedJigIds = new Set(loadJigSkips().filter(s => s.date === t).map(s => s.jigId));
     const checkedJigsByLine = {}; // lineId -> Set(jigId)
     const ngByLine = {}; // lineId -> true ถ้าเจอ NG อย่างน้อย 1 Part
@@ -6401,7 +6676,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
   }
 
   function refreshDashboard() {
-    const allHist = loadHistory();
+    const allHist = loadHistory().filter(isRecordComplete);
     populateDashMonthOptions(allHist);
     populateDashLineOptions();
     populateAiPeriodOptions(allHist); // 🆕 อัปเดตรายชื่อเดือนใน dropdown ของ AI ให้ตรงกับข้อมูลล่าสุด
@@ -6535,7 +6810,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     _dashKpiHist = hist; // 🆕 เก็บไว้ให้ modal "รายการ NG ทั้งหมด" ใช้ตัวเดียวกับที่คำนวณการ์ดนี้
     const total   = hist.length;
     const allNgs  = hist.flatMap(h => h.items.filter(i => i.status === 'ng'));
-    const passCount = hist.filter(h => h.items.every(i => i.status === 'ok' || i.status === 'fixed')).length;
+    const passCount = hist.filter(h => recPass(h)).length;
     const passRate  = total ? Math.round(passCount / total * 100) : 0;
     const jigsSeen  = new Set(hist.map(h => h.jigId)).size;
 
@@ -6565,8 +6840,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           passDeltaEl.className = 'kpi-delta';
           passDeltaEl.innerHTML = '';
         } else {
-          const todayPassRate = Math.round(todayHist.filter(h => h.items.every(i => i.status === 'ok' || i.status === 'fixed')).length / todayHist.length * 100);
-          const yesterdayPassRate = Math.round(yesterdayHist.filter(h => h.items.every(i => i.status === 'ok' || i.status === 'fixed')).length / yesterdayHist.length * 100);
+          const todayPassRate = Math.round(todayHist.filter(h => recPass(h)).length / todayHist.length * 100);
+          const yesterdayPassRate = Math.round(yesterdayHist.filter(h => recPass(h)).length / yesterdayHist.length * 100);
           renderKpiDelta(passDeltaEl, todayPassRate, yesterdayPassRate, { unit: 'pt' });
         }
       }
@@ -6584,7 +6859,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         const key = `${monthFilter}-${String(d).padStart(2, '0')}`;
         labels.push(String(d));
         const dayRecs = hist.filter(h => h.date === key);
-        passData.push(dayRecs.filter(h => h.items.every(i => i.status === 'ok' || i.status === 'fixed')).length);
+        passData.push(dayRecs.filter(h => recPass(h)).length);
         ngData.push(dayRecs.filter(h => h.items.some(i => i.status === 'ng')).length);
       }
       $('trend-title-text').textContent = `แนวโน้มการตรวจสอบ (${formatMonthLabel(monthFilter)})`;
@@ -6595,7 +6870,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         const key = localDateStr(d);
         labels.push(key.slice(5)); // MM-DD
         const dayRecs = hist.filter(h => h.date === key);
-        passData.push(dayRecs.filter(h => h.items.every(i => i.status === 'ok' || i.status === 'fixed')).length);
+        passData.push(dayRecs.filter(h => recPass(h)).length);
         ngData.push(dayRecs.filter(h => h.items.some(i => i.status === 'ng')).length);
       }
       $('trend-title-text').textContent = 'แนวโน้มการตรวจสอบ (30 วัน)';
@@ -6686,7 +6961,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       const key = h.lineName || h.lineId || 'ไม่ระบุ';
       if (!deptMap[key]) deptMap[key] = { pass: 0, total: 0 };
       deptMap[key].total++;
-      if (h.items.every(i => i.status === 'ok' || i.status === 'fixed')) deptMap[key].pass++;
+      if (recPass(h)) deptMap[key].pass++;
     });
 
     const labels = Object.keys(deptMap);
@@ -6840,7 +7115,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     const periodSel = $('sel-ai-period');
     const period = periodSel ? periodSel.value : 'all';
     const periodLabel = aiPeriodLabel(period);
-    const histAll = loadHistory();
+    const histAll = loadHistory().filter(isRecordComplete);
     const hist = filterHistoryByPeriod(histAll, period);
     if (!hist.length) { toast(`ไม่มีข้อมูลการตรวจในช่วง "${periodLabel}"`, 'ng'); return; }
 
@@ -6908,7 +7183,7 @@ ${JSON.stringify(summary, null, 2)}
   /* ── Smart Rule-Based Engine (ไม่ต้อง internet) ── */
   function buildDataSummary(hist) {
     const total = hist.length;
-    const passCount = hist.filter(h => h.items.every(i => i.status === 'ok' || i.status === 'fixed')).length;
+    const passCount = hist.filter(h => recPass(h)).length;
     const passRate  = total ? Math.round(passCount / total * 100) : 0;
 
     // NG per checkpoint
@@ -6932,8 +7207,8 @@ ${JSON.stringify(summary, null, 2)}
     const mid = Math.floor(hist.length / 2);
     const old = hist.slice(mid);
     const rec = hist.slice(0, mid);
-    const oldRate = old.length ? old.filter(h => h.items.every(i=>i.status==='ok'||i.status==='fixed')).length/old.length : 0;
-    const recRate = rec.length ? rec.filter(h => h.items.every(i=>i.status==='ok'||i.status==='fixed')).length/rec.length : 0;
+    const oldRate = old.length ? old.filter(h => recPass(h)).length/old.length : 0;
+    const recRate = rec.length ? rec.filter(h => recPass(h)).length/rec.length : 0;
 
     // Shift analysis
     const byShift = {};

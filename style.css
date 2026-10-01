@@ -2811,3 +2811,58 @@ body.sidebar-collapsed .sidebar-nav a.side-nav-item { justify-content: center; p
 .arrow-swatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--border-input, #94a3b8); cursor: pointer; padding: 0; }
 .arrow-swatch.on { box-shadow: 0 0 0 2px var(--accent, #3b82f6); transform: scale(1.12); }
 #btn-arrow-add.active { background: var(--accent, #3b82f6); color: #fff; border-color: transparent; }
+
+
+/* ═══════════════════════════════════════════════════════════
+   FINAL CHECK — ตรวจทีละชิ้น S → M → E (ส่งข้อมูลทีละรอบ)
+   ═══════════════════════════════════════════════════════════ */
+.stage-banner { padding: 14px 16px; }
+.stage-steps { display: flex; align-items: flex-start; justify-content: center; gap: 0; }
+.stage-step { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 76px; text-align: center; }
+.stage-dot {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font: 700 15px/1 var(--font-en, system-ui); border: 2px solid var(--border-input, #cbd5e1);
+  color: var(--text-muted, #64748b); background: transparent;
+}
+.stage-name { font-size: 12px; font-weight: 600; color: var(--text-main, #1e293b); font-family: var(--font-en, system-ui); }
+.stage-sub  { font-size: 10.5px; color: var(--text-muted, #64748b); }
+.stage-line { flex: 1 1 24px; max-width: 56px; height: 2px; margin-top: 17px; background: var(--border-input, #cbd5e1); }
+.stage-step.done .stage-dot   { background: var(--ok, #16a34a); border-color: var(--ok, #16a34a); color: #fff; }
+.stage-step.active .stage-dot { border-color: #2f6fd6; color: #2f6fd6; box-shadow: 0 0 0 4px rgba(47,111,214,.16); }
+.stage-step.active .stage-sub { color: #2f6fd6; font-weight: 600; }
+.stage-step.todo { opacity: .6; }
+.stage-info {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border-input, #cbd5e1);
+  font-size: 12.5px; color: var(--text-main, #1e293b); line-height: 1.5;
+}
+.stage-restart {
+  border: 1px solid var(--ng, #dc2626); color: var(--ng, #dc2626); background: transparent;
+  border-radius: 999px; padding: 4px 12px; font-size: 12px; cursor: pointer; font-family: inherit;
+}
+.stage-restart:hover { background: var(--ng-bg, #fee2e2); }
+
+/* คอลัมน์ชิ้นตามสถานะรอบ */
+.piece-col.is-done   { opacity: .95; }
+.piece-col.is-locked { opacity: .55; }
+.piece-col.is-active .piece-label { color: #2f6fd6; font-weight: 700; }
+.piece-label b { font-weight: 800; }
+.piece-readonly {
+  width: 100%; min-height: 34px; display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; font-weight: 700; font-size: 14px;
+  border: 1px solid var(--border-input, #cbd5e1); background: rgba(100,116,139,.08); color: var(--text-main, #1e293b);
+}
+.piece-readonly.ok    { color: var(--ok, #16a34a);    background: var(--ok-bg, #dcfce7);    border-color: var(--ok, #16a34a); }
+.piece-readonly.ng    { color: var(--ng, #dc2626);    background: var(--ng-bg, #fee2e2);    border-color: var(--ng, #dc2626); }
+.piece-readonly.fixed { color: var(--fixed, #b45309); background: var(--fixed-bg, #fef3c7); border-color: var(--fixed, #b45309); }
+.piece-locked {
+  width: 100%; min-height: 34px; display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; font-size: 11px; color: var(--text-muted, #64748b);
+  border: 1px dashed var(--border-input, #cbd5e1);
+}
+
+/* badge สถานะ "กำลังตรวจ" */
+.jig-checked-badge-prog { color: #b45309; background: #fef3c7; border-color: #f59e0b; }
+.badge.partial { white-space: nowrap; }
+.hist-stat.prog .n { color: #b45309; }

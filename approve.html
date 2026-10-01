@@ -336,6 +336,24 @@
     return { key: 'pending', label: '🟡 รอหัวหน้างานตรวจสอบ' };
   }
 
+  // ชุดที่ยังตรวจไม่ครบ S/M/E (ส่งแล้วบางชิ้น) ยังไม่เข้าขั้นตอนอนุมัติ — ซ่อนจากรายการและกดอนุมัติไม่ได้
+  function rowComplete(row) {
+    const items = (row && row.items) || [];
+    const first = items[0];
+    const n = first ? (first.pieceCount || (first.pieces && first.pieces.length) || 0) : 0;
+    if (!n) return true; // รายการเก่าที่ไม่มีระบบชิ้น
+    return items.every(i => (i.pieces || []).filter(p => p && p.status).length >= n);
+  }
+  function incompleteProgress(row) {
+    const items = (row && row.items) || [];
+    const first = items[0] || {};
+    const n = first.pieceCount || (first.pieces && first.pieces.length) || 3;
+    const names = ['S', 'M', 'E'];
+    let done = n;
+    items.forEach(i => { let k = 0; const ps = i.pieces || []; while (k < n && ps[k] && ps[k].status) k++; done = Math.min(done, k); });
+    return Array.from({ length: n }, (_, k) => (names[k] || (k + 1)) + (k < done ? '✔' : '·')).join(' ');
+  }
+
   async function loadDashboard() {
     const dash = document.getElementById('dashboard');
 
@@ -361,7 +379,7 @@
       dash.innerHTML = `<div class="card"><div class="section-title">📊 ภาพรวมการตรวจสอบ</div><div class="center-msg" style="padding:10px 0;">โหลดข้อมูลไม่สำเร็จ</div></div>`;
       return;
     }
-    renderDashboard(data);
+    renderDashboard(data.filter(rowComplete));
   }
 
   function renderDashboard(rows) {
@@ -540,6 +558,10 @@
     const { data, error } = await sb.from('history').select('*').eq('id', recordId).single();
     if (error || !data) {
       app.innerHTML = `<div class="card center-msg">❌ ไม่พบรายงานนี้ในระบบ (อาจถูกลบไปแล้ว)</div>`;
+      return;
+    }
+    if (!rowComplete(data)) {
+      app.innerHTML = `<div class="card center-msg">⏳ รายงานนี้ยังตรวจไม่ครบทุกชิ้น (${esc(incompleteProgress(data))})<br><span style="font-size:12px;color:#64748b">ผู้ตรวจต้องส่งข้อมูลให้ครบ S / M / E ก่อน จึงจะตรวจสอบ/อนุมัติได้</span></div>`;
       return;
     }
     render(data);
