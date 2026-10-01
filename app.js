@@ -1186,7 +1186,9 @@
           }
           const canvas = document.createElement('canvas');
           canvas.width = width; canvas.height = height;
-          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          const ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
           resolve(canvas.toDataURL('image/jpeg', quality));
         };
         img.onerror = () => reject(new Error('ไม่สามารถอ่านไฟล์รูปภาพได้'));
@@ -1197,6 +1199,39 @@
     });
   }
   
+  /* 🆕 รูปพื้นหลังแผนผัง Part — ต้องคมพอให้อ่านตัวเลข/เส้นขนาดในแบบได้ (เดิมบีบเหลือ 500px/55% จนเบลอ)
+     ลองจากคุณภาพสูงสุดก่อน แล้วค่อยลดลงทีละขั้นเฉพาะเมื่อไฟล์ใหญ่เกินเพดาน (กัน localStorage เต็ม/Egress พุ่ง)
+     ไม่ขยายรูปที่เล็กกว่าขีดจำกัด (ไม่ upscale) — รับได้ทั้ง File และ dataURL */
+  const BG_IMAGE_STEPS = [[1600, 0.88], [1600, 0.80], [1400, 0.72], [1200, 0.65], [1000, 0.60]];
+  const BG_IMAGE_MAX_CHARS = 650000; // ≈ 480 KB ต่อรูป (base64)
+  async function resizeBgImageAdaptive(src) {
+    const dataUrl = (typeof src === 'string') ? src : await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = e => res(e.target.result);
+      r.onerror = () => rej(new Error('อ่านไฟล์ไม่สำเร็จ'));
+      r.readAsDataURL(src);
+    });
+    const img = await new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => rej(new Error('ไม่สามารถอ่านไฟล์รูปภาพได้'));
+      im.src = dataUrl;
+    });
+    let out = null;
+    for (const [maxDim, quality] of BG_IMAGE_STEPS) {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, w, h);
+      out = canvas.toDataURL('image/jpeg', quality);
+      if (out.length <= BG_IMAGE_MAX_CHARS) break;
+    }
+    return out;
+  }
+
   // 🆕 เหมือน resizeImageToDataURL แต่รับ dataURL เดิม (ไม่ใช่ไฟล์ที่เพิ่งเลือก) — ใช้บีบอัดรูปที่มีอยู่แล้วในระบบซ้ำอีกรอบ
   function resizeDataUrlToDataURL(dataUrl, maxDim, quality) {
     return new Promise((resolve, reject) => {
@@ -3208,9 +3243,9 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       if (!cpEditJigId) { toast('กรุณาเลือก Part ก่อน', 'ng'); return; }
       if (!file.type.startsWith('image/')) { toast('กรุณาเลือกไฟล์รูปภาพ', 'ng'); e.target.value=''; return; }
       try {
-        // 🆕 ลด maxDim 700→500px, quality 0.65→0.55 อีกรอบ เพื่อลด Egress (รูปนี้ถูกดึงซ้ำทุกครั้งที่เปิดแอป — ยิ่งเล็กยิ่งประหยัด)
-        // (พื้นหลัง Part ใช้แค่อ้างอิงตำแหน่งจุดตรวจ ไม่ต้องคมกริบระดับพิมพ์ ขนาดนี้ยังดูออกชัดเจนพอ)
-        const dataUrl = await resizeImageToDataURL(file, 500, 0.55);
+        // 🆕 เพิ่มความคมชัด: จากเดิม 500px/55% (เบลอ อ่านตัวเลขในแบบไม่ออก) → สูงสุด 1600px/88% แบบปรับลงอัตโนมัติถ้าไฟล์ใหญ่เกินเพดาน
+        // (ยังคุม Egress/พื้นที่เก็บไว้ที่ ≈480KB ต่อรูป — เส้นแบบ/ลายเส้นบีบอัดได้ดี มักไม่ถึงเพดาน)
+        const dataUrl = await resizeBgImageAdaptive(file);
         const jig = catalog.jigs.find(j => j.id === cpEditJigId);
         jig.bgImage = dataUrl;
         saveCatalog();
@@ -7134,9 +7169,8 @@ ${JSON.stringify(summary, null, 2)}
     }
   }
 
-  // 🆕 บีบอัดรูปพื้นหลัง Part ที่มีอยู่แล้วทั้งหมดใหม่ (500px/55%) — ใช้ตอนอยากลดขนาดรูปเก่าที่อัปโหลดไว้ก่อนปรับค่าบีบอัดใหม่
+  // 🆕 บีบอัดรูปพื้นหลัง Part ที่มีอยู่แล้วทั้งหมดใหม่ (ไม่เกิน 1600px / ≈480KB ต่อรูป) — ใช้ตอนอยากลดขนาดรูปเก่าที่อัปโหลดไว้ก่อนปรับค่าบีบอัดใหม่
   // ทำงานกับ catalog ที่โหลดในเครื่อง (ไม่ดึงจาก Supabase ใหม่) แล้ว saveCatalog() ดันขึ้น Supabase ให้เองทีเดียวตอนจบ
-  const RECOMPRESS_MAX_DIM = 500, RECOMPRESS_QUALITY = 0.55;
   async function recompressAllJigImages() {
     const targets = (catalog.jigs || []).filter(j => j.bgImage);
     if (!targets.length) { toast('ไม่มี Part ที่มีรูปพื้นหลังให้บีบอัด', 'ng'); return; }
@@ -7150,7 +7184,7 @@ ${JSON.stringify(summary, null, 2)}
     for (const jig of targets) {
       try {
         const before = jig.bgImage;
-        const resized = await resizeDataUrlToDataURL(before, RECOMPRESS_MAX_DIM, RECOMPRESS_QUALITY);
+        const resized = await resizeBgImageAdaptive(before); // ใช้เกณฑ์เดียวกับตอนอัปโหลด (ไม่ลดคุณภาพต่ำกว่าเดิมอีกแล้ว) — รูปที่เล็กอยู่แล้วจะถูกข้าม
         sizeBefore += before.length;
         if (resized.length < before.length) {
           jig.bgImage = resized;
