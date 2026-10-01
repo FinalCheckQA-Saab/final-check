@@ -306,7 +306,7 @@
         jig_id: h.jigId, jig_name: h.jigName, jig_doc_no: h.jigDocNo,
         insp_date: h.date, shift: h.shift, month: h.month,
         inspector: h.inspector, notes: h.notes, items: h.items || [],
-        sig_inspector: h.sigInspector, sig_supervisor: h.sigSupervisor,
+        sig_inspector: h.sigInspector ?? '', sig_supervisor: h.sigSupervisor ?? '', // คอลัมน์เป็น NOT NULL — ถ้าไม่มีลายเซ็นให้ส่งสตริงว่างแทน null
         // ─── Approval Workflow (Stage 1: หัวหน้างาน) ───
         approval_status: h.approvalStatus || 'pending',
         approved_by: h.approvedBy || null,
