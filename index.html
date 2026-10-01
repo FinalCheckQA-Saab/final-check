@@ -39,7 +39,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- ⚠️ CACHE-BUST: เบราว์เซอร์/PWA มัก cache ไฟล์ .css ค้างไว้นานผิดปกติ (เหมือน app.js ด้านล่าง)
        เพิ่ม ?v= ให้บังคับโหลดไฟล์ใหม่ทุกครั้งที่แก้ style.css — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ style.css -->
-  <link rel="stylesheet" href="style.css?v=fc-order1">
+  <link rel="stylesheet" href="style.css?v=fc-arrow1">
 </head>
 <body>
 
@@ -308,6 +308,7 @@
           </g>
           <text id="svg-jig-label" x="300" y="22" text-anchor="middle" fill="var(--text-muted)" font-size="11" font-family="Outfit">Part</text>
           <!-- จุดตรวจสอบ — สร้างแบบไดนามิกโดย JS ตามค่าที่ตั้งไว้ต่อ Part -->
+          <g id="svg-arrows-group"></g>
           <g id="svg-points-group"></g>
         </svg>
       </div>
@@ -840,6 +841,25 @@
         </div>
         <div class="cp-bg-status" id="cp-bg-status"></div>
 
+        <!-- 🆕 เครื่องมือลูกศรบนแผนผัง -->
+        <div class="arrow-toolbar" id="adm-arrow-toolbar">
+          <div class="arrow-toolbar-row">
+            <button type="button" class="btn-sec" id="btn-arrow-add">➕ เพิ่มลูกศร</button>
+            <span class="arrow-count" id="adm-arrow-count"></span>
+            <button type="button" class="btn-danger-sm" id="btn-arrow-clear" title="ลบลูกศรทั้งหมดของ Part นี้">ลบทั้งหมด</button>
+          </div>
+          <div class="arrow-edit hidden" id="adm-arrow-edit">
+            <span class="arrow-edit-label">สี</span>
+            <span id="adm-arrow-colors" class="arrow-colors"></span>
+            <span class="arrow-edit-label">ความหนา</span>
+            <select id="adm-arrow-width" class="adm-sel">
+              <option value="thin">บาง</option><option value="normal">ปกติ</option><option value="thick">หนา</option>
+            </select>
+            <button type="button" class="btn-sec" id="btn-arrow-flip" title="สลับทิศทางหัวลูกศร">⇄ กลับทิศ</button>
+            <button type="button" class="btn-danger-sm" id="btn-arrow-del">ลบลูกศรนี้</button>
+          </div>
+        </div>
+
         <!-- แผนผังลากจุดตรวจสอบ -->
         <div class="cp-map-wrap">
           <svg id="adm-cp-map" viewBox="0 0 600 340" preserveAspectRatio="xMidYMid meet">
@@ -852,9 +872,10 @@
             <rect x="20" y="30" width="560" height="280" rx="12" fill="var(--svg-base-bg)" stroke="var(--svg-border)" stroke-width="1.5"/>
             <rect x="20" y="30" width="560" height="280" rx="12" fill="url(#adm-grid)"/>
             <image id="adm-cp-bg-image" x="20" y="30" width="560" height="280" preserveAspectRatio="xMidYMid slice" clip-path="url(#map-clip-adm)" style="display:none" href=""/>
+            <g id="adm-cp-arrows-group"></g>
             <g id="adm-cp-points-group"></g>
           </svg>
-          <div class="cp-map-hint"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> ลากจุดบนแผนผังเพื่อจัดตำแหน่ง</div>
+          <div class="cp-map-hint"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> <span id="adm-cp-map-hint-text">ลากจุดบนแผนผังเพื่อจัดตำแหน่ง</span></div>
         </div>
 
         <!-- เทมเพลตหัวข้อตรวจสอบ — ใช้ซ้ำข้ามหลาย Part โดยไม่ต้องพิมพ์ใหม่ทุกครั้ง -->
@@ -1037,7 +1058,7 @@
 <!-- 🆕 ใส่เลขเวอร์ชันต่อท้าย ?v=... เพื่อบังคับให้เบราว์เซอร์ (โดยเฉพาะ Safari บน iPhone ซึ่งแคชไฟล์ .js
      ค้างนานผิดปกติ) โหลด app.js ก้อนใหม่ทุกครั้งที่มีการอัปเดตโค้ด — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ app.js
      แล้ว push ขึ้นใหม่ ไม่งั้นเครื่องที่เคยเข้าเว็บมาก่อนจะยังใช้ไฟล์เก่าจากแคชอยู่ -->
-<script src="app.js?v=fc-order4"></script>
+<script src="app.js?v=fc-arrow1"></script>
 <script>
 (function () {
   var collapseBtn = document.getElementById('sidebar-collapse-toggle');

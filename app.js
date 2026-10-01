@@ -169,6 +169,7 @@
         p_jigs: cat.jigs?.length ? cat.jigs.map(j => ({
           id: j.id, lineId: j.lineId, name: j.name, docNo: j.docNo || '', bgImage: j.bgImage || null,
           sortOrder: j.sortOrder ?? null, // ลำดับการแสดงผล (ตามแผนผังลำดับเลือก Part)
+          arrows: Array.isArray(j.arrows) ? j.arrows : [], // 🆕 ลูกศรบนแผนผัง
           // 🆕 ค่าเอกสารเฉพาะ Part นี้ — เว้นว่าง = ใช้ค่ากลาง (appSettings) ตอนสร้าง PDF
           docNoOverride: j.docNoOverride || '',
           formRevLevelOverride: j.formRevLevelOverride || '',
@@ -264,6 +265,9 @@
         id: row.id, lineId: row.line_id, name: row.name, docNo: row.doc_no,
         bgImage: row.bg_image || undefined,
         sortOrder: row.sort_order ?? undefined, // ลำดับการแสดงผล
+        // 🆕 ลูกศรบนแผนผัง — ถ้าคอลัมน์ arrows ยังไม่มีใน DB (ยังไม่รัน SQL) ให้คงค่าที่มีในเครื่องไว้ ไม่เขียนทับเป็นว่าง
+        arrows: ('arrows' in row) ? (Array.isArray(row.arrows) ? row.arrows : [])
+                                  : ((catalog.jigs || []).find(x => x.id === row.id)?.arrows || []),
         // 🆕 ค่าเอกสารเฉพาะ Part นี้ — เว้นว่าง = ใช้ค่ากลาง (appSettings)
         docNoOverride: row.doc_no_override || '',
         formRevLevelOverride: row.form_rev_level_override || '',
@@ -1831,6 +1835,37 @@
   }
 
   /* ── วาดแผนผัง: รูปพื้นหลัง (ถ้ามี) + จุดตรวจสอบตาม Part ที่เลือก ── */
+  /* ══════════════════════════════════════
+     🆕 ลูกศรบนแผนผัง (Annotation Arrows)
+     jig.arrows = [{ id, x1, y1, x2, y2, color, width }]  — หัวลูกศรอยู่ที่ (x2,y2)
+     Admin ลาก/เพิ่ม/ลบ/แก้สี-ความหนาได้ที่ Admin Panel → จุดตรวจ  |  หน้าตรวจสอบแสดงอย่างเดียว
+  ══════════════════════════════════════ */
+  const ARROW_COLORS = ['#1d6fd1', '#e03131', '#111111', '#2f9e44', '#f08c00', '#e8c000'];
+  const ARROW_WIDTHS = { thin: 1.5, normal: 2.5, thick: 4 };
+
+  function arrowGeometry(a) {
+    const w = Number(a.width) || ARROW_WIDTHS.normal;
+    const dx = a.x2 - a.x1, dy = a.y2 - a.y1;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len, uy = dy / len;
+    const head = Math.min(8 + w * 2.2, len * 0.6);       // ความยาวหัวลูกศร
+    const half = head * 0.42;                             // ครึ่งความกว้างหัว
+    const bx = a.x2 - ux * head, by = a.y2 - uy * head;   // ฐานหัวลูกศร (ปลายเส้นตรงหยุดตรงนี้)
+    const poly = `${a.x2},${a.y2} ${bx - uy * half},${by + ux * half} ${bx + uy * half},${by - ux * half}`;
+    return { w, bx, by, poly };
+  }
+
+  function arrowSvg(a, selected) {
+    const g = arrowGeometry(a);
+    const color = a.color || ARROW_COLORS[0];
+    return `<g class="cp-arrow${selected ? ' selected' : ''}" data-aid="${escHtml(String(a.id))}">
+      <line class="arrow-hit" x1="${a.x1}" y1="${a.y1}" x2="${a.x2}" y2="${a.y2}"/>
+      <line class="arrow-line" x1="${a.x1}" y1="${a.y1}" x2="${g.bx}" y2="${g.by}" stroke="${color}" stroke-width="${g.w}" stroke-linecap="round"/>
+      <polygon class="arrow-head" points="${g.poly}" fill="${color}" stroke="${color}" stroke-width="1" stroke-linejoin="round"/>
+      ${selected ? `<circle class="arrow-handle" data-end="1" cx="${a.x1}" cy="${a.y1}" r="6"/><circle class="arrow-handle" data-end="2" cx="${a.x2}" cy="${a.y2}" r="6"/>` : ''}
+    </g>`;
+  }
+
   function renderSvgMap() {
     const jig = catalog.jigs.find(j => j.id === selection.jigId);
     const bgImg = $('svg-bg-image');
@@ -1843,6 +1878,8 @@
       bgImg.style.display = 'none';
       defaultDrawing.style.display = '';
     }
+    const arrowsGrp = $('svg-arrows-group');
+    if (arrowsGrp) arrowsGrp.innerHTML = ((jig && jig.arrows) || []).map(a => arrowSvg(a, false)).join('');
     const pts = getActiveCheckpoints();
     $('svg-points-group').innerHTML = pts.map((p, i) => `
       <g class="svg-pt" data-point="${p.id}" transform="translate(${p.x},${p.y})">
@@ -2840,6 +2877,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       const jig = catalog.jigs.find(j => j.id === jid);
       if (!jig.checkpoints) jig.checkpoints = [];
       $('adm-cp-editor').classList.remove('hidden');
+      _arrowSel = null; _arrowAddMode = false;
+      bindArrowToolbar();
       renderCpBgControls(jid);
       renderAdmCpMap(jid);
       renderCpList(jid);
@@ -3721,6 +3760,223 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         <circle class="pt-pulse" r="14"/><circle class="pt-core" r="8"/><text y="4" class="pt-label">${i + 1}</text>
       </g>`).join('');
     bindCpDrag(jid);
+    renderAdmArrows(jid);
+  }
+
+  /* ══════════════════════════════════════
+     🆕 Admin: จัดการลูกศร — เพิ่ม (ลากบนแผนผัง) / ลากย้าย / ลากปลายทั้ง 2 ด้าน / ลบ / แก้สี-ความหนา
+  ══════════════════════════════════════ */
+  let _arrowSel = null;       // id ลูกศรที่เลือกอยู่
+  let _arrowAddMode = false;  // โหมดเพิ่มลูกศร
+
+  function getJigArrows(jid) {
+    const jig = catalog.jigs.find(j => j.id === jid);
+    if (!jig) return [];
+    if (!Array.isArray(jig.arrows)) jig.arrows = [];
+    return jig.arrows;
+  }
+
+  function renderAdmArrows(jid) {
+    const grp = $('adm-cp-arrows-group');
+    if (!grp) return;
+    const arrows = getJigArrows(jid);
+    if (_arrowSel != null && !arrows.some(a => String(a.id) === String(_arrowSel))) _arrowSel = null;
+    grp.innerHTML = arrows.map(a => arrowSvg(a, String(a.id) === String(_arrowSel))).join('');
+    bindArrowDrag(jid);
+    renderArrowToolbar(jid);
+  }
+
+  function renderArrowToolbar(jid) {
+    const tb = $('adm-arrow-toolbar');
+    if (!tb) return;
+    const arrows = getJigArrows(jid);
+    const sel = arrows.find(a => String(a.id) === String(_arrowSel));
+    $('btn-arrow-add').classList.toggle('active', _arrowAddMode);
+    $('btn-arrow-add').textContent = _arrowAddMode ? '✋ ยกเลิกการเพิ่ม' : '➕ เพิ่มลูกศร';
+    $('adm-cp-map').classList.toggle('arrow-mode', _arrowAddMode);
+    $('adm-arrow-count').textContent = arrows.length ? `${arrows.length} ลูกศร` : 'ยังไม่มีลูกศร';
+    const edit = $('adm-arrow-edit');
+    edit.classList.toggle('hidden', !sel);
+    if (sel) {
+      $('adm-arrow-colors').innerHTML = ARROW_COLORS.map(c =>
+        `<button type="button" class="arrow-swatch${(sel.color || ARROW_COLORS[0]) === c ? ' on' : ''}" data-color="${c}" style="background:${c}" title="${c}"></button>`).join('');
+      const wKey = Object.keys(ARROW_WIDTHS).find(k => ARROW_WIDTHS[k] === Number(sel.width)) || 'normal';
+      $('adm-arrow-width').value = wKey;
+    }
+    $('adm-cp-map-hint-text').textContent = _arrowAddMode
+      ? 'โหมดเพิ่มลูกศร: กดค้างที่จุดเริ่มต้น แล้วลากไปที่จุดปลาย (หัวลูกศร) แล้วปล่อย'
+      : 'ลากจุดตรวจเพื่อจัดตำแหน่ง • แตะลูกศรเพื่อเลือก แล้วลากตัวเส้นเพื่อย้าย หรือลากวงกลมที่ปลายเพื่อปรับ';
+  }
+
+  function arrowSvgPoint(svg, ev) {
+    const pt = svg.createSVGPoint();
+    pt.x = ev.clientX; pt.y = ev.clientY;
+    const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
+    return { x: Math.max(5, Math.min(595, Math.round(loc.x))), y: Math.max(5, Math.min(335, Math.round(loc.y))) };
+  }
+
+  function bindArrowDrag(jid) {
+    const svg = $('adm-cp-map');
+    svg.querySelectorAll('#adm-cp-arrows-group .cp-arrow').forEach(g => {
+      g.addEventListener('pointerdown', e => {
+        if (_arrowAddMode) return; // โหมดเพิ่ม: ให้ event ไปถึง svg เพื่อเริ่มวาดใหม่
+        e.preventDefault(); e.stopPropagation();
+        const aid = g.dataset.aid;
+        const arrow = getJigArrows(jid).find(a => String(a.id) === aid);
+        if (!arrow) return;
+        const wasSelected = String(_arrowSel) === aid;
+        _arrowSel = aid;
+        const handle = e.target.closest('.arrow-handle');
+        const mode = handle ? handle.dataset.end : 'move';   // '1' = ปลายเริ่ม, '2' = หัวลูกศร, 'move' = ย้ายทั้งเส้น
+        const start = arrowSvgPoint(svg, e);
+        const orig = { x1: arrow.x1, y1: arrow.y1, x2: arrow.x2, y2: arrow.y2 };
+        let moved = false;
+        svg.setPointerCapture(e.pointerId);
+
+        const onMove = ev => {
+          const p = arrowSvgPoint(svg, ev);
+          if (Math.abs(p.x - start.x) + Math.abs(p.y - start.y) < 2 && !moved) return;
+          moved = true;
+          if (mode === '1') { arrow.x1 = p.x; arrow.y1 = p.y; }
+          else if (mode === '2') { arrow.x2 = p.x; arrow.y2 = p.y; }
+          else {
+            const dx = Math.max(5 - Math.min(orig.x1, orig.x2), Math.min(595 - Math.max(orig.x1, orig.x2), p.x - start.x));
+            const dy = Math.max(5 - Math.min(orig.y1, orig.y2), Math.min(335 - Math.max(orig.y1, orig.y2), p.y - start.y));
+            arrow.x1 = orig.x1 + dx; arrow.y1 = orig.y1 + dy; arrow.x2 = orig.x2 + dx; arrow.y2 = orig.y2 + dy;
+          }
+          const grp = $('adm-cp-arrows-group');
+          const node = grp.querySelector(`.cp-arrow[data-aid="${CSS.escape(aid)}"]`);
+          if (node) node.outerHTML = arrowSvg(arrow, true);
+        };
+        const onUp = () => {
+          svg.removeEventListener('pointermove', onMove);
+          svg.removeEventListener('pointerup', onUp);
+          svg.removeEventListener('pointercancel', onUp);
+          if (moved) { saveCatalog(); if (selection.jigId === jid) renderSvgMap(); }
+          renderAdmArrows(jid); // วาดใหม่ + ผูก event ใหม่ (และแสดงแถบแก้ไขของลูกศรที่เลือก)
+        };
+        svg.addEventListener('pointermove', onMove);
+        svg.addEventListener('pointerup', onUp);
+        svg.addEventListener('pointercancel', onUp);
+        if (!wasSelected) renderArrowToolbar(jid);
+      });
+    });
+  }
+
+  // เริ่มวาดลูกศรใหม่ (โหมดเพิ่ม) — ผูกครั้งเดียวที่ svg
+  let _arrowDrawBound = false;
+  function bindArrowDraw() {
+    if (_arrowDrawBound) return;
+    const svg = $('adm-cp-map');
+    if (!svg) return;
+    _arrowDrawBound = true;
+    svg.addEventListener('pointerdown', e => {
+      if (!_arrowAddMode || !cpEditJigId) return;
+      e.preventDefault();
+      const jid = cpEditJigId;
+      const a0 = arrowSvgPoint(svg, e);
+      const arrows = getJigArrows(jid);
+      const newArrow = { id: 'A' + Date.now().toString(36), x1: a0.x, y1: a0.y, x2: a0.x, y2: a0.y, color: ARROW_COLORS[0], width: ARROW_WIDTHS.normal };
+      const grp = $('adm-cp-arrows-group');
+      grp.insertAdjacentHTML('beforeend', `<g id="arrow-draft"></g>`);
+      svg.setPointerCapture(e.pointerId);
+      const onMove = ev => {
+        const p = arrowSvgPoint(svg, ev);
+        newArrow.x2 = p.x; newArrow.y2 = p.y;
+        if (Math.hypot(newArrow.x2 - newArrow.x1, newArrow.y2 - newArrow.y1) > 4) $('arrow-draft').innerHTML = arrowSvg(newArrow, false);
+      };
+      const onUp = () => {
+        svg.removeEventListener('pointermove', onMove);
+        svg.removeEventListener('pointerup', onUp);
+        svg.removeEventListener('pointercancel', onUp);
+        const d = $('arrow-draft'); if (d) d.remove();
+        if (Math.hypot(newArrow.x2 - newArrow.x1, newArrow.y2 - newArrow.y1) < 12) {
+          toast('ลากให้ยาวกว่านี้เพื่อสร้างลูกศร', 'ng');
+        } else {
+          arrows.push(newArrow);
+          _arrowSel = newArrow.id;
+          _arrowAddMode = false;     // วาดเสร็จออกจากโหมดเพิ่มอัตโนมัติ (กดเพิ่มอีกครั้งถ้าจะวาดเส้นถัดไป)
+          saveCatalog();
+          if (selection.jigId === jid) renderSvgMap();
+          toast('เพิ่มลูกศรแล้ว — ลากย้าย/ปรับปลาย/เปลี่ยนสีได้เลย', 'ok');
+        }
+        renderAdmArrows(jid);
+      };
+      svg.addEventListener('pointermove', onMove);
+      svg.addEventListener('pointerup', onUp);
+      svg.addEventListener('pointercancel', onUp);
+    });
+    // คลิกที่ว่างบนแผนผัง = ยกเลิกการเลือกลูกศร
+    svg.addEventListener('pointerdown', e => {
+      if (_arrowAddMode) return;
+      if (e.target.closest('.cp-arrow') || e.target.closest('.cp-drag-pt')) return;
+      if (_arrowSel != null && cpEditJigId) { _arrowSel = null; renderAdmArrows(cpEditJigId); }
+    });
+  }
+
+  function bindArrowToolbar() {
+    if (!$('btn-arrow-add') || $('btn-arrow-add').dataset.bound) return;
+    $('btn-arrow-add').dataset.bound = '1';
+    bindArrowDraw();
+    $('btn-arrow-add').addEventListener('click', () => {
+      if (!cpEditJigId) return;
+      _arrowAddMode = !_arrowAddMode;
+      if (_arrowAddMode) _arrowSel = null;
+      renderAdmArrows(cpEditJigId);
+    });
+    $('adm-arrow-colors').addEventListener('click', e => {
+      const b = e.target.closest('.arrow-swatch');
+      if (!b || !cpEditJigId) return;
+      const a = getJigArrows(cpEditJigId).find(x => String(x.id) === String(_arrowSel));
+      if (!a) return;
+      a.color = b.dataset.color; saveCatalog();
+      if (selection.jigId === cpEditJigId) renderSvgMap();
+      renderAdmArrows(cpEditJigId);
+    });
+    $('adm-arrow-width').addEventListener('change', () => {
+      if (!cpEditJigId) return;
+      const a = getJigArrows(cpEditJigId).find(x => String(x.id) === String(_arrowSel));
+      if (!a) return;
+      a.width = ARROW_WIDTHS[$('adm-arrow-width').value] || ARROW_WIDTHS.normal; saveCatalog();
+      if (selection.jigId === cpEditJigId) renderSvgMap();
+      renderAdmArrows(cpEditJigId);
+    });
+    $('btn-arrow-flip').addEventListener('click', () => {
+      if (!cpEditJigId) return;
+      const a = getJigArrows(cpEditJigId).find(x => String(x.id) === String(_arrowSel));
+      if (!a) return;
+      [a.x1, a.x2] = [a.x2, a.x1]; [a.y1, a.y2] = [a.y2, a.y1]; saveCatalog();
+      if (selection.jigId === cpEditJigId) renderSvgMap();
+      renderAdmArrows(cpEditJigId);
+    });
+    $('btn-arrow-del').addEventListener('click', async () => {
+      if (!cpEditJigId) return;
+      const arrows = getJigArrows(cpEditJigId);
+      const idx = arrows.findIndex(x => String(x.id) === String(_arrowSel));
+      if (idx < 0) return;
+      if (!(await showConfirmModal('ลบลูกศรที่เลือกหรือไม่?', { confirmLabel: 'ลบลูกศร', danger: true }))) return;
+      arrows.splice(idx, 1); _arrowSel = null; saveCatalog();
+      if (selection.jigId === cpEditJigId) renderSvgMap();
+      renderAdmArrows(cpEditJigId);
+      toast('ลบลูกศรแล้ว', 'ok');
+    });
+    $('btn-arrow-clear').addEventListener('click', async () => {
+      if (!cpEditJigId) return;
+      const arrows = getJigArrows(cpEditJigId);
+      if (!arrows.length) return;
+      if (!(await showConfirmModal(`ลบลูกศรทั้งหมด ${arrows.length} เส้นของ Part นี้หรือไม่?`, { confirmLabel: 'ลบทั้งหมด', danger: true }))) return;
+      arrows.length = 0; _arrowSel = null; saveCatalog();
+      if (selection.jigId === cpEditJigId) renderSvgMap();
+      renderAdmArrows(cpEditJigId);
+      toast('ลบลูกศรทั้งหมดแล้ว', 'ok');
+    });
+    // ปุ่ม Delete บนคีย์บอร์ดลบลูกศรที่เลือก (ไม่ทำงานตอนกำลังพิมพ์ในช่อง input)
+    document.addEventListener('keydown', e => {
+      if ((e.key !== 'Delete' && e.key !== 'Backspace') || _arrowSel == null) return;
+      const t = e.target; if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      const adm = $('adm-cp-editor'); if (!adm || adm.classList.contains('hidden')) return;
+      e.preventDefault(); $('btn-arrow-del').click();
+    });
   }
 
   /* ── ลากจุดเพื่อจัดตำแหน่ง (Pointer Events) ── */
