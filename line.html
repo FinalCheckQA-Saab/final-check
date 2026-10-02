@@ -39,7 +39,7 @@ h2{font-size:15px;margin:0 0 8px}
 </head>
 <body>
 <header>
-  <div><a class="back" id="back" href="layout.html">‹ กลับ Layout</a><h1 id="ttl">รายละเอียด Line</h1><small id="sub"></small></div>
+  <div><a class="back" id="back" href="layout.html">‹ ปิดหน้านี้</a><h1 id="ttl">รายละเอียด Line</h1><small id="sub"></small></div>
   <div class="bar"><input type="date" id="date"><button id="btn-refresh" type="button">🔄 รีเฟรช</button></div>
 </header>
 <main>
@@ -114,6 +114,8 @@ function render(){
   $('body').innerHTML=h;
 }
 async function refresh(){await loadStatus();render();$('back').href='layout.html?date='+$('date').value}
+// เปิดมาจากแท็บ Layout → ปิดแท็บนี้เพื่อกลับ · ถ้าปิดไม่ได้ (เช่น เปิดลิงก์ตรง) ค่อยไปหน้า Layout
+$('back').onclick=e=>{e.preventDefault();window.close();setTimeout(()=>{location.href=$('back').href},200)};
 $('date').value=q.get('date')||today();$('date').onchange=refresh;$('btn-refresh').onclick=refresh;
 setInterval(refresh,60000);
 (async()=>{await loadMaster();await refresh()})();

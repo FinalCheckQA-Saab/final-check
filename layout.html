@@ -186,11 +186,11 @@ $('stage').addEventListener('pointerdown',e=>{
   const up=()=>{el.removeEventListener('pointermove',mv);el.removeEventListener('pointerup',up)};
   el.addEventListener('pointermove',mv);el.addEventListener('pointerup',up);
 });
-// โหมดดูปกติ: กดจุด → เปิดหน้ารายละเอียดของ Line (หน้าแยก ไม่กินพื้นที่ Layout)
+// โหมดดูปกติ: กดจุด → เปิดหน้ารายละเอียดของ Line ในแท็บใหม่ (ไม่กินพื้นที่ Layout)
 $('stage').addEventListener('click',e=>{
   if(edit)return;const el=e.target.closest('.mk');if(!el)return;
   const m=cfg.markers.find(x=>x.id===el.dataset.id);if(!m)return;
-  location.href='line.html?line='+encodeURIComponent(m.lineId)+'&date='+$('date').value;
+  window.open('line.html?line='+encodeURIComponent(m.lineId)+'&date='+$('date').value,'_blank'); // เปิดแท็บใหม่ — หน้า Layout (จอ TV) ยังรีเฟรชต่อเองได้
 });
 // ── โหมดแก้ไข (ต้องล็อกอิน Admin) ──
 async function enterEdit(){
