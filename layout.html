@@ -62,11 +62,11 @@ i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--p
       <button id="e-save" type="button" class="pri">💾 บันทึก</button>
       <button id="e-exit" type="button">ออกจากโหมดแก้ไข</button>
     </div>
-    <div class="legend">ลากจุดไปวางบน Layout ตามตำแหน่งจริง · กดจุดเพื่อเลือก/ลบ · อย่าลืมกด "บันทึก"</div>
+    <div class="legend">1 จุด = 1 Line (รวมทุก Model/Part ใน Line นั้น) · ลากจุดไปวางตามตำแหน่งจริง · กดจุดเพื่อเลือก/ลบ · อย่าลืมกด "บันทึก"</div>
   </div>
   <div id="vp"><div id="stage"></div></div>
-  <div class="legend">สัญลักษณ์ S M E:<i style="background:var(--none)"></i>ยังไม่ตรวจ<i style="background:var(--ok)"></i>ผ่าน<i style="background:var(--ng)"></i>NG<i style="background:var(--part)"></i>ตรวจยังไม่ครบ<i style="background:var(--fix)"></i>แก้ไขแล้ว</div>
-  <div id="info">กดที่จุดบน Layout เพื่อดูรายละเอียด</div>
+  <div class="legend">สัญลักษณ์ S M E:<i style="background:var(--none)"></i>ยังไม่ตรวจ<i style="background:var(--ok)"></i>ผ่าน<i style="background:var(--ng)"></i>NG<i style="background:var(--part)"></i>ตรวจยังไม่ครบ<i style="background:var(--fix)"></i>แก้ไขแล้ว &nbsp;· สีของ S/M/E = สรุปทุก Part ใน Line (มี Part ใด NG = NG)</div>
+  <div id="info">กดที่จุด (1 จุด = 1 Line) เพื่อดูรายละเอียดทุก Part</div>
 </main>
 <script>
 const SB_URL='https://knzzmurumqrhwotyrooj.supabase.co', SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU';
@@ -74,7 +74,7 @@ const sb=supabase.createClient(SB_URL,SB_KEY);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const STAGES=['S','M','E'];
-let cfg={title:'Layout ฝ่ายผลิต',image:'',markers:[]}, parts={}, status={}, edit=false, creds=null, sel=null, tableOk=true;
+let cfg={title:'Layout ฝ่ายผลิต',image:'',markers:[]}, parts={}, groups={}, status={}, edit=false, creds=null, sel=null, tableOk=true;
 let zoom=1, ratio=0;
 // ปรับขนาดรูปให้พอดีพื้นที่จอ (ไม่ต้องเลื่อนหน้า) แล้วคูณด้วยระดับซูม — จุดบน Layout ใช้ % จึงตามรูปเสมอ
 function fit(){
@@ -93,9 +93,13 @@ async function loadMaster(){
   let [j,l,d]=await Promise.all([sb.from('jigs').select('id,name,line_id'),sb.from('lines').select('id,name,dept_id'),sb.from('departments').select('id,name,section')]);
   if(d.error) d=await sb.from('departments').select('id,name');
   const dep={},ln={};(d.data||[]).forEach(x=>dep[x.id]=x);(l.data||[]).forEach(x=>ln[x.id]=x);
-  parts={};(j.data||[]).forEach(p=>{const m=ln[p.line_id],q=m&&dep[m.dept_id];parts[p.id]={name:p.name,model:m?m.name:'',line:q?q.name:'',section:q&&q.section||''}});
+  groups={};(d.data||[]).forEach(x=>groups[x.id]={name:x.name,section:x.section||'',parts:[]});
+  parts={};(j.data||[]).forEach(p=>{const m=ln[p.line_id],q=m&&dep[m.dept_id];parts[p.id]={name:p.name,model:m?m.name:'',line:q?q.name:'',section:q&&q.section||'',deptId:q?q.id:''};if(q&&groups[q.id])groups[q.id].parts.push(p.id)});
   const c=await sb.from('layout_config').select('data').eq('id','main').maybeSingle();
   if(c.error){tableOk=false}else if(c.data&&c.data.data){cfg=Object.assign(cfg,c.data.data);cfg.markers=cfg.markers||[]}
+  // จุดเดิมที่ผูกกับ Part (เวอร์ชันก่อน) → แปลงเป็นจุดของ Line ที่ Part นั้นอยู่ (1 Line เหลือ 1 จุด)
+  const seen=new Set();
+  cfg.markers=cfg.markers.map(m=>m.lineId?m:{id:m.id,lineId:(parts[m.jigId]||{}).deptId,x:m.x,y:m.y}).filter(m=>m.lineId&&groups[m.lineId]&&!seen.has(m.lineId)&&seen.add(m.lineId));
 }
 function stageStates(rec){
   const items=rec.items||[];
@@ -114,6 +118,17 @@ async function loadStatus(){
   if(error){$('warn').innerHTML='<div class="warn">อ่านข้อมูลการตรวจไม่สำเร็จ: '+esc(error.message)+'</div>';return}
   (data||[]).forEach(r=>{status[r.jig_id]=stageStates(r)}); // เรียงเก่า→ใหม่ ตัวสุดท้ายของ Part เดียวกันจะทับ = ชุดล่าสุดของวัน
 }
+// สรุปสถานะของทั้ง Line ต่อ 1 ช่วง (S/M/E): มี Part ใด NG = NG · ทุก Part ผ่าน = ผ่าน · มีบางส่วนตรวจแล้ว = ยังไม่ครบ · ไม่มีใครตรวจ = ยังไม่ตรวจ
+function aggStage(v){
+  if(v.includes('ng'))return 'ng';
+  if(!v.length||v.every(x=>x==='none'))return 'none';
+  if(v.every(x=>x==='ok'||x==='fixed'))return v.includes('fixed')?'fixed':'ok';
+  return 'partial';
+}
+function lineStates(deptId){
+  const g=groups[deptId],rows=((g&&g.parts)||[]).map(id=>status[id]||['none','none','none']);
+  return STAGES.map((_,i)=>aggStage(rows.map(r=>r[i])));
+}
 const overall=s=>!s||s.every(x=>x==='none')?'none':s.includes('ng')?'ng':s.every(x=>x==='ok'||x==='fixed')?'ok':'part';
 function render(){
   $('ttl').textContent=cfg.title||'Layout ฝ่ายผลิต';
@@ -121,20 +136,22 @@ function render(){
   const st=$('stage');st.className=edit?'edit':'';
   if(!cfg.image){st.innerHTML='<div class="empty">ยังไม่มีรูป Layout — กด "แก้ไข Layout (Admin)" เพื่ออัปโหลดรูปและวางจุด</div>'}
   else{st.innerHTML='<img src="'+cfg.image+'" draggable="false">'+cfg.markers.map(m=>{
-    const p=parts[m.jigId]||{name:m.jigId},s=status[m.jigId]||['none','none','none'],o=overall(s);
-    return '<div class="mk '+o+(sel===m.id?' sel':'')+'" data-id="'+m.id+'" style="left:'+m.x+'%;top:'+m.y+'%"><div class="n">'+esc(p.name)+'</div><div class="st">'+STAGES.map((l,i)=>'<i class="'+s[i]+'">'+l+'</i>').join('')+'</div></div>'}).join('')}
+    const g=groups[m.lineId]||{name:m.lineId},s=lineStates(m.lineId),o=overall(s);
+    return '<div class="mk '+o+(sel===m.id?' sel':'')+'" data-id="'+m.id+'" style="left:'+m.x+'%;top:'+m.y+'%"><div class="n">'+esc(g.name)+'</div><div class="st">'+STAGES.map((l,i)=>'<i class="'+s[i]+'">'+l+'</i>').join('')+'</div></div>'}).join('')}
   const im=st.querySelector('img');if(im){const f=()=>{ratio=im.naturalWidth/im.naturalHeight;fit()};im.complete&&im.naturalWidth?f():im.onload=f}
-  const c={ok:0,part:0,ng:0,none:0};cfg.markers.forEach(m=>c[overall(status[m.jigId])]++);
+  const c={ok:0,part:0,ng:0,none:0};cfg.markers.forEach(m=>c[overall(lineStates(m.lineId))]++);
   $('chips').innerHTML='<span class="chip">✅ ครบ '+c.ok+'</span><span class="chip">🟡 กำลังตรวจ '+c.part+'</span><span class="chip">🔴 NG '+c.ng+'</span><span class="chip">⚪ ยังไม่ตรวจ '+c.none+'</span>';
-  const used=new Set(cfg.markers.map(m=>m.jigId)),by={};
-  Object.entries(parts).filter(([id])=>!used.has(id)).forEach(([id,p])=>{(by[p.line+' / '+p.model]=by[p.line+' / '+p.model]||[]).push([id,p.name])});
-  $('e-part').innerHTML='<option value="">เลือก Part ที่จะวาง...</option>'+Object.entries(by).map(([g,a])=>'<optgroup label="'+esc(g)+'">'+a.map(([id,n])=>'<option value="'+esc(id)+'">'+esc(n)+'</option>').join('')+'</optgroup>').join('');
+  const used=new Set(cfg.markers.map(m=>m.lineId)),by={};
+  Object.entries(groups).filter(([id])=>!used.has(id)).forEach(([id,g])=>{(by[g.section||'ไม่ระบุแผนก']=by[g.section||'ไม่ระบุแผนก']||[]).push([id,g.name+' ('+g.parts.length+' Part)'])});
+  $('e-part').innerHTML='<option value="">เลือก Line ที่จะวาง...</option>'+Object.entries(by).map(([k,a])=>'<optgroup label="แผนก: '+esc(k)+'">'+a.map(([id,n])=>'<option value="'+esc(id)+'">'+esc(n)+'</option>').join('')+'</optgroup>').join('');
 }
 function showInfo(id){
   const m=cfg.markers.find(x=>x.id===id);if(!m)return;
-  const p=parts[m.jigId]||{name:m.jigId,line:'',model:'',section:''},s=status[m.jigId]||['none','none','none'];
-  const T={none:'ยังไม่ตรวจ',ok:'ผ่าน',ng:'NG',partial:'ตรวจยังไม่ครบ',fixed:'แก้ไขแล้ว'};
-  $('info').innerHTML='<b>'+esc(p.name)+'</b> <span style="color:#6b7280">('+esc(m.jigId)+')</span><br>แผนก: '+esc(p.section||'-')+' · Line: '+esc(p.line||'-')+' · Model: '+esc(p.model||'-')+'<br>'+STAGES.map((l,i)=>'<b>'+l+'</b>: '+T[s[i]]).join(' &nbsp;|&nbsp; ');
+  const g=groups[m.lineId]||{name:m.lineId,section:'',parts:[]},s=lineStates(m.lineId);
+  const T={none:'ยังไม่ตรวจ',ok:'ผ่าน',ng:'NG',partial:'ตรวจยังไม่ครบ',fixed:'แก้ไขแล้ว'},E={none:'⚪',ok:'🟢',ng:'🔴',partial:'🟡',fixed:'🔵'};
+  const rows=g.parts.map(pid=>{const p=parts[pid],st=status[pid]||['none','none','none'];
+    return '<div style="padding:3px 0;border-top:1px solid #f1f5f9">'+esc(p.model)+' · '+esc(p.name)+' &nbsp; '+STAGES.map((l,i)=>E[st[i]]+l).join(' ')+'</div>'}).join('');
+  $('info').innerHTML='<b>Line: '+esc(g.name)+'</b> <span style="color:#6b7280">แผนก: '+esc(g.section||'-')+' · '+g.parts.length+' Part</span><br>สรุปทั้ง Line: '+STAGES.map((l,i)=>'<b>'+l+'</b> '+T[s[i]]).join(' &nbsp;|&nbsp; ')+(rows?'<div style="margin-top:6px;font-size:12px">'+rows+'</div>':'');
 }
 // ── คลิก/ลากจุด ──
 $('stage').addEventListener('pointerdown',e=>{
@@ -162,9 +179,9 @@ $('btn-edit').onclick=enterEdit;
 $('e-exit').onclick=()=>{edit=false;$('editbar').style.display='none';render();fit()};
 $('e-title').oninput=e=>{cfg.title=e.target.value;$('ttl').textContent=cfg.title};
 $('e-add').onclick=()=>{
-  const id=$('e-part').value;if(!id){alert('เลือก Part ก่อนค่ะ');return}
+  const id=$('e-part').value;if(!id){alert('เลือก Line ก่อนค่ะ');return}
   if(!cfg.image){alert('อัปโหลดรูป Layout ก่อนค่ะ');return}
-  const m={id:'m'+Date.now(),jigId:id,x:50,y:50};cfg.markers.push(m);sel=m.id;render();showInfo(sel);
+  const m={id:'m'+Date.now(),lineId:id,x:50,y:50};cfg.markers.push(m);sel=m.id;render();showInfo(sel);
 };
 $('e-del').onclick=()=>{if(!sel)return;cfg.markers=cfg.markers.filter(m=>m.id!==sel);sel=null;render()};
 // ปรับรูปอัตโนมัติ: เริ่มจากขนาดใหญ่สุด 3000px ลองแบบไม่สูญเสียคุณภาพ (PNG — ภาพเส้น/CAD คมที่สุดและมักไฟล์เล็ก)
