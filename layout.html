@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Layout ฝ่ายผลิต | Daily Quality Inspection</title>
+<title>Daily Quality Inspection Dashboard</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -74,7 +74,7 @@ main{padding:12px 20px 14px}
 .mk .n{font-size:10.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mk .st{display:flex;gap:3px;justify-content:center;margin-top:3px}
 .mk i{font-style:normal;font-size:10px;font-weight:700;width:19px;height:19px;line-height:19px;border-radius:50%;background:var(--none);color:#fff}
-i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--part)}i.fixed{background:var(--fix)}i.off{background:var(--none);opacity:.6}
+i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--part)}i.off{background:var(--none);opacity:.6}
 /* ── Edit bar ── */
 .edit-bar{background:rgba(255,255,255,.07);border:1px dashed var(--gold);border-radius:12px;padding:10px;margin-bottom:10px}
 .edit-bar .bar2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -89,7 +89,7 @@ i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--p
 <header class="top">
   <div class="top-full">
     <div class="r1">
-      <div><a class="back" href="index.html">‹ กลับแอปหลัก</a><h1 id="ttl">Layout ฝ่ายผลิต</h1><div class="sub">สถานะการตรวจ S / M / E แบบเรียลไทม์ ตามตำแหน่งจริงบน Layout</div></div>
+      <div><a class="back" href="index.html">‹ กลับแอปหลัก</a><h1 id="ttl">Daily Quality Inspection Dashboard</h1><div class="sub">สถานะการตรวจ S / M / E แบบเรียลไทม์ ตามตำแหน่งจริงบน Layout</div></div>
       <div class="clock"><div class="c-time">--:--:--</div><div class="c-date"></div><div class="live"><span class="dot"></span><span id="upd">กำลังโหลด...</span></div></div>
     </div>
     <div class="kpis">
@@ -102,7 +102,7 @@ i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--p
     </div>
   </div>
   <div class="top-mini">
-    <strong id="ttl2">Layout ฝ่ายผลิต</strong>
+    <strong id="ttl2">Daily Quality Inspection Dashboard</strong>
     <div class="mini-k"><span><em style="background:var(--ok)"></em>ครบ <b id="m-ok">0</b></span><span><em style="background:var(--part)"></em>กำลังตรวจ <b id="m-part">0</b></span><span><em style="background:var(--ng)"></em>NG <b id="m-ng">0</b></span><span><em style="background:#94a3b8"></em>ยังไม่ตรวจ <b id="m-none">0</b></span></div>
     <div style="text-align:right"><span class="c-time">--:--:--</span> <span class="c-date"></span></div>
   </div>
@@ -112,7 +112,6 @@ i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--p
   <div id="warn"></div>
   <div class="edit-bar" id="editbar" style="display:none">
     <div class="bar2">
-      <input id="e-title" placeholder="ชื่อ Layout" style="width:200px">
       <label class="chip" style="cursor:pointer">🖼️ อัปโหลดรูป Layout<input type="file" id="e-img" accept="image/*" hidden></label>
       <select id="e-part"></select>
       <button id="e-add" type="button">➕ เพิ่มจุด</button>
@@ -135,7 +134,7 @@ i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--p
       <button id="btn-refresh" type="button" title="รีเฟรช">↻</button><button id="btn-full" type="button" title="เต็มหน้าจอ">⛶</button><button id="btn-edit" type="button" title="แก้ไข Layout (Admin)">✎</button>
     </div>
     <div id="vp"><div id="stage"></div></div>
-    <div class="legend"><span><i style="background:var(--none)"></i>ยังไม่ตรวจ</span><span><i style="background:var(--ok)"></i>ผ่าน</span><span><i style="background:var(--ng)"></i>NG</span><span><i style="background:var(--part)"></i>ตรวจยังไม่ครบ</span><span><i style="background:var(--fix)"></i>แก้ไขแล้ว</span><span style="opacity:.75">· S/M/E = สรุปทุก Part ที่ผลิตใน Line (มี Part ใด NG = NG) · กดจุดเพื่อดูรายละเอียด</span></div>
+    <div class="legend"><span><i style="background:var(--none)"></i>ยังไม่ตรวจ</span><span><i style="background:var(--ok)"></i>ผ่าน</span><span><i style="background:var(--ng)"></i>NG</span><span><i style="background:var(--part)"></i>ตรวจยังไม่ครบ</span><span style="opacity:.75">· S/M/E = สรุปทุก Part ที่ผลิตใน Line (มี Part ใด NG = NG) · กดจุดเพื่อดูรายละเอียด</span></div>
   </div>
   <div id="info" style="display:none"></div>
 </main>
@@ -198,7 +197,7 @@ function stageStates(rec){
     if(!items.length||!done) return 'none';
     if(st.includes('ng')) return 'ng';
     if(done<items.length) return 'partial';
-    return st.includes('fixed')?'fixed':'ok';
+    return 'ok'; // ชิ้นที่แก้ไขแล้วนับเป็น "ผ่าน" (ไม่แยกสถานะ แก้ไขแล้ว)
   });
 }
 async function loadStatus(){
@@ -215,7 +214,7 @@ async function loadStatus(){
 function aggStage(v){
   if(v.includes('ng'))return 'ng';
   if(!v.length||v.every(x=>x==='none'))return 'none';
-  if(v.every(x=>x==='ok'||x==='fixed'))return v.includes('fixed')?'fixed':'ok';
+  if(v.every(x=>x==='ok'))return 'ok';
   return 'partial';
 }
 const activeParts=deptId=>((groups[deptId]&&groups[deptId].parts)||[]).filter(id=>!skips.has(id));
@@ -225,7 +224,7 @@ function lineStates(deptId){
   const rows=act.map(id=>status[id]||['none','none','none']);
   return STAGES.map((_,i)=>aggStage(rows.map(r=>r[i])));
 }
-const overall=s=>s&&s.every(x=>x==='off')?'off':!s||s.every(x=>x==='none')?'none':s.includes('ng')?'ng':s.every(x=>x==='ok'||x==='fixed')?'ok':'part';
+const overall=s=>s&&s.every(x=>x==='off')?'off':!s||s.every(x=>x==='none')?'none':s.includes('ng')?'ng':s.every(x=>x==='ok')?'ok':'part';
 const DEF={s:1,bg:'#ffffff',bd:'#16324f'};
 const lum=h=>{const n=parseInt(h.slice(1),16);return .299*(n>>16)+.587*((n>>8)&255)+.114*(n&255)};
 const mkCss=m=>{const bg=m.bg||DEF.bg;return 'left:'+m.x+'%;top:'+m.y+'%;--sc:'+(m.s||1)+';--bg:'+bg+';--bd:'+(m.bd||DEF.bd)+';--tx:'+(lum(bg)>150?'#1f2937':'#fff')};
@@ -245,8 +244,7 @@ function setNum(id,v){
   const t0=performance.now();(function f(t){const k=Math.min(1,(t-t0)/500);el.textContent=Math.round(from+(v-from)*k);if(k<1)requestAnimationFrame(f)})(t0);
 }
 function render(){
-  const ttl=cfg.title||'Layout ฝ่ายผลิต';$('ttl').textContent=ttl;$('ttl2').textContent=ttl;
-  $('warn').innerHTML=(tableOk?'':'<div class="warn">ยังไม่ได้สร้างตาราง layout_config ใน Supabase — ให้รันไฟล์ layout_config.sql ก่อน</div>')
+    $('warn').innerHTML=(tableOk?'':'<div class="warn">ยังไม่ได้สร้างตาราง layout_config ใน Supabase — ให้รันไฟล์ layout_config.sql ก่อน</div>')
     +(statusErr?'<div class="warn">อ่านข้อมูลการตรวจไม่สำเร็จ: '+esc(statusErr)+'</div>':'')
     +(skipErr?'<div class="warn">อ่านรายการ Part ที่ไม่ผลิตวันนี้ไม่สำเร็จ ('+esc(skipErr)+') — ตัวเลขบน Layout อาจรวม Part ที่ไม่ได้ผลิต</div>':'');
   const st=$('stage');st.className=edit?'edit':'';
@@ -290,11 +288,10 @@ async function enterEdit(){
     if(error||!ok){alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');return}
     creds={u,p};
   }
-  edit=true;$('editbar').style.display='';$('e-title').value=cfg.title||'';render();fit();
+  edit=true;$('editbar').style.display='';render();fit();
 }
 $('btn-edit').onclick=enterEdit;
 $('e-exit').onclick=()=>{edit=false;$('info').style.display='none';$('editbar').style.display='none';render();fit()};
-$('e-title').oninput=e=>{cfg.title=e.target.value;$('ttl').textContent=cfg.title;$('ttl2').textContent=cfg.title};
 $('e-add').onclick=()=>{
   const id=$('e-part').value;if(!id){alert('เลือก Line ก่อนค่ะ');return}
   if(!cfg.image){alert('อัปโหลดรูป Layout ก่อนค่ะ');return}

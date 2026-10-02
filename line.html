@@ -23,7 +23,7 @@ main{padding:14px 18px;max-width:1000px;margin:0 auto}
 .sum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .sbox{border-radius:12px;padding:12px;text-align:center;color:#fff;background:var(--none)}
 .sbox b{display:block;font-size:26px;line-height:1.1}.sbox span{font-size:13px;font-weight:600}
-.sbox.ok{background:var(--ok)}.sbox.ng{background:var(--ng)}.sbox.partial{background:var(--part)}.sbox.fixed{background:var(--fix)}.sbox.off{background:var(--none);opacity:.7}
+.sbox.ok{background:var(--ok)}.sbox.ng{background:var(--ng)}.sbox.partial{background:var(--part)}.sbox.off{background:var(--none);opacity:.7}
 .sbox.none{color:#475569}
 h2{font-size:15px;margin:0 0 8px}
 .model{font-size:13px;font-weight:700;color:var(--navy);margin:10px 0 4px}
@@ -31,7 +31,7 @@ h2{font-size:15px;margin:0 0 8px}
 .row .nm{flex:1;min-width:200px}.row small{display:block;color:var(--muted);font-size:11px}
 .pills{display:flex;gap:6px}
 .pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--none);color:#475569;white-space:nowrap}
-.pill.ok{background:var(--ok);color:#fff}.pill.ng{background:var(--ng);color:#fff}.pill.partial{background:var(--part);color:#fff}.pill.fixed{background:var(--fix);color:#fff}
+.pill.ok{background:var(--ok);color:#fff}.pill.ng{background:var(--ng);color:#fff}.pill.partial{background:var(--part);color:#fff}
 .skip{color:var(--muted);font-size:13px}
 .warn{background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:13px}
 .empty{padding:40px;text-align:center;color:var(--muted)}
@@ -52,7 +52,7 @@ const sb=supabase.createClient(SB_URL,SB_KEY);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const STAGES=['S','M','E'];
-const T={off:'ไม่ผลิตวันนี้',none:'ยังไม่ตรวจ',ok:'ผ่าน',ng:'NG',partial:'ตรวจยังไม่ครบ',fixed:'แก้ไขแล้ว'};
+const T={off:'ไม่ผลิตวันนี้',none:'ยังไม่ตรวจ',ok:'ผ่าน',ng:'NG',partial:'ตรวจยังไม่ครบ'};
 const q=new URLSearchParams(location.search), LINE=q.get('line');
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 let line=null, parts=[], status={}, skips=new Set(), errs=[];
@@ -73,13 +73,13 @@ function stageStates(rec){
     if(!items.length||!done)return 'none';
     if(st.includes('ng'))return 'ng';
     if(done<items.length)return 'partial';
-    return st.includes('fixed')?'fixed':'ok';
+    return 'ok'; // ชิ้นที่แก้ไขแล้วนับเป็น "ผ่าน"
   });
 }
 function aggStage(v){
   if(v.includes('ng'))return 'ng';
   if(!v.length||v.every(x=>x==='none'))return 'none';
-  if(v.every(x=>x==='ok'||x==='fixed'))return v.includes('fixed')?'fixed':'ok';
+  if(v.every(x=>x==='ok'))return 'ok';
   return 'partial';
 }
 async function loadStatus(){
