@@ -83,6 +83,28 @@ i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--p
 .edit-bar button{cursor:pointer;font-weight:600}.edit-bar .pri{background:var(--gold);color:#1f2937;border-color:var(--gold)}.edit-bar .dng{color:#fca5a5}
 .edit-bar .hint{font-size:12px;color:#9fb3c8;margin-top:8px}
 #info{margin-top:10px;font-size:13px;background:rgba(255,255,255,.08);border-radius:10px;padding:10px}
+/* ── Toast & Login modal (แทน alert/prompt ของเบราว์เซอร์) ── */
+.toasts{position:fixed;top:16px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:10px;z-index:1000;width:min(92vw,440px);pointer-events:none}
+.toast{pointer-events:auto;cursor:pointer;display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-radius:14px;background:rgba(10,21,36,.94);border:1px solid var(--line);border-left:4px solid var(--tc);box-shadow:0 14px 40px rgba(0,0,0,.5);backdrop-filter:blur(10px);opacity:0;transform:translateY(-14px) scale(.98);transition:all .3s cubic-bezier(.2,.9,.3,1.2)}
+.toast.in{opacity:1;transform:none}
+.toast .ti{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;color:#fff;background:var(--tc);box-shadow:0 0 0 4px color-mix(in srgb,var(--tc) 25%,transparent)}
+.toast .tm{font-size:14px;line-height:1.45;white-space:pre-line;color:#eef3f9;padding-top:2px}
+.toast.ok{--tc:var(--ok)}.toast.err{--tc:var(--ng)}.toast.warn{--tc:var(--part)}.toast.info{--tc:#38bdf8}
+.lg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(5,12,22,.62);backdrop-filter:blur(6px);z-index:900;padding:16px}
+.lg.show{display:flex}
+.lgc{width:min(96vw,400px);padding:26px 26px 22px;border-radius:22px;background:linear-gradient(160deg,#17314f,#0d1b2e);border:1px solid rgba(201,162,74,.45);box-shadow:0 30px 80px rgba(0,0,0,.65);animation:pop .28s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.95)}}
+.lgc.shake{animation:shake .4s}@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.lgi{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:24px;background:linear-gradient(135deg,#e2c46f,#b8913a);box-shadow:0 8px 22px rgba(201,162,74,.4);margin-bottom:14px}
+.lgc h3{margin:0;font-size:19px}.lgc p{margin:4px 0 16px;font-size:13px;color:#9fb3c8}
+.lgc label{display:block;font-size:12px;color:#b6c4d4;margin:10px 0 5px}
+.lgc input{width:100%;padding:11px 13px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.07);color:#fff;font-size:15px;outline:none}
+.lgc input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,162,74,.25)}
+#lg-err{min-height:20px;margin-top:10px;font-size:13px;color:#fca5a5}
+.lga{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+.lga button{padding:10px 18px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.08);cursor:pointer;font-weight:600}
+.lga button:hover{background:rgba(255,255,255,.16)}
+.lga .go{background:linear-gradient(135deg,#e2c46f,#c9a24a);border-color:transparent;color:#1f2937}.lga .go:hover{filter:brightness(1.08)}.lga .go:disabled{opacity:.6;cursor:wait}
 </style>
 </head>
 <body>
@@ -138,6 +160,14 @@ i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--p
   </div>
   <div id="info" style="display:none"></div>
 </main>
+<div class="toasts" id="toasts"></div>
+<div class="lg" id="lg"><div class="lgc" id="lgc">
+  <div class="lgi">🔒</div><h3>เข้าสู่โหมดแก้ไข Layout</h3><p>สำหรับผู้ดูแลระบบ (Admin) เท่านั้น</p>
+  <label for="lg-u">ชื่อผู้ใช้</label><input id="lg-u" autocomplete="username">
+  <label for="lg-p">รหัสผ่าน</label><input id="lg-p" type="password" autocomplete="current-password">
+  <div id="lg-err"></div>
+  <div class="lga"><button id="lg-x" type="button">ยกเลิก</button><button id="lg-ok" type="button" class="go">เข้าสู่ระบบ</button></div>
+</div></div>
 <script>
 const SB_URL='https://knzzmurumqrhwotyrooj.supabase.co', SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU';
 const sb=supabase.createClient(SB_URL,SB_KEY);
@@ -146,6 +176,33 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const STAGES=['S','M','E'];
 let cfg={title:'Layout ฝ่ายผลิต',image:'',markers:[]}, parts={}, groups={}, status={}, edit=false, creds=null, sel=null, tableOk=true, skips=new Set(), skipErr='', statusErr='';
 let zoom=1, ratio=0;
+// แจ้งเตือนแบบ Toast (แทน alert) — กดเพื่อปิด หรือหายเองใน ~4 วินาที
+function toast(msg,type='ok',ms=4000){
+  const t=document.createElement('div');t.className='toast '+type;
+  t.innerHTML='<div class="ti">'+({ok:'✓',err:'✕',warn:'!',info:'i'}[type]||'i')+'</div><div class="tm">'+esc(msg)+'</div>';
+  $('toasts').appendChild(t);requestAnimationFrame(()=>t.classList.add('in'));
+  const kill=()=>{t.classList.remove('in');setTimeout(()=>t.remove(),300)};t.onclick=kill;setTimeout(kill,ms);
+}
+// หน้าต่างเข้าสู่ระบบ Admin (แทน prompt — ช่องรหัสผ่านถูกซ่อน, แจ้งผิดพลาดในหน้าต่างเดียวกัน)
+function adminLogin(){
+  return new Promise(res=>{
+    const m=$('lg'),u=$('lg-u'),p=$('lg-p'),err=$('lg-err'),ok=$('lg-ok');
+    u.value='';p.value='';err.textContent='';m.classList.add('show');setTimeout(()=>u.focus(),60);
+    const close=v=>{m.classList.remove('show');res(v)};
+    const bad=t=>{err.textContent=t;const c=$('lgc');c.classList.remove('shake');void c.offsetWidth;c.classList.add('shake')};
+    const go=async()=>{
+      const un=u.value.trim();if(!un||!p.value){bad('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');return}
+      ok.disabled=true;ok.textContent='กำลังตรวจสอบ...';err.textContent='';
+      const {data,error}=await sb.rpc('verify_admin_login',{p_username:un,p_password:p.value});
+      ok.disabled=false;ok.textContent='เข้าสู่ระบบ';
+      if(error||!data){bad('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');p.value='';p.focus();return}
+      close({u:un,p:p.value});
+    };
+    ok.onclick=go;$('lg-x').onclick=()=>close(null);
+    m.onmousedown=e=>{if(e.target===m)close(null)};
+    m.onkeydown=e=>{if(e.key==='Enter')go();else if(e.key==='Escape')close(null)};
+  });
+}
 // Dashboard นี้ดูเฉพาะ "วันนี้" เสมอ (ไม่มีตัวเลือกวันที่) — คำนวณใหม่ทุกครั้งที่รีเฟรช จอ TV ที่เปิดค้างข้ามเที่ยงคืนจึงขึ้นวันใหม่เอง
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 
@@ -282,19 +339,14 @@ $('stage').addEventListener('click',e=>{
 });
 // ── โหมดแก้ไข (ต้องล็อกอิน Admin) ──
 async function enterEdit(){
-  if(!creds){
-    const u=prompt('ชื่อผู้ใช้ Admin:'),p=u&&prompt('รหัสผ่าน Admin:');if(!p)return;
-    const {data:ok,error}=await sb.rpc('verify_admin_login',{p_username:u,p_password:p});
-    if(error||!ok){alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');return}
-    creds={u,p};
-  }
+  if(!creds){creds=await adminLogin();if(!creds)return}
   edit=true;$('editbar').style.display='';render();fit();
 }
 $('btn-edit').onclick=enterEdit;
 $('e-exit').onclick=()=>{edit=false;$('info').style.display='none';$('editbar').style.display='none';render();fit()};
 $('e-add').onclick=()=>{
-  const id=$('e-part').value;if(!id){alert('เลือก Line ก่อนค่ะ');return}
-  if(!cfg.image){alert('อัปโหลดรูป Layout ก่อนค่ะ');return}
+  const id=$('e-part').value;if(!id){toast('กรุณาเลือก Line ที่จะวางก่อน','warn');return}
+  if(!cfg.image){toast('กรุณาอัปโหลดรูป Layout ก่อน','warn');return}
   const last=cfg.markers[cfg.markers.length-1],m={id:'m'+Date.now(),lineId:id,x:50,y:50};if(last)Object.assign(m,{s:last.s,bg:last.bg,bd:last.bd});
   cfg.markers.push(m);sel=m.id;render();
 };
@@ -325,10 +377,12 @@ $('e-img').onchange=e=>{
   img.src=URL.createObjectURL(f);e.target.value='';
 };
 $('e-save').onclick=async()=>{
+  const btn=$('e-save');btn.disabled=true;const old=btn.textContent;btn.textContent='กำลังบันทึก...';
   const {data:ok,error}=await sb.rpc('save_layout_config',{p_username:creds.u,p_password:creds.p,p_data:cfg});
-  if(error){alert('บันทึกไม่สำเร็จ: '+error.message+(/could not find|does not exist/i.test(error.message)?'\n\nให้รันไฟล์ layout_config.sql ใน Supabase ก่อน':''));return}
-  if(!ok){creds=null;alert('รหัสผ่าน Admin ไม่ถูกต้อง');return}
-  alert('บันทึก Layout เรียบร้อย ✅');
+  btn.disabled=false;btn.textContent=old;
+  if(error){toast('บันทึกไม่สำเร็จ: '+error.message+(/could not find|does not exist/i.test(error.message)?'\nให้รันไฟล์ layout_config.sql ใน Supabase ก่อน':''),'err',7000);return}
+  if(!ok){creds=null;toast('รหัสผ่าน Admin ไม่ถูกต้อง กรุณาเข้าสู่ระบบอีกครั้ง','err');return}
+  toast('บันทึก Layout เรียบร้อย','ok');
 };
 async function refresh(){
   await loadStatus();render();
