@@ -28,11 +28,12 @@ main{padding:14px 18px}
 .empty{padding:60px 20px;text-align:center;color:var(--muted)}
 .mk{position:absolute;transform:translate(-50%,-50%) scale(var(--sc,1));background:var(--bg,#fff);color:var(--tx,#1f2937);border:3px solid var(--bd,#16324f);border-radius:10px;padding:3px 6px;box-shadow:0 2px 6px rgba(0,0,0,.25);text-align:center;min-width:64px;max-width:120px;cursor:pointer}
 .mk.ok{box-shadow:0 0 0 4px rgba(22,163,74,.4),0 2px 6px rgba(0,0,0,.25)}.mk.part{box-shadow:0 0 0 4px rgba(245,158,11,.45),0 2px 6px rgba(0,0,0,.25)}.mk.ng{box-shadow:0 0 0 4px rgba(220,38,38,.5),0 2px 6px rgba(0,0,0,.25);animation:pulse 1.2s infinite}
+.mk.off{opacity:.5;filter:grayscale(1);animation:none;box-shadow:0 2px 6px rgba(0,0,0,.2)}
 .mk.sel{outline:3px dashed var(--gold);outline-offset:4px}.edit .mk{cursor:grab}
 .mk .n{font-size:10px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mk .st{display:flex;gap:3px;justify-content:center;margin-top:2px}
 .mk i{font-style:normal;font-size:10px;font-weight:700;width:18px;height:18px;line-height:18px;border-radius:50%;background:var(--none);color:#fff}
-i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--part)}i.fixed{background:var(--fix)}
+i.off{background:var(--none);opacity:.6}i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--part)}i.fixed{background:var(--fix)}
 @keyframes pulse{50%{box-shadow:0 0 0 10px rgba(220,38,38,.25),0 2px 6px rgba(0,0,0,.25)}}
 #info{margin-top:10px;font-size:13px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px;min-height:20px}
 .legend{font-size:12px;color:var(--muted);margin:8px 0}.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin:0 3px 0 10px}
@@ -81,7 +82,7 @@ const sb=supabase.createClient(SB_URL,SB_KEY);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const STAGES=['S','M','E'];
-let cfg={title:'Layout ฝ่ายผลิต',image:'',markers:[]}, parts={}, groups={}, status={}, edit=false, creds=null, sel=null, tableOk=true;
+let cfg={title:'Layout ฝ่ายผลิต',image:'',markers:[]}, parts={}, groups={}, status={}, edit=false, creds=null, sel=null, tableOk=true, skips=new Set(), skipErr='';
 let zoom=1, ratio=0;
 // ปรับขนาดรูปให้พอดีพื้นที่จอ (ไม่ต้องเลื่อนหน้า) แล้วคูณด้วยระดับซูม — จุดบน Layout ใช้ % จึงตามรูปเสมอ
 function fit(){
@@ -120,7 +121,10 @@ function stageStates(rec){
   });
 }
 async function loadStatus(){
-  status={};
+  status={};skips=new Set();skipErr='';
+  // Part ที่มาร์ค "ไม่ได้ผลิต" ของวันที่เลือก (ตาราง jig_skips เดียวกับแอปหลัก) → ตัดออกจากการสรุปสถานะบน Layout
+  const sk=await sb.from('jig_skips').select('jig_id').eq('skip_date',$('date').value);
+  if(sk.error)skipErr=sk.error.message;else(sk.data||[]).forEach(r=>skips.add(r.jig_id));
   const {data,error}=await sb.from('history').select('id,jig_id,ts,items').eq('insp_date',$('date').value).order('ts',{ascending:true});
   if(error){$('warn').innerHTML='<div class="warn">อ่านข้อมูลการตรวจไม่สำเร็จ: '+esc(error.message)+'</div>';return}
   (data||[]).forEach(r=>{status[r.jig_id]=stageStates(r)}); // เรียงเก่า→ใหม่ ตัวสุดท้ายของ Part เดียวกันจะทับ = ชุดล่าสุดของวัน
@@ -132,11 +136,14 @@ function aggStage(v){
   if(v.every(x=>x==='ok'||x==='fixed'))return v.includes('fixed')?'fixed':'ok';
   return 'partial';
 }
+const activeParts=deptId=>((groups[deptId]&&groups[deptId].parts)||[]).filter(id=>!skips.has(id)); // เฉพาะ Part ที่ผลิตวันนี้
 function lineStates(deptId){
-  const g=groups[deptId],rows=((g&&g.parts)||[]).map(id=>status[id]||['none','none','none']);
+  const g=groups[deptId],act=activeParts(deptId);
+  if(g&&g.parts.length&&!act.length)return ['off','off','off']; // ทุก Part ใน Line ไม่ผลิตวันนี้
+  const rows=act.map(id=>status[id]||['none','none','none']);
   return STAGES.map((_,i)=>aggStage(rows.map(r=>r[i])));
 }
-const overall=s=>!s||s.every(x=>x==='none')?'none':s.includes('ng')?'ng':s.every(x=>x==='ok'||x==='fixed')?'ok':'part';
+const overall=s=>s&&s.every(x=>x==='off')?'off':!s||s.every(x=>x==='none')?'none':s.includes('ng')?'ng':s.every(x=>x==='ok'||x==='fixed')?'ok':'part';
 const DEF={s:1,bg:'#ffffff',bd:'#16324f'};
 const lum=h=>{const n=parseInt(h.slice(1),16);return .299*(n>>16)+.587*((n>>8)&255)+.114*(n&255)};
 // สไตล์ของจุด: ตำแหน่ง + ขนาด + สีพื้นหลัง + สีเส้น (สีตัวอักษรเลือกขาว/ดำอัตโนมัติตามความสว่างของพื้นหลัง)
@@ -153,7 +160,7 @@ function applyStyle(patch,all){
 }
 function render(){
   $('ttl').textContent=cfg.title||'Layout ฝ่ายผลิต';
-  $('warn').innerHTML=tableOk?'':'<div class="warn">ยังไม่ได้สร้างตาราง layout_config ใน Supabase — ให้รันไฟล์ layout_config.sql ก่อน</div>';
+  $('warn').innerHTML=(tableOk?'':'<div class="warn">ยังไม่ได้สร้างตาราง layout_config ใน Supabase — ให้รันไฟล์ layout_config.sql ก่อน</div>')+(skipErr?'<div class="warn">อ่านรายการ Part ที่ไม่ผลิตวันนี้ไม่สำเร็จ ('+esc(skipErr)+') — ตัวเลขบน Layout อาจรวม Part ที่ไม่ได้ผลิต</div>':'');
   const st=$('stage');st.className=edit?'edit':'';
   if(!cfg.image){st.innerHTML='<div class="empty">ยังไม่มีรูป Layout — กด "แก้ไข Layout (Admin)" เพื่ออัปโหลดรูปและวางจุด</div>'}
   else{st.innerHTML='<img src="'+cfg.image+'" draggable="false">'+cfg.markers.map(m=>{
@@ -161,8 +168,8 @@ function render(){
     return '<div class="mk '+o+(sel===m.id?' sel':'')+'" data-id="'+m.id+'" style="'+mkCss(m)+'"><div class="n">'+esc(g.name)+'</div><div class="st">'+STAGES.map((l,i)=>'<i class="'+s[i]+'">'+l+'</i>').join('')+'</div></div>'}).join('')}
   syncStyleBar();
   const im=st.querySelector('img');if(im){const f=()=>{ratio=im.naturalWidth/im.naturalHeight;fit()};im.complete&&im.naturalWidth?f():im.onload=f}
-  const c={ok:0,part:0,ng:0,none:0};cfg.markers.forEach(m=>c[overall(lineStates(m.lineId))]++);
-  $('chips').innerHTML='<span class="chip">✅ ครบ '+c.ok+'</span><span class="chip">🟡 กำลังตรวจ '+c.part+'</span><span class="chip">🔴 NG '+c.ng+'</span><span class="chip">⚪ ยังไม่ตรวจ '+c.none+'</span>';
+  const c={ok:0,part:0,ng:0,none:0,off:0};cfg.markers.forEach(m=>c[overall(lineStates(m.lineId))]++);
+  $('chips').innerHTML='<span class="chip">✅ ครบ '+c.ok+'</span><span class="chip">🟡 กำลังตรวจ '+c.part+'</span><span class="chip">🔴 NG '+c.ng+'</span><span class="chip">⚪ ยังไม่ตรวจ '+c.none+'</span>'+(c.off?'<span class="chip">⏸ ไม่ผลิตวันนี้ '+c.off+'</span>':'');
   const used=new Set(cfg.markers.map(m=>m.lineId)),by={};
   Object.entries(groups).filter(([id])=>!used.has(id)).forEach(([id,g])=>{(by[g.section||'ไม่ระบุแผนก']=by[g.section||'ไม่ระบุแผนก']||[]).push([id,g.name+' ('+g.parts.length+' Part)'])});
   $('e-part').innerHTML='<option value="">เลือก Line ที่จะวาง...</option>'+Object.entries(by).map(([k,a])=>'<optgroup label="แผนก: '+esc(k)+'">'+a.map(([id,n])=>'<option value="'+esc(id)+'">'+esc(n)+'</option>').join('')+'</optgroup>').join('');
@@ -170,10 +177,11 @@ function render(){
 function showInfo(id){
   const m=cfg.markers.find(x=>x.id===id);if(!m)return;
   const g=groups[m.lineId]||{name:m.lineId,section:'',parts:[]},s=lineStates(m.lineId);
-  const T={none:'ยังไม่ตรวจ',ok:'ผ่าน',ng:'NG',partial:'ตรวจยังไม่ครบ',fixed:'แก้ไขแล้ว'},E={none:'⚪',ok:'🟢',ng:'🔴',partial:'🟡',fixed:'🔵'};
-  const rows=g.parts.map(pid=>{const p=parts[pid],st=status[pid]||['none','none','none'];
+  const T={off:'ไม่ผลิตวันนี้',none:'ยังไม่ตรวจ',ok:'ผ่าน',ng:'NG',partial:'ตรวจยังไม่ครบ',fixed:'แก้ไขแล้ว'},E={off:'⏸',none:'⚪',ok:'🟢',ng:'🔴',partial:'🟡',fixed:'🔵'};
+  const act=g.parts.filter(id=>!skips.has(id)),sk=g.parts.filter(id=>skips.has(id));
+  const rows=act.map(pid=>{const p=parts[pid],st=status[pid]||['none','none','none'];
     return '<div style="padding:3px 0;border-top:1px solid #f1f5f9">'+esc(p.model)+' · '+esc(p.name)+' &nbsp; '+STAGES.map((l,i)=>E[st[i]]+l).join(' ')+'</div>'}).join('');
-  $('info').innerHTML='<b>Line: '+esc(g.name)+'</b> <span style="color:#6b7280">แผนก: '+esc(g.section||'-')+' · '+g.parts.length+' Part</span><br>สรุปทั้ง Line: '+STAGES.map((l,i)=>'<b>'+l+'</b> '+T[s[i]]).join(' &nbsp;|&nbsp; ')+(rows?'<div style="margin-top:6px;font-size:12px">'+rows+'</div>':'');
+  $('info').innerHTML='<b>Line: '+esc(g.name)+'</b> <span style="color:#6b7280">แผนก: '+esc(g.section||'-')+' · '+act.length+'/'+g.parts.length+' Part (ผลิตวันนี้)</span><br>สรุปทั้ง Line: '+(act.length?STAGES.map((l,i)=>'<b>'+l+'</b> '+T[s[i]]).join(' &nbsp;|&nbsp; '):'<b>ไม่ผลิตวันนี้</b>')+(rows?'<div style="margin-top:6px;font-size:12px">'+rows+'</div>':'')+(sk.length?'<div style="margin-top:6px;font-size:12px;color:#6b7280">⏸ ไม่ผลิตวันนี้ (ไม่นำมาคิด): '+sk.map(id=>esc((parts[id]||{}).name||id)).join(' · ')+'</div>':'');
 }
 // ── คลิก/ลากจุด ──
 $('stage').addEventListener('pointerdown',e=>{
