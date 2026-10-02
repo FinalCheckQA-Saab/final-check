@@ -18,11 +18,12 @@ header h1{margin:0;font-size:18px}header small{color:#cbd5e1;display:block;font-
 input,select,button{font:inherit;font-size:13px;padding:7px 10px;border-radius:8px;border:1px solid #d1d5db;background:#fff}
 button{cursor:pointer;font-weight:600}button.pri{background:var(--gold);border-color:var(--gold);color:#1f2937}
 button.dng{color:var(--ng)}a.back{color:#fff;font-size:13px;text-decoration:none;opacity:.85}
-main{padding:14px 18px;max-width:1500px;margin:0 auto}
+main{padding:14px 18px}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:13px}
 .chip{background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:4px 12px;font-weight:600}
 .edit-bar{background:#fff;border:1px dashed var(--gold);border-radius:10px;padding:10px;margin-bottom:10px}
-#stage{position:relative;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;touch-action:none;user-select:none}
+#vp{overflow:auto;background:#fff;border:1px solid #e5e7eb;border-radius:10px;text-align:center;min-height:300px}
+#stage{position:relative;display:inline-block;vertical-align:top;text-align:left;touch-action:none;user-select:none}
 #stage img{display:block;width:100%;height:auto}
 .empty{padding:60px 20px;text-align:center;color:var(--muted)}
 .mk{position:absolute;transform:translate(-50%,-50%);background:#fff;border:2px solid var(--none);border-radius:10px;padding:3px 6px;box-shadow:0 2px 6px rgba(0,0,0,.25);text-align:center;min-width:64px;max-width:120px;cursor:pointer}
@@ -43,6 +44,7 @@ i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--p
   <div><a class="back" href="index.html">‹ กลับแอปหลัก</a><h1 id="ttl">Layout ฝ่ายผลิต</h1><small>สถานะการตรวจ S / M / E ตามตำแหน่งจริงบน Layout</small></div>
   <div class="bar">
     <input type="date" id="date">
+    <button id="z-out" type="button" title="ซูมออก">➖</button><button id="z-fit" type="button" title="ปรับให้พอดีจอ">⛶ พอดีจอ</button><button id="z-in" type="button" title="ซูมเข้า">➕</button>
     <button id="btn-refresh" type="button">🔄 รีเฟรช</button>
     <button id="btn-edit" type="button">✏️ แก้ไข Layout (Admin)</button>
   </div>
@@ -62,7 +64,7 @@ i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--p
     </div>
     <div class="legend">ลากจุดไปวางบน Layout ตามตำแหน่งจริง · กดจุดเพื่อเลือก/ลบ · อย่าลืมกด "บันทึก"</div>
   </div>
-  <div id="stage"></div>
+  <div id="vp"><div id="stage"></div></div>
   <div class="legend">สัญลักษณ์ S M E:<i style="background:var(--none)"></i>ยังไม่ตรวจ<i style="background:var(--ok)"></i>ผ่าน<i style="background:var(--ng)"></i>NG<i style="background:var(--part)"></i>ตรวจยังไม่ครบ<i style="background:var(--fix)"></i>แก้ไขแล้ว</div>
   <div id="info">กดที่จุดบน Layout เพื่อดูรายละเอียด</div>
 </main>
@@ -73,6 +75,18 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const STAGES=['S','M','E'];
 let cfg={title:'Layout ฝ่ายผลิต',image:'',markers:[]}, parts={}, status={}, edit=false, creds=null, sel=null, tableOk=true;
+let zoom=1, ratio=0;
+// ปรับขนาดรูปให้พอดีพื้นที่จอ (ไม่ต้องเลื่อนหน้า) แล้วคูณด้วยระดับซูม — จุดบน Layout ใช้ % จึงตามรูปเสมอ
+function fit(){
+  const vp=$('vp'),st=$('stage');if(!ratio){st.style.width='100%';return}
+  const top=vp.getBoundingClientRect().top+window.scrollY,h=Math.max(300,window.innerHeight-top-70);
+  vp.style.maxHeight=h+'px';
+  const base=Math.min(vp.clientWidth-2,(h-2)*ratio);
+  st.style.width=Math.round(base*zoom)+'px';
+}
+const setZoom=z=>{zoom=Math.min(4,Math.max(1,z));fit()};
+$('z-in').onclick=()=>setZoom(zoom+.5);$('z-out').onclick=()=>setZoom(zoom-.5);$('z-fit').onclick=()=>setZoom(1);
+window.addEventListener('resize',fit);
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 
 async function loadMaster(){
@@ -109,6 +123,7 @@ function render(){
   else{st.innerHTML='<img src="'+cfg.image+'" draggable="false">'+cfg.markers.map(m=>{
     const p=parts[m.jigId]||{name:m.jigId},s=status[m.jigId]||['none','none','none'],o=overall(s);
     return '<div class="mk '+o+(sel===m.id?' sel':'')+'" data-id="'+m.id+'" style="left:'+m.x+'%;top:'+m.y+'%"><div class="n">'+esc(p.name)+'</div><div class="st">'+STAGES.map((l,i)=>'<i class="'+s[i]+'">'+l+'</i>').join('')+'</div></div>'}).join('')}
+  const im=st.querySelector('img');if(im){const f=()=>{ratio=im.naturalWidth/im.naturalHeight;fit()};im.complete&&im.naturalWidth?f():im.onload=f}
   const c={ok:0,part:0,ng:0,none:0};cfg.markers.forEach(m=>c[overall(status[m.jigId])]++);
   $('chips').innerHTML='<span class="chip">✅ ครบ '+c.ok+'</span><span class="chip">🟡 กำลังตรวจ '+c.part+'</span><span class="chip">🔴 NG '+c.ng+'</span><span class="chip">⚪ ยังไม่ตรวจ '+c.none+'</span>';
   const used=new Set(cfg.markers.map(m=>m.jigId)),by={};
@@ -141,10 +156,10 @@ async function enterEdit(){
     if(error||!ok){alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');return}
     creds={u,p};
   }
-  edit=true;$('editbar').style.display='';$('e-title').value=cfg.title||'';render();
+  edit=true;$('editbar').style.display='';$('e-title').value=cfg.title||'';render();fit();
 }
 $('btn-edit').onclick=enterEdit;
-$('e-exit').onclick=()=>{edit=false;$('editbar').style.display='none';render()};
+$('e-exit').onclick=()=>{edit=false;$('editbar').style.display='none';render();fit()};
 $('e-title').oninput=e=>{cfg.title=e.target.value;$('ttl').textContent=cfg.title};
 $('e-add').onclick=()=>{
   const id=$('e-part').value;if(!id){alert('เลือก Part ก่อนค่ะ');return}
@@ -152,9 +167,25 @@ $('e-add').onclick=()=>{
   const m={id:'m'+Date.now(),jigId:id,x:50,y:50};cfg.markers.push(m);sel=m.id;render();showInfo(sel);
 };
 $('e-del').onclick=()=>{if(!sel)return;cfg.markers=cfg.markers.filter(m=>m.id!==sel);sel=null;render()};
+// ปรับรูปอัตโนมัติ: เริ่มจากขนาดใหญ่สุด 3000px ลองแบบไม่สูญเสียคุณภาพ (PNG — ภาพเส้น/CAD คมที่สุดและมักไฟล์เล็ก)
+// ถ้าไฟล์ใหญ่เกินกำหนดค่อยใช้ WebP คุณภาพ 92% แล้วลดขนาดลงทีละขั้น จนได้ขนาดที่คมที่สุดภายในงบไฟล์
+function optimizeImage(img){
+  const BUDGET=1600000;let out=null;
+  for(const maxD of [3000,2400,2000,1600,1200]){
+    const k=Math.min(1,maxD/Math.max(img.width,img.height)),c=document.createElement('canvas');
+    c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+    const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.imageSmoothingQuality='high';x.drawImage(img,0,0,c.width,c.height);
+    let u=c.toDataURL('image/png');
+    if(u.length>BUDGET){u=c.toDataURL('image/webp',.92);if(!u.startsWith('data:image/webp'))u=c.toDataURL('image/jpeg',.92)}
+    out={url:u,w:c.width,h:c.height};
+    if(u.length<=BUDGET)break;
+  }
+  return out;
+}
 $('e-img').onchange=e=>{
   const f=e.target.files[0];if(!f)return;
-  const img=new Image();img.onload=()=>{const k=Math.min(1,1600/img.width),c=document.createElement('canvas');c.width=img.width*k;c.height=img.height*k;c.getContext('2d').drawImage(img,0,0,c.width,c.height);cfg.image=c.toDataURL('image/jpeg',.82);render()};
+  const img=new Image();
+  img.onload=()=>{const r=optimizeImage(img);cfg.image=r.url;ratio=0;zoom=1;render();$('info').textContent='ปรับรูปอัตโนมัติแล้ว: '+r.w+'×'+r.h+' px · ขนาดไฟล์ประมาณ '+Math.round(r.url.length*0.75/1024)+' KB (อย่าลืมกดบันทึก)'};
   img.src=URL.createObjectURL(f);e.target.value='';
 };
 $('e-save').onclick=async()=>{
