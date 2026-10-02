@@ -74,7 +74,7 @@ i.off{background:var(--none);opacity:.6}i.ok{background:var(--ok)}i.ng{backgroun
   </div>
   <div id="vp"><div id="stage"></div></div>
   <div class="legend">สัญลักษณ์ S M E:<i style="background:var(--none)"></i>ยังไม่ตรวจ<i style="background:var(--ok)"></i>ผ่าน<i style="background:var(--ng)"></i>NG<i style="background:var(--part)"></i>ตรวจยังไม่ครบ<i style="background:var(--fix)"></i>แก้ไขแล้ว &nbsp;· สีของ S/M/E = สรุปทุก Part ใน Line (มี Part ใด NG = NG)</div>
-  <div id="info">กดที่จุด (1 จุด = 1 Line) เพื่อดูรายละเอียดทุก Part</div>
+  <div id="info" style="display:none"></div>
 </main>
 <script>
 const SB_URL='https://knzzmurumqrhwotyrooj.supabase.co', SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU';
@@ -174,26 +174,23 @@ function render(){
   Object.entries(groups).filter(([id])=>!used.has(id)).forEach(([id,g])=>{(by[g.section||'ไม่ระบุแผนก']=by[g.section||'ไม่ระบุแผนก']||[]).push([id,g.name+' ('+g.parts.length+' Part)'])});
   $('e-part').innerHTML='<option value="">เลือก Line ที่จะวาง...</option>'+Object.entries(by).map(([k,a])=>'<optgroup label="แผนก: '+esc(k)+'">'+a.map(([id,n])=>'<option value="'+esc(id)+'">'+esc(n)+'</option>').join('')+'</optgroup>').join('');
 }
-function showInfo(id){
-  const m=cfg.markers.find(x=>x.id===id);if(!m)return;
-  const g=groups[m.lineId]||{name:m.lineId,section:'',parts:[]},s=lineStates(m.lineId);
-  const T={off:'ไม่ผลิตวันนี้',none:'ยังไม่ตรวจ',ok:'ผ่าน',ng:'NG',partial:'ตรวจยังไม่ครบ',fixed:'แก้ไขแล้ว'},E={off:'⏸',none:'⚪',ok:'🟢',ng:'🔴',partial:'🟡',fixed:'🔵'};
-  const act=g.parts.filter(id=>!skips.has(id)),sk=g.parts.filter(id=>skips.has(id));
-  const rows=act.map(pid=>{const p=parts[pid],st=status[pid]||['none','none','none'];
-    return '<div style="padding:3px 0;border-top:1px solid #f1f5f9">'+esc(p.model)+' · '+esc(p.name)+' &nbsp; '+STAGES.map((l,i)=>E[st[i]]+l).join(' ')+'</div>'}).join('');
-  $('info').innerHTML='<b>Line: '+esc(g.name)+'</b> <span style="color:#6b7280">แผนก: '+esc(g.section||'-')+' · '+act.length+'/'+g.parts.length+' Part (ผลิตวันนี้)</span><br>สรุปทั้ง Line: '+(act.length?STAGES.map((l,i)=>'<b>'+l+'</b> '+T[s[i]]).join(' &nbsp;|&nbsp; '):'<b>ไม่ผลิตวันนี้</b>')+(rows?'<div style="margin-top:6px;font-size:12px">'+rows+'</div>':'')+(sk.length?'<div style="margin-top:6px;font-size:12px;color:#6b7280">⏸ ไม่ผลิตวันนี้ (ไม่นำมาคิด): '+sk.map(id=>esc((parts[id]||{}).name||id)).join(' · ')+'</div>':'');
-}
 // ── คลิก/ลากจุด ──
 $('stage').addEventListener('pointerdown',e=>{
   const el=e.target.closest('.mk');if(!el)return;
-  sel=el.dataset.id;showInfo(sel);syncStyleBar();
-  document.querySelectorAll('.mk').forEach(x=>x.classList.toggle('sel',x===el));
   if(!edit)return;
+  sel=el.dataset.id;syncStyleBar();
+  document.querySelectorAll('.mk').forEach(x=>x.classList.toggle('sel',x===el));
   const m=cfg.markers.find(x=>x.id===sel),r=$('stage').getBoundingClientRect();
   el.setPointerCapture(e.pointerId);
   const mv=ev=>{m.x=+Math.min(100,Math.max(0,(ev.clientX-r.left)/r.width*100)).toFixed(2);m.y=+Math.min(100,Math.max(0,(ev.clientY-r.top)/r.height*100)).toFixed(2);el.style.left=m.x+'%';el.style.top=m.y+'%'};
   const up=()=>{el.removeEventListener('pointermove',mv);el.removeEventListener('pointerup',up)};
   el.addEventListener('pointermove',mv);el.addEventListener('pointerup',up);
+});
+// โหมดดูปกติ: กดจุด → เปิดหน้ารายละเอียดของ Line (หน้าแยก ไม่กินพื้นที่ Layout)
+$('stage').addEventListener('click',e=>{
+  if(edit)return;const el=e.target.closest('.mk');if(!el)return;
+  const m=cfg.markers.find(x=>x.id===el.dataset.id);if(!m)return;
+  location.href='line.html?line='+encodeURIComponent(m.lineId)+'&date='+$('date').value;
 });
 // ── โหมดแก้ไข (ต้องล็อกอิน Admin) ──
 async function enterEdit(){
@@ -206,13 +203,13 @@ async function enterEdit(){
   edit=true;$('editbar').style.display='';$('e-title').value=cfg.title||'';render();fit();
 }
 $('btn-edit').onclick=enterEdit;
-$('e-exit').onclick=()=>{edit=false;$('editbar').style.display='none';render();fit()};
+$('e-exit').onclick=()=>{edit=false;$('info').style.display='none';$('editbar').style.display='none';render();fit()};
 $('e-title').oninput=e=>{cfg.title=e.target.value;$('ttl').textContent=cfg.title};
 $('e-add').onclick=()=>{
   const id=$('e-part').value;if(!id){alert('เลือก Line ก่อนค่ะ');return}
   if(!cfg.image){alert('อัปโหลดรูป Layout ก่อนค่ะ');return}
   const last=cfg.markers[cfg.markers.length-1],m={id:'m'+Date.now(),lineId:id,x:50,y:50};if(last)Object.assign(m,{s:last.s,bg:last.bg,bd:last.bd}); // จุดใหม่ใช้สไตล์เดียวกับจุดก่อนหน้า
-  cfg.markers.push(m);sel=m.id;render();showInfo(sel);
+  cfg.markers.push(m);sel=m.id;render();
 };
 $('st-s').oninput=e=>applyStyle({s:+e.target.value});
 $('st-bg').oninput=e=>applyStyle({bg:e.target.value});
@@ -238,7 +235,7 @@ function optimizeImage(img){
 $('e-img').onchange=e=>{
   const f=e.target.files[0];if(!f)return;
   const img=new Image();
-  img.onload=()=>{const r=optimizeImage(img);cfg.image=r.url;ratio=0;zoom=1;render();$('info').textContent='ปรับรูปอัตโนมัติแล้ว: '+r.w+'×'+r.h+' px · ขนาดไฟล์ประมาณ '+Math.round(r.url.length*0.75/1024)+' KB (อย่าลืมกดบันทึก)'};
+  img.onload=()=>{const r=optimizeImage(img);cfg.image=r.url;ratio=0;zoom=1;render();$('info').style.display='';$('info').textContent='ปรับรูปอัตโนมัติแล้ว: '+r.w+'×'+r.h+' px · ขนาดไฟล์ประมาณ '+Math.round(r.url.length*0.75/1024)+' KB (อย่าลืมกดบันทึก)'};
   img.src=URL.createObjectURL(f);e.target.value='';
 };
 $('e-save').onclick=async()=>{
@@ -248,7 +245,7 @@ $('e-save').onclick=async()=>{
   alert('บันทึก Layout เรียบร้อย ✅');
 };
 async function refresh(){await loadStatus();render()}
-$('date').value=today();$('date').onchange=refresh;$('btn-refresh').onclick=refresh;
+$('date').value=new URLSearchParams(location.search).get('date')||today();$('date').onchange=refresh;$('btn-refresh').onclick=refresh;
 setInterval(()=>{if(!edit)refresh()},60000); // รีเฟรชอัตโนมัติทุก 1 นาที (เหมาะกับจอ TV)
 (async()=>{await loadMaster();await loadStatus();render();if(new URLSearchParams(location.search).get('edit')==='1')enterEdit()})();
 </script>

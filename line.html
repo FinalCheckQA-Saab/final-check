@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>รายละเอียด Line | Daily Quality Inspection</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--navy:#16324f;--gold:#c9a24a;--ok:#16a34a;--ng:#dc2626;--part:#f59e0b;--fix:#0891b2;--none:#cbd5e1;--text:#1f2937;--muted:#6b7280;--bg:#f3f4f6}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Noto Sans Thai',Tahoma,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(135deg,#0f2137,var(--navy));color:#fff;padding:12px 18px;border-bottom:3px solid var(--gold);display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+header h1{margin:0;font-size:20px}header small{color:#cbd5e1;display:block;font-size:12px}
+a.back{color:#fff;font-size:13px;text-decoration:none;opacity:.9}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,button{font:inherit;font-size:13px;padding:7px 10px;border-radius:8px;border:1px solid #d1d5db;background:#fff}
+button{cursor:pointer;font-weight:600}
+main{padding:14px 18px;max-width:1000px;margin:0 auto}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:12px}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sbox{border-radius:12px;padding:12px;text-align:center;color:#fff;background:var(--none)}
+.sbox b{display:block;font-size:26px;line-height:1.1}.sbox span{font-size:13px;font-weight:600}
+.sbox.ok{background:var(--ok)}.sbox.ng{background:var(--ng)}.sbox.partial{background:var(--part)}.sbox.fixed{background:var(--fix)}.sbox.off{background:var(--none);opacity:.7}
+.sbox.none{color:#475569}
+h2{font-size:15px;margin:0 0 8px}
+.model{font-size:13px;font-weight:700;color:var(--navy);margin:10px 0 4px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid #f1f5f9;font-size:14px}
+.row .nm{flex:1;min-width:200px}.row small{display:block;color:var(--muted);font-size:11px}
+.pills{display:flex;gap:6px}
+.pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--none);color:#475569;white-space:nowrap}
+.pill.ok{background:var(--ok);color:#fff}.pill.ng{background:var(--ng);color:#fff}.pill.partial{background:var(--part);color:#fff}.pill.fixed{background:var(--fix);color:#fff}
+.skip{color:var(--muted);font-size:13px}
+.warn{background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:13px}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <div><a class="back" id="back" href="layout.html">‹ กลับ Layout</a><h1 id="ttl">รายละเอียด Line</h1><small id="sub"></small></div>
+  <div class="bar"><input type="date" id="date"><button id="btn-refresh" type="button">🔄 รีเฟรช</button></div>
+</header>
+<main>
+  <div id="warn"></div>
+  <div id="body"><div class="empty">กำลังโหลด...</div></div>
+</main>
+<script>
+const SB_URL='https://knzzmurumqrhwotyrooj.supabase.co', SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const STAGES=['S','M','E'];
+const T={off:'ไม่ผลิตวันนี้',none:'ยังไม่ตรวจ',ok:'ผ่าน',ng:'NG',partial:'ตรวจยังไม่ครบ',fixed:'แก้ไขแล้ว'};
+const q=new URLSearchParams(location.search), LINE=q.get('line');
+const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+let line=null, parts=[], status={}, skips=new Set(), errs=[];
+
+async function loadMaster(){
+  const [d,l,j]=await Promise.all([sb.from('departments').select('id,name,section').eq('id',LINE).maybeSingle(),sb.from('lines').select('id,name,dept_id').eq('dept_id',LINE),sb.from('jigs').select('id,name,line_id')]);
+  let dep=d;if(dep.error)dep=await sb.from('departments').select('id,name').eq('id',LINE).maybeSingle();
+  line=dep.data?{name:dep.data.name,section:dep.data.section||''}:null;
+  const ln={};(l.data||[]).forEach(x=>ln[x.id]=x.name);
+  parts=(j.data||[]).filter(p=>ln[p.line_id]!==undefined).map(p=>({id:p.id,name:p.name,model:ln[p.line_id]}));
+}
+// สถานะของ 1 Part ต่อช่วง S/M/E (ตรรกะเดียวกับหน้า Layout)
+function stageStates(rec){
+  const items=rec.items||[];
+  return STAGES.map((_,p)=>{
+    const st=items.map(i=>(i.pieces&&i.pieces[p]&&i.pieces[p].status)||'');
+    const done=st.filter(Boolean).length;
+    if(!items.length||!done)return 'none';
+    if(st.includes('ng'))return 'ng';
+    if(done<items.length)return 'partial';
+    return st.includes('fixed')?'fixed':'ok';
+  });
+}
+function aggStage(v){
+  if(v.includes('ng'))return 'ng';
+  if(!v.length||v.every(x=>x==='none'))return 'none';
+  if(v.every(x=>x==='ok'||x==='fixed'))return v.includes('fixed')?'fixed':'ok';
+  return 'partial';
+}
+async function loadStatus(){
+  status={};skips=new Set();errs=[];
+  const date=$('date').value;
+  const sk=await sb.from('jig_skips').select('jig_id').eq('skip_date',date);
+  if(sk.error)errs.push('อ่านรายการ Part ที่ไม่ผลิตวันนี้ไม่สำเร็จ ('+sk.error.message+') — ตัวเลขอาจรวม Part ที่ไม่ได้ผลิต');else(sk.data||[]).forEach(r=>skips.add(r.jig_id));
+  const {data,error}=await sb.from('history').select('id,jig_id,ts,items').eq('insp_date',date).order('ts',{ascending:true});
+  if(error){errs.push('อ่านข้อมูลการตรวจไม่สำเร็จ: '+error.message);return}
+  (data||[]).forEach(r=>{status[r.jig_id]={st:stageStates(r),ts:r.ts}}); // ตัวสุดท้ายของ Part ทับ = ชุดล่าสุดของวัน
+}
+const hhmm=ts=>ts?new Date(ts).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})+' น.':'';
+function render(){
+  $('warn').innerHTML=errs.map(e=>'<div class="warn">'+esc(e)+'</div>').join('');
+  if(!line){$('body').innerHTML='<div class="empty">ไม่พบ Line นี้ — กลับไปเลือกจุดบน Layout อีกครั้ง</div>';return}
+  $('ttl').textContent='Line: '+line.name;
+  $('sub').textContent='แผนก: '+(line.section||'-')+' · วันที่ '+$('date').value;
+  const act=parts.filter(p=>!skips.has(p.id)),sk=parts.filter(p=>skips.has(p.id));
+  let h='';
+  if(!act.length){
+    h+='<div class="card"><div class="sum"><div class="sbox off"><b>—</b><span>ไม่ผลิตวันนี้</span></div></div></div>';
+  }else{
+    const rows=act.map(p=>(status[p.id]||{st:['none','none','none']}).st);
+    const s=STAGES.map((_,i)=>aggStage(rows.map(r=>r[i])));
+    h+='<div class="card"><h2>สรุปทั้ง Line ('+act.length+'/'+parts.length+' Part ที่ผลิตวันนี้)</h2><div class="sum">'+STAGES.map((l,i)=>'<div class="sbox '+s[i]+'"><b>'+l+'</b><span>'+T[s[i]]+'</span></div>').join('')+'</div></div>';
+    const byModel={};act.forEach(p=>(byModel[p.model]=byModel[p.model]||[]).push(p));
+    h+='<div class="card"><h2>รายละเอียดราย Part</h2>'+Object.entries(byModel).map(([m,a])=>'<div class="model">Model: '+esc(m)+'</div>'+a.map(p=>{
+      const r=status[p.id]||{st:['none','none','none']};
+      return '<div class="row"><div class="nm">'+esc(p.name)+(r.ts?'<small>ตรวจล่าสุด '+hhmm(r.ts)+'</small>':'')+'</div><div class="pills">'+STAGES.map((l,i)=>'<span class="pill '+r.st[i]+'">'+l+' · '+T[r.st[i]]+'</span>').join('')+'</div></div>'}).join('')).join('')+'</div>';
+  }
+  if(sk.length)h+='<div class="card skip">⏸ ไม่ผลิตวันนี้ (ไม่นำมาคิด '+sk.length+' Part): '+sk.map(p=>esc(p.name)).join(' · ')+'</div>';
+  $('body').innerHTML=h;
+}
+async function refresh(){await loadStatus();render();$('back').href='layout.html?date='+$('date').value}
+$('date').value=q.get('date')||today();$('date').onchange=refresh;$('btn-refresh').onclick=refresh;
+setInterval(refresh,60000);
+(async()=>{await loadMaster();await refresh()})();
+</script>
+</body>
+</html>
