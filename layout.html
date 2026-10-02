@@ -9,52 +9,109 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--navy:#16324f;--gold:#c9a24a;--ok:#16a34a;--ng:#dc2626;--part:#f59e0b;--fix:#0891b2;--none:#cbd5e1;--text:#1f2937;--muted:#6b7280;--bg:#f3f4f6}
+:root{--navy:#16324f;--gold:#c9a24a;--ok:#22c55e;--ng:#ef4444;--part:#f59e0b;--fix:#06b6d4;--none:#cbd5e1;--text:#1f2937;--glass:rgba(255,255,255,.07);--line:rgba(255,255,255,.12)}
 *{box-sizing:border-box}
-body{margin:0;font-family:'Noto Sans Thai',Tahoma,sans-serif;background:var(--bg);color:var(--text)}
-header{background:linear-gradient(135deg,#0f2137,var(--navy));color:#fff;padding:12px 18px;border-bottom:3px solid var(--gold);display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
-header h1{margin:0;font-size:18px}header small{color:#cbd5e1;display:block;font-size:12px}
-.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-input,select,button{font:inherit;font-size:13px;padding:7px 10px;border-radius:8px;border:1px solid #d1d5db;background:#fff}
-button{cursor:pointer;font-weight:600}button.pri{background:var(--gold);border-color:var(--gold);color:#1f2937}
-button.dng{color:var(--ng)}a.back{color:#fff;font-size:13px;text-decoration:none;opacity:.85}
-main{padding:14px 18px}
-.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:13px}
-.chip{background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:4px 12px;font-weight:600}
-.edit-bar{background:#fff;border:1px dashed var(--gold);border-radius:10px;padding:10px;margin-bottom:10px}
-#vp{overflow:auto;background:#fff;border:1px solid #e5e7eb;border-radius:10px;text-align:center;min-height:300px}
+html,body{height:100%}
+body{margin:0;font-family:'Noto Sans Thai',Tahoma,sans-serif;color:#e8eef6;overflow-x:hidden;
+ background:radial-gradient(1100px 520px at 8% -12%,#1f4573 0%,transparent 60%),radial-gradient(800px 460px at 100% 0,#3a2f10 0%,transparent 55%),#0a1524}
+button,input,select{font:inherit;font-size:13px;color:inherit}
+a.back{color:#9fb3c8;font-size:12px;text-decoration:none}a.back:hover{color:#fff}
+/* ── Header (ยุบ/ขยายได้) ── */
+.top{padding:12px 20px 0;border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.05),transparent)}
+.top-full{display:flex;flex-direction:column;gap:12px}
+.r1{display:flex;gap:16px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+h1{margin:2px 0 0;font-size:24px;font-weight:700;letter-spacing:.2px}
+h1::after{content:'';display:block;width:56px;height:3px;border-radius:3px;margin-top:6px;background:linear-gradient(90deg,var(--gold),transparent)}
+.sub{color:#9fb3c8;font-size:12px;margin-top:4px}
+.clock{text-align:right}
+.c-time{font-size:38px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:1px;background:linear-gradient(180deg,#fff,#d9c48a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.c-date{font-size:13px;color:#c5d3e2;margin-top:4px}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#9fb3c8;margin-top:3px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(34,197,94,.7);animation:live 1.8s infinite}
+@keyframes live{70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.kpi{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--glass);border:1px solid var(--line);border-left:4px solid var(--c,#64748b);backdrop-filter:blur(6px)}
+.kpi .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:700;font-size:16px;color:#fff;background:var(--c,#64748b);box-shadow:0 4px 12px color-mix(in srgb,var(--c,#64748b) 55%,transparent)}
+.kpi b{display:block;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}.kpi span{font-size:12px;color:#b6c4d4}
+.kpi.ok{--c:var(--ok)}.kpi.part{--c:var(--part)}.kpi.ng{--c:var(--ng)}.kpi.none{--c:#94a3b8}.kpi.off{--c:#64748b}
+.kpi.ng.hot{animation:hot 1.4s infinite}@keyframes hot{50%{box-shadow:0 0 0 4px rgba(239,68,68,.35)}}
+.kpi.prog{grid-column:span 2;--c:var(--gold);flex-direction:column;align-items:stretch;gap:6px}
+.prog .h{display:flex;justify-content:space-between;font-size:12px;color:#c5d3e2}.prog .h b{font-size:18px;display:inline}
+.bar{height:8px;border-radius:8px;background:rgba(255,255,255,.12);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:8px;background:linear-gradient(90deg,#16a34a,#4ade80);transition:width .8s ease}
+.handle{display:flex;justify-content:center;margin-top:8px}
+.tg{cursor:pointer;border:1px solid var(--line);border-bottom:0;background:rgba(255,255,255,.08);border-radius:10px 10px 0 0;padding:2px 18px;font-size:11px;color:#c5d3e2}.tg:hover{background:rgba(255,255,255,.16)}
+.top-mini{display:none;align-items:center;gap:14px;flex-wrap:wrap;padding-bottom:8px}
+.top-mini strong{font-size:15px}.mini-k{display:flex;gap:12px;font-size:13px;flex:1}
+.mini-k span{display:inline-flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}.mini-k em{width:9px;height:9px;border-radius:50%;display:inline-block}
+.top-mini .c-time{font-size:20px}.top-mini .c-date{margin:0;font-size:12px}
+body.collapsed .top-full{display:none}body.collapsed .top-mini{display:flex}body.collapsed .top{padding-top:8px}
+body.collapsed .handle{margin-top:0}
+/* ── Map ── */
+main{padding:12px 20px 14px}
+#warn .warn{background:rgba(245,158,11,.16);border:1px solid rgba(245,158,11,.5);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:13px;color:#fde68a}
+#wrap{position:relative}
+#vp{overflow:auto;background:#fff;border:1px solid rgba(201,162,74,.45);border-radius:16px;text-align:center;min-height:300px;box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 0 6px rgba(255,255,255,.04)}
 #stage{position:relative;display:inline-block;vertical-align:top;text-align:left;touch-action:none;user-select:none}
 #stage img{display:block;width:100%;height:auto}
-.empty{padding:60px 20px;text-align:center;color:var(--muted)}
-.mk{position:absolute;transform:translate(-50%,-50%) scale(var(--sc,1));background:var(--bg,#fff);color:var(--tx,#1f2937);border:3px solid var(--bd,#16324f);border-radius:10px;padding:3px 6px;box-shadow:0 2px 6px rgba(0,0,0,.25);text-align:center;min-width:64px;max-width:120px;cursor:pointer}
-.mk.ok{box-shadow:0 0 0 4px rgba(22,163,74,.4),0 2px 6px rgba(0,0,0,.25)}.mk.part{box-shadow:0 0 0 4px rgba(245,158,11,.45),0 2px 6px rgba(0,0,0,.25)}.mk.ng{box-shadow:0 0 0 4px rgba(220,38,38,.5),0 2px 6px rgba(0,0,0,.25);animation:pulse 1.2s infinite}
-.mk.off{opacity:.5;filter:grayscale(1);animation:none;box-shadow:0 2px 6px rgba(0,0,0,.2)}
-.mk.sel{outline:3px dashed var(--gold);outline-offset:4px}.edit .mk{cursor:grab}
-.mk .n{font-size:10px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mk .st{display:flex;gap:3px;justify-content:center;margin-top:2px}
-.mk i{font-style:normal;font-size:10px;font-weight:700;width:18px;height:18px;line-height:18px;border-radius:50%;background:var(--none);color:#fff}
-i.off{background:var(--none);opacity:.6}i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--part)}i.fixed{background:var(--fix)}
-@keyframes pulse{50%{box-shadow:0 0 0 10px rgba(220,38,38,.25),0 2px 6px rgba(0,0,0,.25)}}
-#info{margin-top:10px;font-size:13px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px;min-height:20px}
-.legend{font-size:12px;color:var(--muted);margin:8px 0}.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin:0 3px 0 10px}
-.warn{background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:13px}
+.empty{padding:60px 20px;text-align:center;color:#6b7280}
+.tools{position:absolute;top:12px;right:14px;display:flex;gap:6px;padding:6px;border-radius:14px;background:rgba(10,21,36,.72);border:1px solid var(--line);backdrop-filter:blur(8px);z-index:5}
+.tools button{min-width:34px;height:34px;border-radius:10px;border:1px solid transparent;background:rgba(255,255,255,.08);cursor:pointer;font-weight:700}
+.tools button:hover{background:rgba(255,255,255,.2)}.tools .sep{width:1px;background:var(--line);margin:3px 2px}
+.legend{position:absolute;left:14px;bottom:12px;display:flex;gap:12px;flex-wrap:wrap;padding:7px 14px;border-radius:12px;background:rgba(10,21,36,.74);border:1px solid var(--line);backdrop-filter:blur(8px);font-size:12px;color:#d5e0ec;z-index:5}
+.legend span{display:inline-flex;align-items:center;gap:5px}.legend i{width:11px;height:11px;border-radius:50%;display:inline-block}
+/* ── Markers ── */
+.mk{position:absolute;transform:translate(-50%,-50%) scale(var(--sc,1));background:var(--bg,#fff);color:var(--tx,#1f2937);border:2.5px solid var(--bd,#16324f);border-radius:12px;padding:4px 8px 5px;box-shadow:0 6px 16px rgba(15,33,55,.3);text-align:center;min-width:70px;max-width:130px;cursor:pointer;transition:box-shadow .3s,filter .3s}
+.mk::after{content:'';position:absolute;inset:-5px;border-radius:16px;border:2px solid var(--ring,transparent);opacity:0;pointer-events:none}
+.mk.ok{--ring:var(--ok);box-shadow:0 0 0 3px rgba(34,197,94,.4),0 6px 16px rgba(15,33,55,.3)}
+.mk.part{--ring:var(--part);box-shadow:0 0 0 3px rgba(245,158,11,.45),0 6px 16px rgba(15,33,55,.3)}
+.mk.ng{--ring:var(--ng);box-shadow:0 0 0 3px rgba(239,68,68,.5),0 6px 16px rgba(15,33,55,.3)}
+.mk.ok::after,.mk.part::after,.mk.ng::after{animation:ring 2.6s ease-out infinite}.mk.ng::after{animation-duration:1.2s}
+@keyframes ring{0%{transform:scale(.97);opacity:.85}100%{transform:scale(1.4);opacity:0}}
+.mk.off{opacity:.5;filter:grayscale(1)}
+.mk:hover{filter:brightness(1.05);z-index:3}
+.mk.sel{outline:3px dashed var(--gold);outline-offset:5px}.edit .mk{cursor:grab}
+.mk .n{font-size:10.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mk .st{display:flex;gap:3px;justify-content:center;margin-top:3px}
+.mk i{font-style:normal;font-size:10px;font-weight:700;width:19px;height:19px;line-height:19px;border-radius:50%;background:var(--none);color:#fff}
+i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--part)}i.fixed{background:var(--fix)}i.off{background:var(--none);opacity:.6}
+/* ── Edit bar ── */
+.edit-bar{background:rgba(255,255,255,.07);border:1px dashed var(--gold);border-radius:12px;padding:10px;margin-bottom:10px}
+.edit-bar .bar2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.edit-bar input,.edit-bar select,.edit-bar button,.edit-bar .chip{background:rgba(255,255,255,.1);border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:#fff}
+.edit-bar select option,.edit-bar optgroup{color:#1f2937}
+.edit-bar button{cursor:pointer;font-weight:600}.edit-bar .pri{background:var(--gold);color:#1f2937;border-color:var(--gold)}.edit-bar .dng{color:#fca5a5}
+.edit-bar .hint{font-size:12px;color:#9fb3c8;margin-top:8px}
+#info{margin-top:10px;font-size:13px;background:rgba(255,255,255,.08);border-radius:10px;padding:10px}
 </style>
 </head>
 <body>
-<header>
-  <div><a class="back" href="index.html">‹ กลับแอปหลัก</a><h1 id="ttl">Layout ฝ่ายผลิต</h1><small>สถานะการตรวจ S / M / E ตามตำแหน่งจริงบน Layout</small></div>
-  <div class="bar">
-    <input type="date" id="date">
-    <button id="z-out" type="button" title="ซูมออก">➖</button><button id="z-fit" type="button" title="ปรับให้พอดีจอ">⛶ พอดีจอ</button><button id="z-in" type="button" title="ซูมเข้า">➕</button>
-    <button id="btn-refresh" type="button">🔄 รีเฟรช</button>
-    <button id="btn-edit" type="button">✏️ แก้ไข Layout (Admin)</button>
+<header class="top">
+  <div class="top-full">
+    <div class="r1">
+      <div><a class="back" href="index.html">‹ กลับแอปหลัก</a><h1 id="ttl">Layout ฝ่ายผลิต</h1><div class="sub">สถานะการตรวจ S / M / E แบบเรียลไทม์ ตามตำแหน่งจริงบน Layout</div></div>
+      <div class="clock"><div class="c-time">--:--:--</div><div class="c-date"></div><div class="live"><span class="dot"></span><span id="upd">กำลังโหลด...</span></div></div>
+    </div>
+    <div class="kpis">
+      <div class="kpi ok"><div class="ic">✓</div><div><b id="k-ok">0</b><span>ครบ</span></div></div>
+      <div class="kpi part"><div class="ic">◐</div><div><b id="k-part">0</b><span>กำลังตรวจ</span></div></div>
+      <div class="kpi ng" id="kc-ng"><div class="ic">!</div><div><b id="k-ng">0</b><span>NG</span></div></div>
+      <div class="kpi none"><div class="ic">○</div><div><b id="k-none">0</b><span>ยังไม่ตรวจ</span></div></div>
+      <div class="kpi off" id="kc-off" style="display:none"><div class="ic">⏸</div><div><b id="k-off">0</b><span>ไม่ผลิตวันนี้</span></div></div>
+      <div class="kpi prog"><div class="h"><span>ความคืบหน้า (Line ที่ตรวจครบ)</span><span><b id="k-pct">0</b>%</span></div><div class="bar"><i id="k-bar"></i></div></div>
+    </div>
   </div>
+  <div class="top-mini">
+    <strong id="ttl2">Layout ฝ่ายผลิต</strong>
+    <div class="mini-k"><span><em style="background:var(--ok)"></em>ครบ <b id="m-ok">0</b></span><span><em style="background:var(--part)"></em>กำลังตรวจ <b id="m-part">0</b></span><span><em style="background:var(--ng)"></em>NG <b id="m-ng">0</b></span><span><em style="background:#94a3b8"></em>ยังไม่ตรวจ <b id="m-none">0</b></span></div>
+    <div style="text-align:right"><span class="c-time">--:--:--</span> <span class="c-date"></span></div>
+  </div>
+  <div class="handle"><button class="tg" id="btn-collapse" type="button">▲ ย่อแถบด้านบน</button></div>
 </header>
 <main>
   <div id="warn"></div>
-  <div class="chips" id="chips"></div>
   <div class="edit-bar" id="editbar" style="display:none">
-    <div class="bar">
+    <div class="bar2">
       <input id="e-title" placeholder="ชื่อ Layout" style="width:200px">
       <label class="chip" style="cursor:pointer">🖼️ อัปโหลดรูป Layout<input type="file" id="e-img" accept="image/*" hidden></label>
       <select id="e-part"></select>
@@ -63,17 +120,23 @@ i.off{background:var(--none);opacity:.6}i.ok{background:var(--ok)}i.ng{backgroun
       <button id="e-save" type="button" class="pri">💾 บันทึก</button>
       <button id="e-exit" type="button">ออกจากโหมดแก้ไข</button>
     </div>
-    <div class="bar" id="stbar" style="display:none;margin-top:8px">
+    <div class="bar2" id="stbar" style="display:none;margin-top:8px">
       <span class="chip">🎨 จุดที่เลือก</span>
       <label>ขนาด <input type="range" id="st-s" min="0.6" max="3" step="0.1" style="width:120px;padding:0"> <b id="st-sv"></b></label>
       <label>สีพื้นหลัง <input type="color" id="st-bg" style="padding:0;width:42px;height:30px"></label>
       <label>สีเส้น <input type="color" id="st-bd" style="padding:0;width:42px;height:30px"></label>
       <button id="st-all" type="button">ใช้กับทุกจุด</button><button id="st-reset" type="button">รีเซ็ต</button>
     </div>
-    <div class="legend">1 จุด = 1 Line (รวมทุก Model/Part ใน Line นั้น) · ลากจุดไปวางตามตำแหน่งจริง · กดจุดเพื่อเลือก/ลบ · อย่าลืมกด "บันทึก"</div>
+    <div class="hint">1 จุด = 1 Line (รวมทุก Model/Part ใน Line นั้น) · ลากจุดไปวางตามตำแหน่งจริง · กดจุดเพื่อเลือก/ลบ · อย่าลืมกด "บันทึก"</div>
   </div>
-  <div id="vp"><div id="stage"></div></div>
-  <div class="legend">สัญลักษณ์ S M E:<i style="background:var(--none)"></i>ยังไม่ตรวจ<i style="background:var(--ok)"></i>ผ่าน<i style="background:var(--ng)"></i>NG<i style="background:var(--part)"></i>ตรวจยังไม่ครบ<i style="background:var(--fix)"></i>แก้ไขแล้ว &nbsp;· สีของ S/M/E = สรุปทุก Part ใน Line (มี Part ใด NG = NG)</div>
+  <div id="wrap">
+    <div class="tools">
+      <button id="z-out" type="button" title="ซูมออก">−</button><button id="z-fit" type="button" title="ปรับให้พอดีจอ">⤢</button><button id="z-in" type="button" title="ซูมเข้า">+</button><span class="sep"></span>
+      <button id="btn-refresh" type="button" title="รีเฟรช">↻</button><button id="btn-full" type="button" title="เต็มหน้าจอ">⛶</button><button id="btn-edit" type="button" title="แก้ไข Layout (Admin)">✎</button>
+    </div>
+    <div id="vp"><div id="stage"></div></div>
+    <div class="legend"><span><i style="background:var(--none)"></i>ยังไม่ตรวจ</span><span><i style="background:var(--ok)"></i>ผ่าน</span><span><i style="background:var(--ng)"></i>NG</span><span><i style="background:var(--part)"></i>ตรวจยังไม่ครบ</span><span><i style="background:var(--fix)"></i>แก้ไขแล้ว</span><span style="opacity:.75">· S/M/E = สรุปทุก Part ที่ผลิตใน Line (มี Part ใด NG = NG) · กดจุดเพื่อดูรายละเอียด</span></div>
+  </div>
   <div id="info" style="display:none"></div>
 </main>
 <script>
@@ -82,12 +145,25 @@ const sb=supabase.createClient(SB_URL,SB_KEY);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const STAGES=['S','M','E'];
-let cfg={title:'Layout ฝ่ายผลิต',image:'',markers:[]}, parts={}, groups={}, status={}, edit=false, creds=null, sel=null, tableOk=true, skips=new Set(), skipErr='';
+let cfg={title:'Layout ฝ่ายผลิต',image:'',markers:[]}, parts={}, groups={}, status={}, edit=false, creds=null, sel=null, tableOk=true, skips=new Set(), skipErr='', statusErr='';
 let zoom=1, ratio=0;
-// ปรับขนาดรูปให้พอดีพื้นที่จอ (ไม่ต้องเลื่อนหน้า) แล้วคูณด้วยระดับซูม — จุดบน Layout ใช้ % จึงตามรูปเสมอ
+// Dashboard นี้ดูเฉพาะ "วันนี้" เสมอ (ไม่มีตัวเลือกวันที่) — คำนวณใหม่ทุกครั้งที่รีเฟรช จอ TV ที่เปิดค้างข้ามเที่ยงคืนจึงขึ้นวันใหม่เอง
+const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+
+// ── นาฬิกา วันที่-เวลา (เดินทุกวินาที) ──
+function tick(){
+  const n=new Date();
+  const t=n.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  const wide=!document.body.classList.contains('collapsed');
+  const d=n.toLocaleDateString('th-TH',wide?{weekday:'long',day:'numeric',month:'long',year:'numeric'}:{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  document.querySelectorAll('.c-time').forEach(e=>e.textContent=t);document.querySelectorAll('.c-date').forEach(e=>e.textContent=d);
+}
+setInterval(tick,1000);tick();
+
+// ── ปรับขนาดรูปให้พอดีพื้นที่จอ แล้วคูณระดับซูม — จุดบน Layout ใช้ % จึงตามรูปเสมอ ──
 function fit(){
   const vp=$('vp'),st=$('stage');if(!ratio){st.style.width='100%';return}
-  const top=vp.getBoundingClientRect().top+window.scrollY,h=Math.max(300,window.innerHeight-top-70);
+  const top=vp.getBoundingClientRect().top+window.scrollY,h=Math.max(300,window.innerHeight-top-22);
   vp.style.maxHeight=h+'px';
   const base=Math.min(vp.clientWidth-2,(h-2)*ratio);
   st.style.width=Math.round(base*zoom)+'px';
@@ -95,7 +171,12 @@ function fit(){
 const setZoom=z=>{zoom=Math.min(4,Math.max(1,z));fit()};
 $('z-in').onclick=()=>setZoom(zoom+.5);$('z-out').onclick=()=>setZoom(zoom-.5);$('z-fit').onclick=()=>setZoom(1);
 window.addEventListener('resize',fit);
-const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+// ── ยุบ/ขยายแถบด้านบน (จำค่าไว้ในเครื่อง) ──
+function setCollapsed(c){document.body.classList.toggle('collapsed',c);$('btn-collapse').textContent=c?'▼ ขยายแถบด้านบน':'▲ ย่อแถบด้านบน';try{localStorage.setItem('lay_collapsed',c?'1':'0')}catch(e){}tick();fit()}
+$('btn-collapse').onclick=()=>setCollapsed(!document.body.classList.contains('collapsed'));
+try{if(localStorage.getItem('lay_collapsed')==='1')setCollapsed(true)}catch(e){}
+$('btn-full').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()};
+document.addEventListener('fullscreenchange',()=>setTimeout(fit,150));
 
 async function loadMaster(){
   let [j,l,d]=await Promise.all([sb.from('jigs').select('id,name,line_id'),sb.from('lines').select('id,name,dept_id'),sb.from('departments').select('id,name,section')]);
@@ -121,22 +202,23 @@ function stageStates(rec){
   });
 }
 async function loadStatus(){
-  status={};skips=new Set();skipErr='';
-  // Part ที่มาร์ค "ไม่ได้ผลิต" ของวันที่เลือก (ตาราง jig_skips เดียวกับแอปหลัก) → ตัดออกจากการสรุปสถานะบน Layout
-  const sk=await sb.from('jig_skips').select('jig_id').eq('skip_date',$('date').value);
+  status={};skips=new Set();skipErr='';statusErr='';
+  const date=today();
+  // Part ที่มาร์ค "ไม่ได้ผลิต" วันนี้ (ตาราง jig_skips เดียวกับแอปหลัก) → ตัดออกจากการสรุปสถานะบน Layout
+  const sk=await sb.from('jig_skips').select('jig_id').eq('skip_date',date);
   if(sk.error)skipErr=sk.error.message;else(sk.data||[]).forEach(r=>skips.add(r.jig_id));
-  const {data,error}=await sb.from('history').select('id,jig_id,ts,items').eq('insp_date',$('date').value).order('ts',{ascending:true});
-  if(error){$('warn').innerHTML='<div class="warn">อ่านข้อมูลการตรวจไม่สำเร็จ: '+esc(error.message)+'</div>';return}
+  const {data,error}=await sb.from('history').select('id,jig_id,ts,items').eq('insp_date',date).order('ts',{ascending:true});
+  if(error){statusErr=error.message;return}
   (data||[]).forEach(r=>{status[r.jig_id]=stageStates(r)}); // เรียงเก่า→ใหม่ ตัวสุดท้ายของ Part เดียวกันจะทับ = ชุดล่าสุดของวัน
 }
-// สรุปสถานะของทั้ง Line ต่อ 1 ช่วง (S/M/E): มี Part ใด NG = NG · ทุก Part ผ่าน = ผ่าน · มีบางส่วนตรวจแล้ว = ยังไม่ครบ · ไม่มีใครตรวจ = ยังไม่ตรวจ
+// สรุปสถานะทั้ง Line ต่อ 1 ช่วง: มี Part ใด NG = NG · ทุก Part ผ่าน = ผ่าน · ตรวจบางส่วน = ยังไม่ครบ · ไม่มีใครตรวจ = ยังไม่ตรวจ
 function aggStage(v){
   if(v.includes('ng'))return 'ng';
   if(!v.length||v.every(x=>x==='none'))return 'none';
   if(v.every(x=>x==='ok'||x==='fixed'))return v.includes('fixed')?'fixed':'ok';
   return 'partial';
 }
-const activeParts=deptId=>((groups[deptId]&&groups[deptId].parts)||[]).filter(id=>!skips.has(id)); // เฉพาะ Part ที่ผลิตวันนี้
+const activeParts=deptId=>((groups[deptId]&&groups[deptId].parts)||[]).filter(id=>!skips.has(id));
 function lineStates(deptId){
   const g=groups[deptId],act=activeParts(deptId);
   if(g&&g.parts.length&&!act.length)return ['off','off','off']; // ทุก Part ใน Line ไม่ผลิตวันนี้
@@ -146,7 +228,6 @@ function lineStates(deptId){
 const overall=s=>s&&s.every(x=>x==='off')?'off':!s||s.every(x=>x==='none')?'none':s.includes('ng')?'ng':s.every(x=>x==='ok'||x==='fixed')?'ok':'part';
 const DEF={s:1,bg:'#ffffff',bd:'#16324f'};
 const lum=h=>{const n=parseInt(h.slice(1),16);return .299*(n>>16)+.587*((n>>8)&255)+.114*(n&255)};
-// สไตล์ของจุด: ตำแหน่ง + ขนาด + สีพื้นหลัง + สีเส้น (สีตัวอักษรเลือกขาว/ดำอัตโนมัติตามความสว่างของพื้นหลัง)
 const mkCss=m=>{const bg=m.bg||DEF.bg;return 'left:'+m.x+'%;top:'+m.y+'%;--sc:'+(m.s||1)+';--bg:'+bg+';--bd:'+(m.bd||DEF.bd)+';--tx:'+(lum(bg)>150?'#1f2937':'#fff')};
 function syncStyleBar(){
   const m=cfg.markers.find(x=>x.id===sel);$('stbar').style.display=(edit&&m)?'':'none';if(!m)return;
@@ -158,26 +239,35 @@ function applyStyle(patch,all){
   document.querySelectorAll('.mk').forEach(el=>{const t=cfg.markers.find(x=>x.id===el.dataset.id);if(t)el.style.cssText=mkCss(t)});
   syncStyleBar();
 }
+// ตัวเลขนับขึ้น/ลงแบบนุ่มนวลเมื่อค่าเปลี่ยน
+function setNum(id,v){
+  const el=$(id);if(!el)return;const from=+el.textContent||0;if(from===v){el.textContent=v;return}
+  const t0=performance.now();(function f(t){const k=Math.min(1,(t-t0)/500);el.textContent=Math.round(from+(v-from)*k);if(k<1)requestAnimationFrame(f)})(t0);
+}
 function render(){
-  $('ttl').textContent=cfg.title||'Layout ฝ่ายผลิต';
-  $('warn').innerHTML=(tableOk?'':'<div class="warn">ยังไม่ได้สร้างตาราง layout_config ใน Supabase — ให้รันไฟล์ layout_config.sql ก่อน</div>')+(skipErr?'<div class="warn">อ่านรายการ Part ที่ไม่ผลิตวันนี้ไม่สำเร็จ ('+esc(skipErr)+') — ตัวเลขบน Layout อาจรวม Part ที่ไม่ได้ผลิต</div>':'');
+  const ttl=cfg.title||'Layout ฝ่ายผลิต';$('ttl').textContent=ttl;$('ttl2').textContent=ttl;
+  $('warn').innerHTML=(tableOk?'':'<div class="warn">ยังไม่ได้สร้างตาราง layout_config ใน Supabase — ให้รันไฟล์ layout_config.sql ก่อน</div>')
+    +(statusErr?'<div class="warn">อ่านข้อมูลการตรวจไม่สำเร็จ: '+esc(statusErr)+'</div>':'')
+    +(skipErr?'<div class="warn">อ่านรายการ Part ที่ไม่ผลิตวันนี้ไม่สำเร็จ ('+esc(skipErr)+') — ตัวเลขบน Layout อาจรวม Part ที่ไม่ได้ผลิต</div>':'');
   const st=$('stage');st.className=edit?'edit':'';
-  if(!cfg.image){st.innerHTML='<div class="empty">ยังไม่มีรูป Layout — กด "แก้ไข Layout (Admin)" เพื่ออัปโหลดรูปและวางจุด</div>'}
+  if(!cfg.image){st.innerHTML='<div class="empty">ยังไม่มีรูป Layout — กดปุ่ม ✎ เพื่ออัปโหลดรูปและวางจุด (Admin)</div>'}
   else{st.innerHTML='<img src="'+cfg.image+'" draggable="false">'+cfg.markers.map(m=>{
     const g=groups[m.lineId]||{name:m.lineId},s=lineStates(m.lineId),o=overall(s);
     return '<div class="mk '+o+(sel===m.id?' sel':'')+'" data-id="'+m.id+'" style="'+mkCss(m)+'"><div class="n">'+esc(g.name)+'</div><div class="st">'+STAGES.map((l,i)=>'<i class="'+s[i]+'">'+l+'</i>').join('')+'</div></div>'}).join('')}
   syncStyleBar();
   const im=st.querySelector('img');if(im){const f=()=>{ratio=im.naturalWidth/im.naturalHeight;fit()};im.complete&&im.naturalWidth?f():im.onload=f}
   const c={ok:0,part:0,ng:0,none:0,off:0};cfg.markers.forEach(m=>c[overall(lineStates(m.lineId))]++);
-  $('chips').innerHTML='<span class="chip">✅ ครบ '+c.ok+'</span><span class="chip">🟡 กำลังตรวจ '+c.part+'</span><span class="chip">🔴 NG '+c.ng+'</span><span class="chip">⚪ ยังไม่ตรวจ '+c.none+'</span>'+(c.off?'<span class="chip">⏸ ไม่ผลิตวันนี้ '+c.off+'</span>':'');
+  ['ok','part','ng','none','off'].forEach(k=>{setNum('k-'+k,c[k]);if($('m-'+k))setNum('m-'+k,c[k])});
+  $('kc-off').style.display=c.off?'':'none';$('kc-ng').classList.toggle('hot',c.ng>0);
+  const tot=c.ok+c.part+c.ng+c.none,pct=tot?Math.round(c.ok/tot*100):0;
+  setNum('k-pct',pct);$('k-bar').style.width=pct+'%';
   const used=new Set(cfg.markers.map(m=>m.lineId)),by={};
   Object.entries(groups).filter(([id])=>!used.has(id)).forEach(([id,g])=>{(by[g.section||'ไม่ระบุแผนก']=by[g.section||'ไม่ระบุแผนก']||[]).push([id,g.name+' ('+g.parts.length+' Part)'])});
   $('e-part').innerHTML='<option value="">เลือก Line ที่จะวาง...</option>'+Object.entries(by).map(([k,a])=>'<optgroup label="แผนก: '+esc(k)+'">'+a.map(([id,n])=>'<option value="'+esc(id)+'">'+esc(n)+'</option>').join('')+'</optgroup>').join('');
 }
 // ── คลิก/ลากจุด ──
 $('stage').addEventListener('pointerdown',e=>{
-  const el=e.target.closest('.mk');if(!el)return;
-  if(!edit)return;
+  const el=e.target.closest('.mk');if(!el||!edit)return;
   sel=el.dataset.id;syncStyleBar();
   document.querySelectorAll('.mk').forEach(x=>x.classList.toggle('sel',x===el));
   const m=cfg.markers.find(x=>x.id===sel),r=$('stage').getBoundingClientRect();
@@ -190,7 +280,7 @@ $('stage').addEventListener('pointerdown',e=>{
 $('stage').addEventListener('click',e=>{
   if(edit)return;const el=e.target.closest('.mk');if(!el)return;
   const m=cfg.markers.find(x=>x.id===el.dataset.id);if(!m)return;
-  window.open('line.html?line='+encodeURIComponent(m.lineId)+'&date='+$('date').value,'_blank'); // เปิดแท็บใหม่ — หน้า Layout (จอ TV) ยังรีเฟรชต่อเองได้
+  window.open('line.html?line='+encodeURIComponent(m.lineId)+'&date='+today(),'_blank');
 });
 // ── โหมดแก้ไข (ต้องล็อกอิน Admin) ──
 async function enterEdit(){
@@ -204,11 +294,11 @@ async function enterEdit(){
 }
 $('btn-edit').onclick=enterEdit;
 $('e-exit').onclick=()=>{edit=false;$('info').style.display='none';$('editbar').style.display='none';render();fit()};
-$('e-title').oninput=e=>{cfg.title=e.target.value;$('ttl').textContent=cfg.title};
+$('e-title').oninput=e=>{cfg.title=e.target.value;$('ttl').textContent=cfg.title;$('ttl2').textContent=cfg.title};
 $('e-add').onclick=()=>{
   const id=$('e-part').value;if(!id){alert('เลือก Line ก่อนค่ะ');return}
   if(!cfg.image){alert('อัปโหลดรูป Layout ก่อนค่ะ');return}
-  const last=cfg.markers[cfg.markers.length-1],m={id:'m'+Date.now(),lineId:id,x:50,y:50};if(last)Object.assign(m,{s:last.s,bg:last.bg,bd:last.bd}); // จุดใหม่ใช้สไตล์เดียวกับจุดก่อนหน้า
+  const last=cfg.markers[cfg.markers.length-1],m={id:'m'+Date.now(),lineId:id,x:50,y:50};if(last)Object.assign(m,{s:last.s,bg:last.bg,bd:last.bd});
   cfg.markers.push(m);sel=m.id;render();
 };
 $('st-s').oninput=e=>applyStyle({s:+e.target.value});
@@ -217,8 +307,7 @@ $('st-bd').oninput=e=>applyStyle({bd:e.target.value});
 $('st-all').onclick=()=>{const m=cfg.markers.find(x=>x.id===sel);if(m)applyStyle({s:m.s||1,bg:m.bg||DEF.bg,bd:m.bd||DEF.bd},true)};
 $('st-reset').onclick=()=>applyStyle({s:1,bg:DEF.bg,bd:DEF.bd});
 $('e-del').onclick=()=>{if(!sel)return;cfg.markers=cfg.markers.filter(m=>m.id!==sel);sel=null;render()};
-// ปรับรูปอัตโนมัติ: เริ่มจากขนาดใหญ่สุด 3000px ลองแบบไม่สูญเสียคุณภาพ (PNG — ภาพเส้น/CAD คมที่สุดและมักไฟล์เล็ก)
-// ถ้าไฟล์ใหญ่เกินกำหนดค่อยใช้ WebP คุณภาพ 92% แล้วลดขนาดลงทีละขั้น จนได้ขนาดที่คมที่สุดภายในงบไฟล์
+// ปรับรูปอัตโนมัติ: เริ่มจาก 3000px แบบไม่สูญเสียคุณภาพ (PNG) ถ้าไฟล์ใหญ่เกินงบค่อยใช้ WebP 92% แล้วลดขนาดทีละขั้น
 function optimizeImage(img){
   const BUDGET=1600000;let out=null;
   for(const maxD of [3000,2400,2000,1600,1200]){
@@ -244,10 +333,13 @@ $('e-save').onclick=async()=>{
   if(!ok){creds=null;alert('รหัสผ่าน Admin ไม่ถูกต้อง');return}
   alert('บันทึก Layout เรียบร้อย ✅');
 };
-async function refresh(){await loadStatus();render()}
-$('date').value=new URLSearchParams(location.search).get('date')||today();$('date').onchange=refresh;$('btn-refresh').onclick=refresh;
+async function refresh(){
+  await loadStatus();render();
+  $('upd').textContent='อัปเดตล่าสุด '+new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})+' · รีเฟรชอัตโนมัติทุก 1 นาที';
+}
+$('btn-refresh').onclick=refresh;
 setInterval(()=>{if(!edit)refresh()},60000); // รีเฟรชอัตโนมัติทุก 1 นาที (เหมาะกับจอ TV)
-(async()=>{await loadMaster();await loadStatus();render();if(new URLSearchParams(location.search).get('edit')==='1')enterEdit()})();
+(async()=>{await loadMaster();await refresh();if(new URLSearchParams(location.search).get('edit')==='1')enterEdit()})();
 </script>
 </body>
 </html>
