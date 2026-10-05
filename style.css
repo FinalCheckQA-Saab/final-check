@@ -2885,3 +2885,145 @@ body.sidebar-collapsed .sidebar-nav a.side-nav-item { justify-content: center; p
 .cp-text .rs-r { cursor: ew-resize; } .cp-text .rs-b { cursor: ns-resize; } .cp-text .rs-rb { cursor: nwse-resize; }
 .arrow-swatch.none { background: linear-gradient(135deg, #fff 44%, #e03131 44% 56%, #fff 56%); }
 .btn-sec.hidden { display: none; }
+
+/* ═══════════════════════════════════════════════════════════
+   🎨 COLOR PALETTES — 10 ชุดสี (เลือกได้ที่ Admin Panel)
+   ใช้คู่กับโหมดสว่าง/มืดเดิม: html[data-palette="..."] ทับค่า brand + accent
+   ═══════════════════════════════════════════════════════════ */
+html[data-palette="ocean"] {
+  --brand-navy-900: #0f2433; --brand-navy-800: #19374d; --brand-navy-700: #244760; --brand-navy-600: #3a6788;
+  --brand-gold: #e0a030; --brand-gold-dim: hsla(38, 74%, 53%, 0.16);
+}
+html[data-palette="ocean"][data-theme="light"] {
+  --accent: #1f72ad; --accent-hover: #185886; --accent-dim: hsla(205, 70%, 40%, 0.1);
+  --chip-active-bg: hsla(205, 70%, 46%, 0.1); --chip-active-bdr: #1f72ad;
+  --text-heading: #244760;
+}
+html[data-palette="ocean"][data-theme="dark"] {
+  --accent: #5aa9e2; --accent-hover: #86c0ea; --accent-dim: hsla(205, 70%, 62%, 0.16);
+  --chip-active-bg: hsla(205, 70%, 55%, 0.2); --chip-active-bdr: #49a0df;
+}
+html[data-palette="emerald"] {
+  --brand-navy-900: #103226; --brand-navy-800: #1b4b39; --brand-navy-700: #265f4a; --brand-navy-600: #3c866b;
+  --brand-gold: #d4af4a; --brand-gold-dim: hsla(44, 62%, 56%, 0.16);
+}
+html[data-palette="emerald"][data-theme="light"] {
+  --accent: #27a577; --accent-hover: #1e805c; --accent-dim: hsla(158, 62%, 40%, 0.1);
+  --chip-active-bg: hsla(158, 62%, 46%, 0.1); --chip-active-bdr: #27a577;
+  --text-heading: #265f4a;
+}
+html[data-palette="emerald"][data-theme="dark"] {
+  --accent: #62daae; --accent-hover: #8be4c3; --accent-dim: hsla(158, 62%, 62%, 0.16);
+  --chip-active-bg: hsla(158, 62%, 55%, 0.2); --chip-active-bdr: #51d6a6;
+}
+html[data-palette="teal"] {
+  --brand-navy-900: #103032; --brand-navy-800: #1b484b; --brand-navy-700: #265b5f; --brand-navy-600: #3c8186;
+  --brand-gold: #f08a5d; --brand-gold-dim: hsla(18, 83%, 65%, 0.16);
+}
+html[data-palette="teal"][data-theme="light"] {
+  --accent: #21a2ab; --accent-hover: #197e85; --accent-dim: hsla(184, 68%, 40%, 0.1);
+  --chip-active-bg: hsla(184, 68%, 46%, 0.1); --chip-active-bdr: #21a2ab;
+  --text-heading: #265b5f;
+}
+html[data-palette="teal"][data-theme="dark"] {
+  --accent: #5cd7e0; --accent-hover: #87e2e8; --accent-dim: hsla(184, 68%, 62%, 0.16);
+  --chip-active-bg: hsla(184, 68%, 55%, 0.2); --chip-active-bdr: #4bd3dd;
+}
+html[data-palette="purple"] {
+  --brand-navy-900: #1f1132; --brand-navy-800: #301c4a; --brand-navy-700: #3f275d; --brand-navy-600: #5c3e84;
+  --brand-gold: #e0b04a; --brand-gold-dim: hsla(41, 71%, 58%, 0.16);
+}
+html[data-palette="purple"][data-theme="light"] {
+  --accent: #5f2e9e; --accent-hover: #49247b; --accent-dim: hsla(266, 55%, 40%, 0.1);
+  --chip-active-bg: hsla(266, 55%, 46%, 0.1); --chip-active-bdr: #5f2e9e;
+  --text-heading: #3f275d;
+}
+html[data-palette="purple"][data-theme="dark"] {
+  --accent: #9769d3; --accent-hover: #b290df; --accent-dim: hsla(266, 55%, 62%, 0.16);
+  --chip-active-bg: hsla(266, 55%, 55%, 0.2); --chip-active-bdr: #8c59cf;
+}
+html[data-palette="crimson"] {
+  --brand-navy-900: #321016; --brand-navy-800: #4b1b23; --brand-navy-700: #5f262f; --brand-navy-600: #863c48;
+  --brand-gold: #e0b04a; --brand-gold-dim: hsla(41, 71%, 58%, 0.16);
+}
+html[data-palette="crimson"][data-theme="light"] {
+  --accent: #a5273c; --accent-hover: #801e2e; --accent-dim: hsla(350, 62%, 40%, 0.1);
+  --chip-active-bg: hsla(350, 62%, 46%, 0.1); --chip-active-bdr: #a5273c;
+  --text-heading: #5f262f;
+}
+html[data-palette="crimson"][data-theme="dark"] {
+  --accent: #da6276; --accent-hover: #e48b9a; --accent-dim: hsla(350, 62%, 62%, 0.16);
+  --chip-active-bg: hsla(350, 62%, 55%, 0.2); --chip-active-bdr: #d65168;
+}
+html[data-palette="orange"] {
+  --brand-navy-900: #331c0f; --brand-navy-800: #4d2c19; --brand-navy-700: #603a24; --brand-navy-600: #88573a;
+  --brand-gold: #f4c04e; --brand-gold-dim: hsla(41, 88%, 63%, 0.16);
+}
+html[data-palette="orange"][data-theme="light"] {
+  --accent: #b65116; --accent-hover: #8d3f11; --accent-dim: hsla(22, 78%, 40%, 0.1);
+  --chip-active-bg: hsla(22, 78%, 46%, 0.1); --chip-active-bdr: #b65116;
+  --text-heading: #603a24;
+}
+html[data-palette="orange"][data-theme="dark"] {
+  --accent: #ea8a53; --accent-hover: #efa980; --accent-dim: hsla(22, 78%, 62%, 0.16);
+  --chip-active-bg: hsla(22, 78%, 55%, 0.2); --chip-active-bdr: #e77e40;
+}
+html[data-palette="rose"] {
+  --brand-navy-900: #311220; --brand-navy-800: #491d32; --brand-navy-700: #5c2941; --brand-navy-600: #82405f;
+  --brand-gold: #e8b27a; --brand-gold-dim: hsla(31, 71%, 69%, 0.16);
+}
+html[data-palette="rose"][data-theme="light"] {
+  --accent: #a32962; --accent-hover: #7e204c; --accent-dim: hsla(332, 60%, 40%, 0.1);
+  --chip-active-bg: hsla(332, 60%, 46%, 0.1); --chip-active-bdr: #a32962;
+  --text-heading: #5c2941;
+}
+html[data-palette="rose"][data-theme="dark"] {
+  --accent: #d8649a; --accent-hover: #e28db5; --accent-dim: hsla(332, 60%, 62%, 0.16);
+  --chip-active-bg: hsla(332, 60%, 55%, 0.2); --chip-active-bdr: #d45490;
+}
+html[data-palette="graphite"] {
+  --brand-navy-900: #1d2025; --brand-navy-800: #2d3239; --brand-navy-700: #3c4149; --brand-navy-600: #585f69;
+  --brand-gold: #d4af5a; --brand-gold-dim: hsla(42, 59%, 59%, 0.16);
+}
+html[data-palette="graphite"][data-theme="light"] {
+  --accent: #456487; --accent-hover: #364d68; --accent-dim: hsla(212, 32%, 40%, 0.1);
+  --chip-active-bg: hsla(212, 32%, 46%, 0.1); --chip-active-bdr: #456487;
+  --text-heading: #3c4149;
+}
+html[data-palette="graphite"][data-theme="dark"] {
+  --accent: #7f9cbd; --accent-hover: #a1b6ce; --accent-dim: hsla(212, 32%, 62%, 0.16);
+  --chip-active-bg: hsla(212, 32%, 55%, 0.2); --chip-active-bdr: #7292b6;
+}
+html[data-palette="coffee"] {
+  --brand-navy-900: #2c2016; --brand-navy-800: #423224; --brand-navy-700: #544130; --brand-navy-600: #785f4a;
+  --brand-gold: #e0b060; --brand-gold-dim: hsla(38, 67%, 63%, 0.16);
+}
+html[data-palette="coffee"][data-theme="light"] {
+  --accent: #a1622b; --accent-hover: #7d4c21; --accent-dim: hsla(28, 58%, 40%, 0.1);
+  --chip-active-bg: hsla(28, 58%, 46%, 0.1); --chip-active-bdr: #a1622b;
+  --text-heading: #544130;
+}
+html[data-palette="coffee"][data-theme="dark"] {
+  --accent: #d69a66; --accent-hover: #e1b58e; --accent-dim: hsla(28, 58%, 62%, 0.16);
+  --chip-active-bg: hsla(28, 58%, 55%, 0.2); --chip-active-bdr: #d29056;
+}
+
+/* ── ตัวเลือกสีใน Admin Panel ── */
+.palette-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.palette-card {
+  position: relative; display: flex; flex-direction: column; gap: 6px; text-align: left;
+  padding: 8px; border-radius: 10px; cursor: pointer; font-family: inherit;
+  background: var(--bg-input); border: 2px solid var(--border-input); color: var(--text-main);
+  transition: border-color .15s, transform .15s, box-shadow .15s;
+}
+.palette-card:hover { transform: translateY(-1px); border-color: var(--accent); }
+.palette-card.active { border-color: var(--brand-gold); box-shadow: 0 0 0 3px var(--brand-gold-dim); }
+.palette-swatch { display: flex; height: 26px; border-radius: 6px; overflow: hidden; border: 1px solid hsla(0,0%,50%,.25); }
+.palette-swatch i { flex: 1; display: block; }
+.palette-swatch i:first-child { flex: 2; }
+.palette-name { font-size: 12px; font-weight: 600; line-height: 1.3; }
+.palette-card.active::after {
+  content: "✓"; position: absolute; top: 6px; right: 8px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--brand-gold); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center;
+}
+

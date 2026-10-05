@@ -18,6 +18,11 @@
         if (saved === 'dark' || saved === 'light') {
           document.documentElement.setAttribute('data-theme', saved);
         }
+        // สีธีม (10 ชุด) — ใช้ชุดที่ตั้งไว้ล่าสุดทันที ก่อนหน้า render ไม่ให้สีกระพริบ
+        var pal = localStorage.getItem('fc_palette');
+        if (pal && /^[a-z]+$/.test(pal) && pal !== 'default') {
+          document.documentElement.setAttribute('data-palette', pal);
+        }
       } catch (e) { /* localStorage ไม่พร้อมใช้งาน — ใช้ค่าเริ่มต้น */ }
     })();
   </script>
@@ -39,7 +44,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- ⚠️ CACHE-BUST: เบราว์เซอร์/PWA มัก cache ไฟล์ .css ค้างไว้นานผิดปกติ (เหมือน app.js ด้านล่าง)
        เพิ่ม ?v= ให้บังคับโหลดไฟล์ใหม่ทุกครั้งที่แก้ style.css — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ style.css -->
-  <link rel="stylesheet" href="style.css?v=fc-po1">
+  <link rel="stylesheet" href="style.css?v=fc-pal1">
 </head>
 <body>
 
@@ -639,6 +644,18 @@
       </div>
     </div>
     
+    <!-- 🎨 สีธีมของระบบ (10 ชุด) -->
+    <div class="admin-section" id="adm-palette-section">
+      <div class="admin-section-title">🎨 สีธีมของระบบ (10 แบบ)</div>
+      <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+        แตะเพื่อดูตัวอย่างสีทันที แล้วกด "บันทึกให้ทุกเครื่อง" — ทุกเครื่องจะเปลี่ยนตามเมื่อเปิดหรือรีเฟรชหน้า (ใช้ร่วมกับโหมดสว่าง/มืดได้)
+      </div>
+      <div class="palette-grid" id="adm-palette-grid"></div>
+      <div class="admin-input-row">
+        <button class="btn-adm-add" id="btn-palette-save" style="width:100%;">💾 บันทึกให้ทุกเครื่อง</button>
+      </div>
+    </div>
+
     <!-- Change Password -->
     <div class="admin-section">
       <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> เปลี่ยนรหัสผ่าน Admin</div>
@@ -1104,7 +1121,7 @@
 <!-- 🆕 ใส่เลขเวอร์ชันต่อท้าย ?v=... เพื่อบังคับให้เบราว์เซอร์ (โดยเฉพาะ Safari บน iPhone ซึ่งแคชไฟล์ .js
      ค้างนานผิดปกติ) โหลด app.js ก้อนใหม่ทุกครั้งที่มีการอัปเดตโค้ด — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ app.js
      แล้ว push ขึ้นใหม่ ไม่งั้นเครื่องที่เคยเข้าเว็บมาก่อนจะยังใช้ไฟล์เก่าจากแคชอยู่ -->
-<script src="app.js?v=fc-po1"></script>
+<script src="app.js?v=fc-pal1"></script>
 <script>
 (function () {
   var collapseBtn = document.getElementById('sidebar-collapse-toggle');

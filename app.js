@@ -837,6 +837,7 @@
         if (row.key === 'rev_level') appSettings.revLevel = row.value;          // Rev. No. ของ "เนื้อหา" (เพิ่ม/ลบ/แก้ไขจุดตรวจ)
         if (row.key === 'rev_date') appSettings.revDate = row.value;            // Rev. Date คู่กับ Rev. No. เนื้อหา
         if (row.key === 'issue_date') appSettings.issueDate = row.value;        // Issued Form — วันออกฟอร์มครั้งแรก (คงที่)
+        if (row.key === 'theme_palette' && row.value) { applyPalette(row.value); try { localStorage.setItem(PALETTE_KEY, row.value); } catch (e) { /* ignore */ } _palettePending = row.value; renderPaletteGrid(); } // 🎨 สีธีมกลางทั้งระบบ
         if (row.key === 'company_name_th') appSettings.companyNameTh = row.value; // 🆕 ชื่อบริษัทไทย (PDF header) — เว้นว่าง = ใช้ DEFAULT_COMPANY_NAME_TH
         if (row.key === 'company_name_en') appSettings.companyNameEn = row.value; // 🆕 ชื่อบริษัทอังกฤษ (PDF header) — เว้นว่าง = ใช้ DEFAULT_COMPANY_NAME_EN
         if (row.key === 'company_logo')    appSettings.companyLogo   = row.value; // 🆕 โลโก้บริษัท base64 — เว้นว่าง = ใช้ SUMMIT_LOGO_B64 เดิม
@@ -1660,6 +1661,7 @@
     bindJigSearch();
     bindThemeToggle();
     bindAdminPanel();
+    bindPalettePanel();          // 🎨 เลือกสีธีม 10 ชุด (Admin Panel)
     bindUncheckedLinesPanel();   // 🆕 Model ที่ไม่มีการตรวจเช็คในแต่ละวัน (Admin Panel)
     bindHolidayCalendarPanel();  // 🆕 ปฏิทินวันหยุด (Admin Panel)
     bindActionButtons();
@@ -5835,6 +5837,74 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       document.querySelectorAll('.svg-pt').forEach(p => p.classList.remove('active'));
       g.classList.add('active');
     });
+  }
+
+  /* ══════════════════════════════════════
+     🎨 COLOR PALETTE (10 ชุดสี) — เลือกที่ Admin Panel
+     • คลิกชุดสี = ดูตัวอย่างทันที (จำในเครื่องนี้)
+     • "บันทึกให้ทุกเครื่อง" = เก็บ key 'theme_palette' ใน app_settings ผ่าน RPC save_app_theme (ต้องรัน add_theme_palette.sql)
+     • ทุกเครื่องอ่านค่านี้ตอนเปิดแอป (pullAppSettingsFromSupabase)
+  ══════════════════════════════════════ */
+  const PALETTE_KEY = 'fc_palette';
+  const PALETTES = [{"id": "default", "name": "กรมท่า–ทอง (ค่าเริ่มต้น)", "c": ["#1e3a5f", "#2f6fd1", "#b8903a"], "bar": "#16324f"}, {"id": "ocean", "name": "ฟ้าคราม", "c": ["#244760", "#1f72ad", "#e0a030"], "bar": "#19374d"}, {"id": "emerald", "name": "เขียวมรกต", "c": ["#265f4a", "#27a577", "#d4af4a"], "bar": "#1b4b39"}, {"id": "teal", "name": "ฟ้าอมเขียว", "c": ["#265b5f", "#21a2ab", "#f08a5d"], "bar": "#1b484b"}, {"id": "purple", "name": "ม่วงราชวงศ์", "c": ["#3f275d", "#5f2e9e", "#e0b04a"], "bar": "#301c4a"}, {"id": "crimson", "name": "แดงเลือดหมู", "c": ["#5f262f", "#a5273c", "#e0b04a"], "bar": "#4b1b23"}, {"id": "orange", "name": "ส้มพระอาทิตย์", "c": ["#603a24", "#b65116", "#f4c04e"], "bar": "#4d2c19"}, {"id": "rose", "name": "ชมพูกุหลาบ", "c": ["#5c2941", "#a32962", "#e8b27a"], "bar": "#491d32"}, {"id": "graphite", "name": "เทากราไฟต์", "c": ["#3c4149", "#456487", "#d4af5a"], "bar": "#2d3239"}, {"id": "coffee", "name": "น้ำตาลกาแฟ", "c": ["#544130", "#a1622b", "#e0b060"], "bar": "#423224"}];
+  let _palettePending = null;
+
+  function currentPaletteId() {
+    const a = document.documentElement.getAttribute('data-palette');
+    return PALETTES.some(p => p.id === a) ? a : 'default';
+  }
+  function applyPalette(id) {
+    const p = PALETTES.find(x => x.id === id) || PALETTES[0];
+    const el = document.documentElement;
+    if (p.id === 'default') el.removeAttribute('data-palette'); else el.setAttribute('data-palette', p.id);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', p.bar);
+  }
+  function renderPaletteGrid() {
+    const grid = $('adm-palette-grid');
+    if (!grid) return;
+    const cur = currentPaletteId();
+    grid.innerHTML = PALETTES.map(p => `
+      <button type="button" class="palette-card ${p.id === cur ? 'active' : ''}" data-pal="${p.id}" title="${escHtml(p.name)}">
+        <span class="palette-swatch">${p.c.map(c => `<i style="background:${c}"></i>`).join('')}</span>
+        <span class="palette-name">${escHtml(p.name)}</span>
+      </button>`).join('');
+  }
+  async function savePaletteToSupabase() {
+    if (!sb) { toast('ไม่ได้เชื่อมต่อ Supabase — ใช้สีนี้เฉพาะเครื่องนี้', 'ng'); return; }
+    const pass = getAdminPass();
+    if (!pass) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อบันทึก', 'ng'); return; }
+    const btn = $('btn-palette-save');
+    if (btn) btn.disabled = true;
+    try {
+      const { data: ok, error } = await sb.rpc('save_app_theme', {
+        p_username: localStorage.getItem('fc_admin_user') || 'admin',
+        p_password: pass,
+        p_palette: currentPaletteId(),
+      });
+      if (error) throw error;
+      if (!ok) { _adminSessionPass = null; toast('รหัสผ่าน Admin ไม่ถูกต้อง — บันทึกไม่สำเร็จ', 'ng'); return; }
+      _palettePending = currentPaletteId();
+      toast('✅ บันทึกสีธีมแล้ว — ทุกเครื่องจะเปลี่ยนตามเมื่อเปิดหรือรีเฟรชหน้า', 'ok');
+    } catch (e) {
+      console.error('savePaletteToSupabase error:', e);
+      toast('บันทึกลงระบบกลางไม่สำเร็จ — ตอนนี้ใช้สีนี้เฉพาะเครื่องนี้ (ตรวจว่ารัน add_theme_palette.sql ใน Supabase แล้ว)', 'ng');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+  function bindPalettePanel() {
+    renderPaletteGrid();
+    const grid = $('adm-palette-grid');
+    if (grid) grid.addEventListener('click', e => {
+      const card = e.target.closest('.palette-card');
+      if (!card) return;
+      applyPalette(card.dataset.pal);
+      try { localStorage.setItem(PALETTE_KEY, card.dataset.pal); } catch (err) { /* ignore */ }
+      renderPaletteGrid();
+    });
+    const save = $('btn-palette-save');
+    if (save) save.addEventListener('click', savePaletteToSupabase);
   }
 
   /* ══════════════════════════════════════
