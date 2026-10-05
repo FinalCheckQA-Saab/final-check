@@ -58,6 +58,12 @@ main{padding:12px 20px 14px}
 .tools{position:absolute;top:12px;right:14px;display:flex;gap:6px;padding:6px;border-radius:14px;background:rgba(10,21,36,.72);border:1px solid var(--line);backdrop-filter:blur(8px);z-index:5}
 .tools button{min-width:34px;height:34px;border-radius:10px;border:1px solid transparent;background:rgba(255,255,255,.08);cursor:pointer;font-weight:700}
 .tools button:hover{background:rgba(255,255,255,.2)}.tools .sep{width:1px;background:var(--line);margin:3px 2px}
+.tools .tb{display:flex;gap:6px}
+.tools .tb-tg{display:grid;place-items:center;padding:0}
+.tools .tb-tg svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.tools .tb-tg .ic-open{display:none}
+.tools.min{padding:5px}.tools.min .tb{display:none}.tools.min .tb-tg .ic-open{display:block}.tools.min .tb-tg .ic-close{display:none}
+.tools .tb-tg{background:transparent;border-color:var(--line)}
 .legend{position:absolute;left:14px;bottom:12px;display:flex;gap:12px;flex-wrap:wrap;padding:7px 14px;border-radius:12px;background:rgba(10,21,36,.74);border:1px solid var(--line);backdrop-filter:blur(8px);font-size:12px;color:#d5e0ec;z-index:5}
 .legend{align-items:center}.legend .lgb{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 #leg-tg{cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.1);border-radius:9px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap}#leg-tg:hover{background:rgba(255,255,255,.2)}
@@ -154,9 +160,15 @@ i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--p
     <div class="hint">1 จุด = 1 Line (รวมทุก Model/Part ใน Line นั้น) · ลากจุดไปวางตามตำแหน่งจริง · กดจุดเพื่อเลือก/ลบ · อย่าลืมกด "บันทึก"</div>
   </div>
   <div id="wrap">
-    <div class="tools">
+    <div class="tools" id="tools">
+      <div class="tb" id="tools-body">
       <button id="z-out" type="button" title="ซูมออก">−</button><button id="z-fit" type="button" title="ปรับให้พอดีจอ">⤢</button><button id="z-in" type="button" title="ซูมเข้า">+</button><span class="sep"></span>
       <button id="btn-refresh" type="button" title="รีเฟรช">↻</button><button id="btn-full" type="button" title="เต็มหน้าจอ">⛶</button><button id="btn-edit" type="button" title="แก้ไข Layout (Admin)">✎</button>
+      </div>
+      <button id="tools-tg" class="tb-tg" type="button" title="ย่อแถบเครื่องมือ" aria-label="ย่อ/ขยายแถบเครื่องมือ" aria-expanded="true">
+        <svg class="ic-close" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
+        <svg class="ic-open" viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.4" fill="currentColor"/><circle cx="15" cy="17" r="2.4" fill="currentColor"/></svg>
+      </button>
     </div>
     <div id="vp"><div id="stage"></div></div>
     <div class="legend" id="legend"><button id="leg-tg" type="button" title="ย่อ/ขยายสัญลักษณ์">ⓘ สัญลักษณ์ ◂</button><div class="lgb"><span><i style="background:var(--none)"></i>ยังไม่ตรวจ</span><span><i style="background:var(--ok)"></i>ผ่าน</span><span><i style="background:var(--ng)"></i>NG</span><span><i style="background:var(--part)"></i>ตรวจยังไม่ครบ</span><span style="opacity:.75">· S/M/E = สรุปทุก Part ที่ผลิตใน Line (มี Part ใด NG = NG) · กดจุดเพื่อดูรายละเอียด</span></div></div>
@@ -236,6 +248,10 @@ $('btn-collapse').onclick=()=>setCollapsed(!document.body.classList.contains('co
 try{if(localStorage.getItem('lay_collapsed')==='1')setCollapsed(true)}catch(e){}
 function setLegend(min){$('legend').classList.toggle('min',min);$('leg-tg').textContent=min?'ⓘ สัญลักษณ์ ▸':'ⓘ สัญลักษณ์ ◂';try{localStorage.setItem('lay_legend_min',min?'1':'0')}catch(e){}}
 $('leg-tg').onclick=()=>setLegend(!$('legend').classList.contains('min'));
+// ย่อ/ขยายแถบเครื่องมือซูม (จำค่าไว้ในเครื่อง)
+function setTools(min){const t=$('tools');t.classList.toggle('min',min);const b=$('tools-tg');b.title=min?'ขยายแถบเครื่องมือ':'ย่อแถบเครื่องมือ';b.setAttribute('aria-expanded',String(!min));try{localStorage.setItem('lay_tools_min',min?'1':'0')}catch(e){}}
+$('tools-tg').onclick=()=>setTools(!$('tools').classList.contains('min'));
+try{if(localStorage.getItem('lay_tools_min')==='1')setTools(true)}catch(e){}
 try{if(localStorage.getItem('lay_legend_min')==='1')setLegend(true)}catch(e){}
 $('btn-full').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()};
 document.addEventListener('fullscreenchange',()=>setTimeout(fit,150));
