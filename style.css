@@ -525,6 +525,10 @@ h1, h2, h3, h4, label, button, input, select, textarea, p, span, div {
    Meta Form
 ───────────────────────────── */
 .meta-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+.meta-grid .fg-wide { grid-column: 1 / -1; }
+.form-group .req { color: #dc2626; font-weight: 700; }
+#inp-prod-order { font-weight: 600; letter-spacing: .3px; }
+#inp-prod-order:disabled { opacity: .75; cursor: not-allowed; }
 .form-group label {
   display: block; font-size: 11px;
   color: var(--text-muted); margin-bottom: 3px; font-weight: 500;
@@ -2393,7 +2397,8 @@ h1, h2, h3, h4, label, button, input, select, textarea, p, span, div {
 /* ─── TRACEABILITY / META ROW ───────────────────────────── */
 .pdf-meta-block {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr; /* 4 ช่อง (รายการเก่า) หรือ 5 ช่อง (มี Production Order) */
   border-bottom: 1px solid #cbd5e1;
   background: #f8fafc;
 }

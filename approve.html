@@ -584,6 +584,7 @@
           <div><span>เวลา:</span> ${esc(time)}</div>
           <div><span>กะ:</span> ${esc(row.shift || '-')}</div>
           <div><span>ผู้ตรวจ:</span> ${esc(row.inspector)}</div>
+          <div style="grid-column:1/-1"><span>Production Order:</span> <strong>${esc(row.production_order || '-')}</strong></div>
         </div>
 
         <span class="status-badge status-${stage.key}">${stage.label}</span>
@@ -766,6 +767,7 @@ ${esc(row.jig_id || '')}
 ${row.jig_doc_no ? `_${esc(row.jig_doc_no)}_` : ''}
 
 📅 วันที่ตรวจ: ${esc(row.insp_date)} เวลา ${esc(time)}
+🏷 Production Order: ${esc(row.production_order || '-')}
 👤 ผู้ตรวจ: ${esc(row.inspector)}
 🔍 จุดเช็คทั้งหมด: ${items.length} จุด
 ✅ ผ่าน (OK): ${okCount}${ngCount > 0 ? `  ❌ ไม่ผ่าน (NG): ${ngCount}` : ''}

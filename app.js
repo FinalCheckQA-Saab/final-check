@@ -305,6 +305,7 @@
         line_id: h.lineId, line_name: h.lineName,
         jig_id: h.jigId, jig_name: h.jigName, jig_doc_no: h.jigDocNo,
         insp_date: h.date, shift: h.shift, month: h.month,
+        production_order: h.productionOrder || null, // ต้องมีคอลัมน์ production_order (text) บนตาราง history — ดู migration SQL
         inspector: h.inspector, notes: h.notes, items: h.items || [],
         sig_inspector: h.sigInspector ?? '', sig_supervisor: h.sigSupervisor ?? '', // คอลัมน์เป็น NOT NULL — ถ้าไม่มีลายเซ็นให้ส่งสตริงว่างแทน null
         // ─── Approval Workflow (Stage 1: หัวหน้างาน) ───
@@ -418,6 +419,7 @@
       lineId: row.line_id, lineName: row.line_name,
       jigId: row.jig_id, jigName: row.jig_name, jigDocNo: row.jig_doc_no,
       date: row.insp_date, shift: row.shift, month: row.month,
+      productionOrder: row.production_order || '',
       inspector: row.inspector, notes: row.notes, items: row.items || [],
       sigInspector: row.sig_inspector, sigSupervisor: row.sig_supervisor,
       approvalStatus: row.approval_status || 'pending',
@@ -2068,7 +2070,7 @@
     // ── ต่อจากชุดที่ตรวจค้างไว้: ชิ้นที่ส่งแล้วถูกล็อก (อ่านอย่างเดียว) ตรวจต่อที่ชิ้นถัดไป ──
     session.stageIdx = 0;
     const rec = session.record;
-    const dateEl = $('inp-date'), shiftEl = $('inp-shift');
+    const dateEl = $('inp-date'), shiftEl = $('inp-shift'), poEl = $('inp-prod-order');
     let resumed = false;
     if (rec) {
       const sameShape = recordPieceCount(rec) === n && (rec.items || []).length === checkState.length
@@ -2086,6 +2088,8 @@
         resumed = true;
         if (dateEl) { dateEl.value = rec.date || dateEl.value; dateEl.disabled = true; }
         if (shiftEl) { shiftEl.value = rec.shift || shiftEl.value; shiftEl.disabled = true; }
+        // Production Order ต้องเป็นเลขเดียวกันตลอดทั้งชุด S/M/E — ล็อกไว้ (ชุดเก่าที่ยังไม่มีเลข ปล่อยให้กรอกได้ตอนส่งชิ้นถัดไป)
+        if (poEl) { poEl.value = rec.productionOrder || ''; poEl.disabled = !!rec.productionOrder; }
         if ($('inp-month') && rec.month) $('inp-month').value = rec.month;
         $('report-notes').value = rec.notes || '';
       } else {
@@ -2097,6 +2101,7 @@
     if (!resumed) {
       if (dateEl) { if (dateEl.disabled) dateEl.value = localDateStr(); dateEl.disabled = false; }
       if (shiftEl) shiftEl.disabled = false;
+      if (poEl) { poEl.value = ''; poEl.disabled = false; } // ชุดใหม่ = กรอกเลข Production Order ใหม่ทุกครั้ง กันเลขเก่าค้างข้าม Part
       const notesEl = $('report-notes'); if (notesEl) notesEl.value = '';
     }
     renderSvgMap();
@@ -2443,6 +2448,7 @@ ${escHtml(record.jigId)}
 ${record.jigDocNo ? `_${escHtml(record.jigDocNo)}_` : ''}
 
 📅 วันที่: ${record.date}   🔄 กะ: ${record.shift}
+🏷 Production Order: ${escHtml(record.productionOrder || '-')}
 👤 ผู้ตรวจ: ${escHtml(record.items[0].pieces[cur].by || record.inspector)}
 
 *🔴 รายการที่ไม่ผ่านในชิ้น ${sl.short}:*
@@ -2624,6 +2630,8 @@ ${escHtml(record.jigId || '')}
     if (!$('inp-inspector').value.trim()) { toast('กรุณาระบุชื่อผู้ตรวจสอบ', 'ng'); $('inp-inspector').focus(); return; }
     if (!$('inp-date').value) { toast('กรุณาเลือกวันที่', 'ng'); return; }
     if (!$('inp-shift').value) { toast('กรุณาเลือกกะ', 'ng'); return; }
+    const prodOrder = ($('inp-prod-order') ? $('inp-prod-order').value : '').trim().replace(/\s+/g, ' ');
+    if (!prodOrder) { toast('กรุณาระบุเลขที่ Production Order', 'ng'); const po = $('inp-prod-order'); if (po) { po.scrollIntoView({ behavior: 'smooth', block: 'center' }); po.focus(); } return; }
 
     const n = getPieceCount();
     const cur = session.stageIdx;
@@ -2710,11 +2718,13 @@ ${escHtml(record.jigId || '')}
         date:       $('inp-date').value,
         shift:      $('inp-shift').value,
         month:      $('inp-month').value,
+        productionOrder: prodOrder,
         inspector:  inspectorName,
         approvalStatus: 'pending', approvedBy: null, approvedAt: null, supervisorComment: null,
         managerApprovalStatus: 'pending', managerApprovedBy: null, managerApprovedAt: null, managerComment: null,
       };
     }
+    if (!record.productionOrder) record.productionOrder = prodOrder; // ชุดเก่าที่เริ่มตรวจก่อนมีช่องนี้
     record.items = builtItems;
     record.notes = $('report-notes').value;
     record.sigInspector = $('sig-inspector').value.trim() || record.sigInspector || '';
@@ -2751,6 +2761,7 @@ ${escHtml(record.jigId)}
 ${record.jigDocNo ? `_${escHtml(record.jigDocNo)}_` : ''}
 
 📅 วันที่: ${record.date}
+🏷 Production Order: ${escHtml(record.productionOrder || '-')}
 🕐 ส่งชิ้นสุดท้าย: ${time}
 ⏱ ${escHtml(stageTimeline(record))}
 🔄 กะ: ${record.shift}
@@ -2821,6 +2832,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           'Part': h.jigName || '',
           'รหัส Part (Part No.)': h.jigId || '',
           'Run No.': h.jigDocNo || '',
+          'Production Order': h.productionOrder || '',
           'ผู้ตรวจสอบ': h.inspector || '',
           'จุดตรวจทั้งหมด': (h.items || []).length,
           'ผ่าน (OK)': okCount,
@@ -2846,6 +2858,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
               'วันที่': h.date || '',
               'Part': h.jigName || '',
               'Model': h.lineName || '',
+              'Production Order': h.productionOrder || '',
               'หัวข้อที่ไม่ผ่าน': item.label || '',
               'ค่าที่วัดได้ (ชิ้น 1/2/3)': pieceSummaryText(item),
               'หมายเหตุ NG': item.note || '',
@@ -2857,12 +2870,12 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 
       const wb = XLSX.utils.book_new();
       const ws1 = XLSX.utils.json_to_sheet(summaryRows);
-      ws1['!cols'] = [{wch:11},{wch:8},{wch:8},{wch:12},{wch:14},{wch:28},{wch:16},{wch:14},{wch:10},{wch:10},{wch:10},{wch:24},{wch:14},{wch:14},{wch:24},{wch:12},{wch:12}];
+      ws1['!cols'] = [{wch:11},{wch:8},{wch:8},{wch:12},{wch:14},{wch:28},{wch:16},{wch:14},{wch:18},{wch:10},{wch:10},{wch:10},{wch:24},{wch:14},{wch:14},{wch:24},{wch:12},{wch:12}];
       XLSX.utils.book_append_sheet(wb, ws1, 'สรุปการตรวจ');
 
       if (ngRows.length) {
         const ws2 = XLSX.utils.json_to_sheet(ngRows);
-        ws2['!cols'] = [{wch:11},{wch:28},{wch:14},{wch:26},{wch:14},{wch:24},{wch:14}];
+        ws2['!cols'] = [{wch:11},{wch:28},{wch:14},{wch:18},{wch:26},{wch:14},{wch:24},{wch:14}];
         XLSX.utils.book_append_sheet(wb, ws2, 'รายละเอียด NG');
       }
 
@@ -3117,6 +3130,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
             jig_id: h.jigId || h.jig_id || '', jig_name: h.jigName || h.jig_name || '',
             jig_doc_no: h.jigDocNo || h.jig_doc_no || '',
             insp_date: h.date || h.insp_date || '', shift: h.shift || '',
+            production_order: h.productionOrder || h.production_order || null,
             month: h.month || '', inspector: h.inspector || '', notes: h.notes || '',
             items: h.items || [],
             sig_inspector: h.sigInspector || h.sig_inspector || '',
@@ -5075,7 +5089,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         </div>` : ''}
         <div class="hi-path">${escHtml(h.deptName || '')}  ›  ${escHtml(h.lineName || '')}  ›  ${escHtml(h.jigName || '')}</div>
         <div class="hi-head">
-          <div class="hi-meta"><span class="hi-meta-item"><strong>${escHtml(h.date)}</strong></span><span class="hi-meta-item">เวลา: ${new Date(h.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</span><span class="hi-meta-item">${escHtml(h.shift)}</span>${_stage.key !== 'approved' ? `<span class="hi-meta-item">ผู้ตรวจ: ${escHtml(h.inspector)}</span>` : ''}</div>
+          <div class="hi-meta"><span class="hi-meta-item"><strong>${escHtml(h.date)}</strong></span><span class="hi-meta-item">เวลา: ${new Date(h.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</span><span class="hi-meta-item">${escHtml(h.shift)}</span>${h.productionOrder ? `<span class="hi-meta-item">PO: <strong>${escHtml(h.productionOrder)}</strong></span>` : ''}${_stage.key !== 'approved' ? `<span class="hi-meta-item">ผู้ตรวจ: ${escHtml(h.inspector)}</span>` : ''}</div>
           <div class="hi-badges">
             ${h.protected ? `<span class="badge protected" title="รายการนี้ถูกกันไว้ไม่ให้ลบอัตโนมัติ">🔒 กันลบ</span>` : ''}
             <span class="badge ok">OK ${okCount}</span>
@@ -5343,6 +5357,10 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
             <div class="pdf-meta-label">Shift / กะ</div>
             <div class="pdf-meta-value">${escHtml(record.shift)}</div>
           </div>
+          ${record.productionOrder ? `<div class="pdf-meta-cell">
+            <div class="pdf-meta-label">Production Order</div>
+            <div class="pdf-meta-value">${escHtml(record.productionOrder)}</div>
+          </div>` : ''}
           <div class="pdf-meta-cell">
             <div class="pdf-meta-label">Approval Status / สถานะ</div>
             <div class="pdf-meta-value" style="font-size:9px">${approvalText}</div>
@@ -5798,6 +5816,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         $('inp-date').value = localDateStr();
         $('inp-shift').value = 'กะ 1';
         $('inp-month').value = currentThaiMonthAbbr();
+        if ($('inp-prod-order')) $('inp-prod-order').value = '';
         $('report-notes').value = '';
       }
       syncSigInspectorFromInpInspector(); // ให้ช่องลายเซ็นตามชื่อผู้ตรวจสอบไปด้วยตอนล้างฟอร์ม
