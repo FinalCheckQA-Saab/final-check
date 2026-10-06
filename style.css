@@ -151,19 +151,19 @@ h1, h2, h3, h4, label, button, input, select, textarea, p, span, div {
   justify-content: space-between;
   gap: 12px;
   padding: 0.95rem 1.1rem;
-  margin: -0.75rem -0.75rem 1rem;
+  margin: 0 0 1rem; /* ลอยเว้นขอบจาก padding ของ .app-container */
   background: linear-gradient(120deg, var(--brand-navy-800), var(--brand-navy-700));
   border: none;
-  border-radius: 0 0 22px 22px; /* มุมล่างโค้งมน */
-  box-shadow: 0 4px 16px hsla(210, 60%, 15%, 0.22);
+  border-radius: 20px; /* โค้งมนครบ 4 มุม */
+  box-shadow: 0 8px 26px hsla(210, 60%, 12%, 0.28);
   position: sticky;
-  top: 0;
+  top: 12px;
   z-index: 40;
 }
 .app-header::after {
   content: "";
   position: absolute;
-  left: 22px; right: 22px; bottom: -1px; /* เว้นระยะเท่ารัศมีมุม ให้เส้นทองอยู่ในส่วนตรงของขอบล่าง */
+  left: 24px; right: 24px; bottom: 0; /* เว้นระยะเท่ารัศมีมุม ให้เส้นทองอยู่ในส่วนตรงของขอบล่าง */
   height: 2px;
   background: linear-gradient(90deg, transparent 0%, var(--brand-gold) 18%, var(--brand-gold) 82%, transparent 100%);
   opacity: 0.85;
@@ -1560,7 +1560,7 @@ h1, h2, h3, h4, label, button, input, select, textarea, p, span, div {
 
 /* ─── Header — small phones: shrink actions so the title always has room ─── */
 @media (max-width: 480px) {
-  .app-header { padding: 0.7rem 0.6rem; gap: 6px; border-radius: 0 0 16px 16px; }
+  .app-header { padding: 0.7rem 0.6rem; gap: 6px; border-radius: 16px; top: 8px; }
   .app-header::after { left: 16px; right: 16px; }
   .header-actions { gap: 5px; }
   .btn-icon { width: 28px; height: 28px; border-radius: 7px; }
@@ -2560,14 +2560,15 @@ h1, h2, h3, h4, label, button, input, select, textarea, p, span, div {
 ───────────────────────────── */
 .sidebar {
   position: fixed;
-  top: 0; left: 0; bottom: 0;
+  top: 12px; left: 12px; bottom: 12px; /* ลอยเว้นขอบจอ */
   width: 224px;
   z-index: 60;
+  border-radius: 20px; /* โค้งมนครบ 4 มุม */
   display: flex;
   flex-direction: column;
   background: linear-gradient(180deg, var(--brand-navy-800), var(--brand-navy-900));
-  border-right: 1px solid hsla(0, 0%, 100%, 0.08);
-  box-shadow: 2px 0 18px hsla(210, 60%, 10%, 0.18);
+  border: 1px solid hsla(0, 0%, 100%, 0.08);
+  box-shadow: 0 8px 26px hsla(210, 60%, 10%, 0.28);
   transition: width 0.2s ease, transform 0.25s ease;
   overflow: hidden;
 }
@@ -2666,11 +2667,11 @@ body.sidebar-open .sidebar-overlay { opacity: 1; pointer-events: auto; }
 .hamburger-btn { display: none; }
 
 /* shift page content to make room for the fixed sidebar */
-.app-container { margin-left: 224px; transition: margin-left 0.2s ease; }
+.app-container { margin-left: 248px; transition: margin-left 0.2s ease; } /* 224 + 12 + 12 */
 
 /* collapsed state — icon rail only (desktop) */
 body.sidebar-collapsed .sidebar { width: 68px; }
-body.sidebar-collapsed .app-container { margin-left: 68px; }
+body.sidebar-collapsed .app-container { margin-left: 92px; }
 body.sidebar-collapsed .sidebar-brand-text,
 body.sidebar-collapsed .sidebar-link-text,
 body.sidebar-collapsed .sidebar-nav-label,
@@ -2684,9 +2685,11 @@ body.sidebar-collapsed .sidebar-nav a.side-nav-item { justify-content: center; p
 @media (max-width: 900px) {
   .sidebar {
     width: 240px;
-    transform: translateX(-100%);
+    top: 8px; left: 8px; bottom: 8px;
+    transform: translateX(calc(-100% - 16px));
   }
-  body.sidebar-open .sidebar { transform: translateX(0); }
+  .sidebar { box-shadow: none; } /* ซ่อนเงาตอนเมนูเลื่อนออกนอกจอ */
+  body.sidebar-open .sidebar { transform: translateX(0); box-shadow: 0 8px 26px hsla(210, 60%, 10%, 0.35); }
   body.sidebar-collapsed .sidebar { width: 240px; } /* no icon-rail concept on mobile */
   body.sidebar-collapsed .sidebar-brand-text,
   body.sidebar-collapsed .sidebar-link-text,
