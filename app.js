@@ -2284,7 +2284,6 @@
             <div class="radio-group piece-radio" data-piece="${p}">
               <button class="rbtn ok" data-v="ok" title="ปกติ">✔</button>
               <button class="rbtn ng" data-v="ng" title="ไม่ปกติ">✖</button>
-              <button class="rbtn fixed" data-v="fixed" title="แก้ไขแล้ว">🔧</button>
             </div>
           </div>`;
       }).join('');
