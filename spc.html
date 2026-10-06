@@ -131,15 +131,15 @@ async function loadData(){
   if(!spcCol)$('warn').innerHTML='<div class="warn">ยังไม่ได้รัน SQL เพิ่มคอลัมน์ spc — ตอนนี้แสดงทุกหัวข้อตัวเลข (ยังเลือกจุด SPC ไม่ได้)</div>';
   let hidden=0;
   // รวบรวมหัวข้อที่เป็นตัวเลข (key = id + ชื่อหัวข้อ) ของ Part นี้ในเดือนนี้
-  rows.forEach(r=>(r.items||[]).forEach(it=>{
+  rows.forEach(r=>(r.items||[]).forEach((it,ix)=>{
     if(it.type!=='numeric')return;
     if(useCfg){const c=cpMap.get(it.id);if(!c||c.type!=='numeric'||c.spc===false){hidden++;return}} // ไม่ได้เลือกให้คิด SPC
     const k=it.id+'|'+it.label;
     if(!itemsMap.has(k))itemsMap.set(k,{key:k,label:it.label,sub:it.sub||'',unit:it.unit||'',min:it.min,max:it.max,id:it.id});
-    const m=itemsMap.get(k);m.min=it.min;m.max=it.max;m.unit=it.unit||m.unit; // ใช้เกณฑ์ล่าสุด
+    const m=itemsMap.get(k);m.no=ix+1;m.min=it.min;m.max=it.max;m.unit=it.unit||m.unit; // ใช้เกณฑ์ล่าสุด
   }));
   hiddenAll=hidden>0;
-  const keys=[...itemsMap.keys()];
+  const keys=[...itemsMap.keys()].sort((a,b)=>(itemsMap.get(a).no||0)-(itemsMap.get(b).no||0));
   const prev=cur;
   $('f-item').innerHTML=keys.length?keys.map(k=>'<option value="'+esc(k)+'">'+esc(itemLabel(itemsMap.get(k)))+'</option>').join(''):'<option value="">— ไม่มีหัวข้อตัวเลข —</option>';
   if(q.get('item')&&itemsMap.has(q.get('item')))$('f-item').value=q.get('item');
@@ -150,7 +150,7 @@ async function loadData(){
 function itemLabel(it){
   const hasMin=it.min!=null,hasMax=it.max!=null;
   const spec=hasMin&&hasMax?fmt(+it.min)+' – '+fmt(+it.max):hasMin?'≥ '+fmt(+it.min):hasMax?'≤ '+fmt(+it.max):'';
-  return it.label+(it.unit?' ('+it.unit+')':'')+(spec?' · เกณฑ์ '+spec:'');
+  return (it.no?'จุดที่ '+it.no+' · ':'')+it.label+(it.unit?' ('+it.unit+')':'')+(spec?' · เกณฑ์ '+spec:'');
 }
 
 // สร้างกลุ่มย่อย (1 ชุดตรวจ = 1 จุด, ค่า S/M/E = สมาชิกในกลุ่ม) ของหัวข้อที่เลือก
