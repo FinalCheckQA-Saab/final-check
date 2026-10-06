@@ -145,7 +145,8 @@
           type: cp.type || null,
           min: cp.min ?? null,
           max: cp.max ?? null,
-          unit: cp.unit || null
+          unit: cp.unit || null,
+          spc: cp.spc ?? null // 🆕 เลือกจุดนี้ไปคิด SPC (null = ค่าเริ่มต้น: หัวข้อตัวเลขนับรวมอยู่แล้ว)
         });
       });
     });
@@ -258,7 +259,8 @@
           type: row.type || undefined,
           min: row.min ?? undefined,
           max: row.max ?? undefined,
-          unit: row.unit || undefined
+          unit: row.unit || undefined,
+          spc: ('spc' in row && row.spc !== null) ? row.spc : undefined // 🆕 ถ้าคอลัมน์ spc ยังไม่มีใน DB (ยังไม่รัน SQL) จะเป็น undefined
         });
       });
       const jigs = (j.data || []).map(row => ({
@@ -2972,7 +2974,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         checkpoints: (checkpoints.data || [])
           .filter(cp => cp.jig_id === j.id)
           .sort((a, b) => a.item_id - b.item_id)
-          .map(cp => ({ id: cp.item_id, label: cp.label, sub: cp.sub, method: cp.method, x: cp.x, y: cp.y, type: cp.type || null, min: cp.min ?? null, max: cp.max ?? null, unit: cp.unit || null }))
+          .map(cp => ({ id: cp.item_id, label: cp.label, sub: cp.sub, method: cp.method, x: cp.x, y: cp.y, type: cp.type || null, min: cp.min ?? null, max: cp.max ?? null, unit: cp.unit || null, spc: ('spc' in cp) ? cp.spc : null }))
       }));
 
       const payload = {
@@ -3053,7 +3055,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           type: cp.type || null,
           min: cp.min ?? null,
           max: cp.max ?? null,
-          unit: cp.unit || null
+          unit: cp.unit || null,
+          spc: (cp.spc === true || cp.spc === false) ? cp.spc : null
         }))
       }));
       if (!(await showConfirmModal(`นำเข้าข้อมูลนี้จะ "แทนที่" ข้อมูลปัจจุบันทั้งหมด\n(${cat.jigs.length} Part, ${hist.length} ประวัติ)\nแนะนำให้ Export สำรองไว้ก่อน — ต้องการดำเนินการต่อหรือไม่?`, { confirmLabel: 'ดำเนินการต่อ', danger: true }))) return;
@@ -3104,7 +3107,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 
         // ✅ Upsert checkpoints แยก
         const allCps = cat.jigs.flatMap(j =>
-          (j.checkpoints || []).map(cp => ({ jig_id: j.id, item_id: cp.id, label: cp.label || '', sub: cp.sub || '', method: cp.method || '', x: cp.x || 0, y: cp.y || 0, type: cp.type || null, min: cp.min ?? null, max: cp.max ?? null, unit: cp.unit || null }))
+          (j.checkpoints || []).map(cp => ({ jig_id: j.id, item_id: cp.id, label: cp.label || '', sub: cp.sub || '', method: cp.method || '', x: cp.x || 0, y: cp.y || 0, type: cp.type || null, min: cp.min ?? null, max: cp.max ?? null, unit: cp.unit || null, spc: cp.spc ?? null }))
         );
         for (let i = 0; i < allCps.length; i += 200) {
           const { error } = await sb.from('checkpoints').upsert(
@@ -4110,6 +4113,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
             <button class="adm-item-order btn-cp-down" data-jid="${escHtml(jid)}" data-idx="${i}" title="เลื่อนลง" ${i === pts.length - 1 ? 'disabled' : ''}>▼</button>
           </div>
           <button class="adm-item-cfg btn-edit-cp" data-jid="${escHtml(jid)}" data-idx="${i}" title="แก้ไขหัวข้อ">${ico(ICO_EDIT_P)}</button>
+          ${p.type === 'numeric' ? `<button class="adm-item-cfg btn-spc-toggle" data-jid="${escHtml(jid)}" data-idx="${i}" title="${p.spc === false ? 'ไม่นำไปคิด SPC — กดเพื่อเปิด' : 'นำไปคิด SPC (กราฟ UCL/LCL) — กดเพื่อปิด'}" style="font-size:10px;font-weight:700;font-family:var(--font-en);padding:2px 7px;border:1px solid ${p.spc === false ? 'var(--border-input)' : 'var(--accent)'};${p.spc === false ? 'color:var(--text-muted);opacity:.6;text-decoration:line-through;' : 'background:var(--accent-dim);'}">SPC</button>` : ''}
           <button class="adm-item-cfg btn-cfg-numeric" data-jid="${escHtml(jid)}" data-idx="${i}" title="${p.type === 'numeric' ? 'เปลี่ยนกลับเป็น Pass/Fail' : 'ตั้งเป็นหัวข้อกรอกค่าตัวเลข'}">${ico(ICO_HASH_P)}</button>
           <button class="adm-item-del btn-del-cp" data-jid="${escHtml(jid)}" data-idx="${i}" title="ลบ">${ico(ICO_TRASH_P)}</button>
         </div>
@@ -4136,6 +4140,18 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         renderCpList(btn.dataset.jid);
         renderAdmCpMap(btn.dataset.jid);
         toast('ลบจุดตรวจแล้ว', 'ok');
+      });
+    });
+
+    document.querySelectorAll('.btn-spc-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const j = catalog.jigs.find(x => x.id === btn.dataset.jid);
+        const cp = j && j.checkpoints[parseInt(btn.dataset.idx, 10)];
+        if (!cp) return;
+        cp.spc = (cp.spc === false); // false → true (นับ SPC) · true/ยังไม่ตั้ง → false (ไม่นับ)
+        saveCatalog();
+        renderCpList(btn.dataset.jid);
+        toast(cp.spc ? `"${cp.label}" จะถูกนำไปคิด SPC` : `"${cp.label}" จะไม่ถูกนำไปคิด SPC`, 'ok');
       });
     });
 
@@ -4205,7 +4221,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 
     if (p.type === 'numeric') {
       if (!(await showConfirmModal(`เปลี่ยน "${p.label}" กลับเป็นแบบ ปกติ/ไม่ปกติ (Pass/Fail) แทนการกรอกตัวเลขหรือไม่?`))) return;
-      delete p.type; delete p.min; delete p.max; delete p.unit;
+      delete p.type; delete p.min; delete p.max; delete p.unit; delete p.spc;
       saveCatalog();
       renderCpList(jid);
       toast(`เปลี่ยน "${p.label}" กลับเป็นแบบ Pass/Fail แล้ว`, 'ok');

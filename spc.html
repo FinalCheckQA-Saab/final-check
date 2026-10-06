@@ -91,7 +91,7 @@ const STAGES=['S','M','E'];
 const K={2:{A2:1.880,D3:0,D4:3.267,d2:1.128},3:{A2:1.023,D3:0,D4:2.574,d2:1.693},4:{A2:0.729,D3:0,D4:2.282,d2:2.059},5:{A2:0.577,D3:0,D4:2.114,d2:2.326}};
 const fmt=v=>v==null||!isFinite(v)?'—':String(Number(v.toFixed(4)));
 const q=new URLSearchParams(location.search);
-let parts=[],rows=[],itemsMap=new Map(),cur=null;
+let parts=[],rows=[],itemsMap=new Map(),cur=null,hiddenAll=false;
 
 // ── ธีม: ใช้ค่าเดียวกับแอปหลัก (fc_theme) ──
 (function(){let t=null;try{t=localStorage.getItem('fc_theme')}catch(e){}
@@ -123,13 +123,22 @@ async function loadData(){
     .eq('jig_id',part).gte('insp_date',month+'-01').lt('insp_date',nextMonth(month)+'-01').order('ts',{ascending:true}).limit(1000);
   if(error){$('warn').innerHTML='<div class="warn">โหลดข้อมูลไม่สำเร็จ: '+esc(error.message)+'</div>';$('body').innerHTML='';return}
   rows=data||[];
+  // จุดตรวจที่ Admin เลือกให้คิด SPC (Admin Panel > จุดตรวจของ Part) — อ่านสดจากตาราง checkpoints
+  let cps=await sb.from('checkpoints').select('item_id,type,spc').eq('jig_id',part),spcCol=true;
+  if(cps.error){spcCol=false;cps=await sb.from('checkpoints').select('item_id,type').eq('jig_id',part)} // ยังไม่ได้รัน SQL เพิ่มคอลัมน์ spc
+  const cpMap=new Map((cps.data||[]).map(c=>[c.item_id,c]));
+  const useCfg=!cps.error&&cpMap.size>0;
+  if(!spcCol)$('warn').innerHTML='<div class="warn">ยังไม่ได้รัน SQL เพิ่มคอลัมน์ spc — ตอนนี้แสดงทุกหัวข้อตัวเลข (ยังเลือกจุด SPC ไม่ได้)</div>';
+  let hidden=0;
   // รวบรวมหัวข้อที่เป็นตัวเลข (key = id + ชื่อหัวข้อ) ของ Part นี้ในเดือนนี้
   rows.forEach(r=>(r.items||[]).forEach(it=>{
     if(it.type!=='numeric')return;
+    if(useCfg){const c=cpMap.get(it.id);if(!c||c.type!=='numeric'||c.spc===false){hidden++;return}} // ไม่ได้เลือกให้คิด SPC
     const k=it.id+'|'+it.label;
     if(!itemsMap.has(k))itemsMap.set(k,{key:k,label:it.label,sub:it.sub||'',unit:it.unit||'',min:it.min,max:it.max,id:it.id});
     const m=itemsMap.get(k);m.min=it.min;m.max=it.max;m.unit=it.unit||m.unit; // ใช้เกณฑ์ล่าสุด
   }));
+  hiddenAll=hidden>0;
   const keys=[...itemsMap.keys()];
   const prev=cur;
   $('f-item').innerHTML=keys.length?keys.map(k=>'<option value="'+esc(k)+'">'+esc(itemsMap.get(k).label)+(itemsMap.get(k).unit?' ('+esc(itemsMap.get(k).unit)+')':'')+'</option>').join(''):'<option value="">— ไม่มีหัวข้อตัวเลข —</option>';
@@ -247,6 +256,7 @@ function draw(){
   if(!$('f-part').value||!month)return;
   const body=$('body');
   if(!rows.length){body.innerHTML='<div class="card msg">ไม่พบข้อมูลการตรวจของ Part นี้ในเดือน '+esc(thMonth(month))+'</div>';return}
+  if(!itemsMap.size&&hiddenAll){body.innerHTML='<div class="card msg">Part นี้ยังไม่ได้เลือกจุดตรวจสำหรับ SPC — ไปที่ Admin Panel › จุดตรวจของ Part แล้วกดปุ่ม <b>SPC</b> ที่หัวข้อตัวเลขที่ต้องการ</div>';return}
   if(!itemsMap.size){body.innerHTML='<div class="card msg">Part นี้ไม่มีหัวข้อที่ตรวจเป็นตัวเลขในเดือนนี้ — กราฟ UCL/LCL ใช้ได้กับหัวข้อ “กรอกค่าตัวเลข” เท่านั้น</div>';return}
   const it=itemsMap.get(key);if(!it)return;
   const {sg,n,skipped}=buildSubgroups(key);
