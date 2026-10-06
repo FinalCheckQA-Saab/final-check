@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#16324f">
+<title>กราฟควบคุม UCL / LCL | Daily Quality Inspection</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --navy:#16324f;--gold:#c9a24a;
+  --bg:#f3f4f6;--card:#fff;--ink:#1f2937;--muted:#6b7280;--grid:#e5e7eb;--border:#e5e7eb;
+  --series:#2f6fd1;--piece:#9aa7b8;--cl:#475569;--limit:#64748b;--spec:#b45309;--bad:#dc2626;--good:#16a34a;
+  --bad-bg:#fee2e2;--good-bg:#dcfce7;--warn-bg:#fef3c7;--warn:#92400e;
+}
+:root[data-theme="dark"]{
+  --bg:#0f1624;--card:#161f31;--ink:#e6edf6;--muted:#93a3b8;--grid:#263248;--border:#263248;
+  --series:#6c9be2;--piece:#6b7a90;--cl:#b6c4d4;--limit:#94a3b8;--spec:#fbbf24;--bad:#f87171;--good:#4ade80;
+  --bad-bg:rgba(248,113,113,.14);--good-bg:rgba(74,222,128,.12);--warn-bg:rgba(251,191,36,.12);--warn:#fcd34d;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Noto Sans Thai',Tahoma,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(135deg,#0f2137,var(--navy));color:#fff;padding:12px 18px;border-bottom:3px solid var(--gold);display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+header h1{margin:0;font-size:20px}header small{color:#cbd5e1;display:block;font-size:12px}
+a.back{color:#fff;font-size:13px;text-decoration:none;opacity:.9}
+.hbtn{font:inherit;font-size:13px;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-weight:600}
+main{padding:14px 18px 40px;max-width:1100px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
+.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.filters label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:600}
+.filters select,.filters input{font:inherit;font-size:14px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--ink);min-width:160px;max-width:100%}
+.filters .grow{flex:1;min-width:220px}.filters .grow select{width:100%}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.tile{border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--card)}
+.tile span{display:block;font-size:12px;color:var(--muted)}
+.tile b{display:block;font-size:22px;line-height:1.25;font-variant-numeric:tabular-nums}
+.tile small{font-size:11px;color:var(--muted)}
+.tile.bad{background:var(--bad-bg);border-color:var(--bad)}
+.tile.good{background:var(--good-bg);border-color:var(--good)}
+h2{font-size:15px;margin:0 0 2px}.sub{font-size:12px;color:var(--muted);margin-bottom:8px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:6px 0 4px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend svg{width:26px;height:10px;overflow:visible}
+.chartbox{position:relative;width:100%}
+.chartbox svg{display:block;width:100%;height:auto;overflow:visible}
+.tip{position:absolute;pointer-events:none;z-index:5;min-width:170px;max-width:260px;padding:8px 10px;border-radius:8px;background:var(--card);border:1px solid var(--border);box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:12px;line-height:1.5;display:none}
+.tip b{font-size:13px}.tip .r{display:flex;justify-content:space-between;gap:12px;font-variant-numeric:tabular-nums}
+.tip .st{margin-top:4px;font-weight:700}
+.tip .bad{color:var(--bad)}.tip .ok{color:var(--good)}
+.msg{padding:36px 16px;text-align:center;color:var(--muted)}
+.warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:13px}
+details summary{cursor:pointer;font-weight:600;font-size:14px}
+.tblwrap{overflow:auto;max-height:420px;margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+th{position:sticky;top:0;background:var(--card);color:var(--muted);font-size:12px}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2),th:nth-child(3),td:nth-child(3){text-align:left}
+td.bad{color:var(--bad);font-weight:700}
+.note{font-size:12px;color:var(--muted);line-height:1.6}
+.note code{background:var(--bg);padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<header>
+  <div><a class="back" id="back" href="index.html">‹ กลับแอปหลัก</a><h1>กราฟควบคุม UCL / LCL</h1><small>X̄–R Chart ของหัวข้อที่ตรวจเป็นตัวเลข (ชิ้น S / M / E เป็น 1 กลุ่มย่อย) แยกตาม Part Number และเดือน</small></div>
+  <div><button class="hbtn" id="btn-theme" type="button" title="สลับธีม">🌓 ธีม</button> <button class="hbtn" id="btn-refresh" type="button">🔄 รีเฟรช</button></div>
+</header>
+<main>
+  <div id="warn"></div>
+  <div class="card">
+    <div class="filters">
+      <label class="grow">Part Number<select id="f-part"><option value="">กำลังโหลด...</option></select></label>
+      <label>เดือน<input type="month" id="f-month"></label>
+      <label class="grow">หัวข้อตรวจ (ตัวเลข)<select id="f-item"><option value="">—</option></select></label>
+    </div>
+  </div>
+  <div id="body"><div class="card msg">เลือก Part Number และเดือน เพื่อดูกราฟ</div></div>
+</main>
+<script>
+const SB_URL='https://knzzmurumqrhwotyrooj.supabase.co', SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const NS='http://www.w3.org/2000/svg';
+const STAGES=['S','M','E'];
+// ค่าคงที่ตาราง Control Chart (ขนาดกลุ่มย่อย n = 2..5)
+const K={2:{A2:1.880,D3:0,D4:3.267,d2:1.128},3:{A2:1.023,D3:0,D4:2.574,d2:1.693},4:{A2:0.729,D3:0,D4:2.282,d2:2.059},5:{A2:0.577,D3:0,D4:2.114,d2:2.326}};
+const fmt=v=>v==null||!isFinite(v)?'—':String(Number(v.toFixed(4)));
+const q=new URLSearchParams(location.search);
+let parts=[],rows=[],itemsMap=new Map(),cur=null;
+
+// ── ธีม: ใช้ค่าเดียวกับแอปหลัก (fc_theme) ──
+(function(){let t=null;try{t=localStorage.getItem('fc_theme')}catch(e){}
+  if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+  document.documentElement.setAttribute('data-theme',t)})();
+$('btn-theme').onclick=()=>{const n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('fc_theme',n)}catch(e){}draw()};
+
+const thisMonth=()=>{const d=new Date(Date.now()-new Date().getTimezoneOffset()*60000);return d.toISOString().slice(0,7)};
+const nextMonth=m=>{let[y,mo]=m.split('-').map(Number);mo++;if(mo>12){mo=1;y++}return y+'-'+String(mo).padStart(2,'0')};
+const thMonth=m=>new Date(m+'-01T00:00:00').toLocaleDateString('th-TH',{month:'long',year:'numeric'});
+
+async function loadMaster(){
+  const [l,j]=await Promise.all([sb.from('lines').select('id,name'),sb.from('jigs').select('id,name,line_id')]);
+  if(j.error){$('warn').innerHTML='<div class="warn">โหลดรายการ Part ไม่สำเร็จ: '+esc(j.error.message)+'</div>';return}
+  const ln={};(l.data||[]).forEach(x=>ln[x.id]=x.name);
+  parts=(j.data||[]).map(p=>({id:p.id,name:p.name,model:ln[p.line_id]||'ไม่ระบุ Model'}))
+    .sort((a,b)=>a.model.localeCompare(b.model,'th')||a.name.localeCompare(b.name,'th',{numeric:true}));
+  const by={};parts.forEach(p=>(by[p.model]=by[p.model]||[]).push(p));
+  $('f-part').innerHTML='<option value="">— เลือก Part Number —</option>'+Object.entries(by).map(([m,a])=>'<optgroup label="Model: '+esc(m)+'">'+a.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join('')+'</optgroup>').join('');
+}
+
+async function loadData(){
+  const part=$('f-part').value,month=$('f-month').value;
+  rows=[];itemsMap=new Map();cur=null;$('warn').innerHTML='';
+  if(!part||!month){$('f-item').innerHTML='<option value="">—</option>';$('body').innerHTML='<div class="card msg">เลือก Part Number และเดือน เพื่อดูกราฟ</div>';return}
+  $('body').innerHTML='<div class="card msg">กำลังโหลด...</div>';
+  const {data,error}=await sb.from('history').select('id,ts,insp_date,shift,production_order,inspector,items')
+    .eq('jig_id',part).gte('insp_date',month+'-01').lt('insp_date',nextMonth(month)+'-01').order('ts',{ascending:true}).limit(1000);
+  if(error){$('warn').innerHTML='<div class="warn">โหลดข้อมูลไม่สำเร็จ: '+esc(error.message)+'</div>';$('body').innerHTML='';return}
+  rows=data||[];
+  // รวบรวมหัวข้อที่เป็นตัวเลข (key = id + ชื่อหัวข้อ) ของ Part นี้ในเดือนนี้
+  rows.forEach(r=>(r.items||[]).forEach(it=>{
+    if(it.type!=='numeric')return;
+    const k=it.id+'|'+it.label;
+    if(!itemsMap.has(k))itemsMap.set(k,{key:k,label:it.label,sub:it.sub||'',unit:it.unit||'',min:it.min,max:it.max,id:it.id});
+    const m=itemsMap.get(k);m.min=it.min;m.max=it.max;m.unit=it.unit||m.unit; // ใช้เกณฑ์ล่าสุด
+  }));
+  const keys=[...itemsMap.keys()];
+  const prev=cur;
+  $('f-item').innerHTML=keys.length?keys.map(k=>'<option value="'+esc(k)+'">'+esc(itemsMap.get(k).label)+(itemsMap.get(k).unit?' ('+esc(itemsMap.get(k).unit)+')':'')+'</option>').join(''):'<option value="">— ไม่มีหัวข้อตัวเลข —</option>';
+  if(q.get('item')&&itemsMap.has(q.get('item')))$('f-item').value=q.get('item');
+  draw();
+}
+
+// สร้างกลุ่มย่อย (1 ชุดตรวจ = 1 จุด, ค่า S/M/E = สมาชิกในกลุ่ม) ของหัวข้อที่เลือก
+function buildSubgroups(key){
+  const raw=[];let skipped=0;
+  rows.forEach(r=>{
+    const it=(r.items||[]).find(i=>i.type==='numeric'&&(i.id+'|'+i.label)===key);if(!it)return;
+    const vals=(it.pieces||[]).map(p=>p&&p.value!=null&&p.value!==''&&isFinite(+p.value)?+p.value:null);
+    const got=vals.filter(v=>v!==null);
+    if(got.length<2){skipped++;return}
+    raw.push({r,vals,got});
+  });
+  // ใช้ขนาดกลุ่มที่พบบ่อยที่สุด (ปกติ 3 ชิ้น) — ชุดที่ตรวจไม่ครบทุกชิ้นไม่นำมาคิด
+  const cnt={};raw.forEach(g=>cnt[g.got.length]=(cnt[g.got.length]||0)+1);
+  let n=+Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]||b-a)[0]||3;if(n>5)n=5;
+  const sg=raw.filter(g=>g.got.length===n&&K[n]);
+  skipped+=raw.length-sg.length;
+  sg.forEach(g=>{g.mean=g.got.reduce((a,b)=>a+b,0)/n;g.range=Math.max(...g.got)-Math.min(...g.got);g.t=new Date(g.r.ts)});
+  return{sg,n,skipped};
+}
+
+function analyse(it,sg,n){
+  const k=K[n]||K[3],N=sg.length;
+  const out={N,n};
+  if(!N)return out;
+  out.xbb=sg.reduce((a,g)=>a+g.mean,0)/N;
+  out.rbar=sg.reduce((a,g)=>a+g.range,0)/N;
+  if(N>=2){
+    out.uclX=out.xbb+k.A2*out.rbar;out.lclX=out.xbb-k.A2*out.rbar;
+    out.uclR=k.D4*out.rbar;out.lclR=k.D3*out.rbar;
+    out.sigma=out.rbar/k.d2;
+    if(it.min!=null&&it.max!=null&&out.sigma>0){
+      out.cp=(it.max-it.min)/(6*out.sigma);
+      out.cpk=Math.min(it.max-out.xbb,out.xbb-it.min)/(3*out.sigma);
+    }
+  }
+  sg.forEach(g=>{
+    g.oocX=N>=2&&(g.mean>out.uclX+1e-9||g.mean<out.lclX-1e-9);
+    g.oocR=N>=2&&g.range>out.uclR+1e-9;
+    g.oos=g.got.some(v=>(it.min!=null&&v<it.min)||(it.max!=null&&v>it.max));
+  });
+  out.nOoc=sg.filter(g=>g.oocX||g.oocR).length;
+  out.nOos=sg.filter(g=>g.oos).length;
+  return out;
+}
+
+// ── วาดกราฟ SVG (ไม่พึ่งไลบรารี) ──
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e}
+function niceTicks(lo,hi,cnt){
+  const span=(hi-lo)||Math.abs(hi)||1,raw=span/cnt,p=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/p;
+  const step=(f<1.5?1:f<3?2:f<7?5:10)*p,t=[];
+  for(let v=Math.ceil(lo/step)*step;v<=hi+step*1e-6;v+=step)t.push(+v.toFixed(10));
+  return t;
+}
+function chart(host,o){
+  // o: sg, val(g), lines:[{v,label,cls}], extraDots(g)->[vals], ooc(g), dataLabel, oos(g)
+  host.innerHTML='';
+  const W=Math.max(320,host.clientWidth),H=W<520?260:300,m={l:52,r:W<520?58:82,t:12,b:34};
+  const svg=el('svg',{viewBox:'0 0 '+W+' '+H,role:'img','aria-label':o.title},host);
+  svg.style.height='auto';
+  const pts=o.sg.map(o.val);
+  let vals=pts.slice();o.lines.forEach(l=>l.v!=null&&vals.push(l.v));
+  if(o.dots)o.sg.forEach(g=>o.dots(g).forEach(v=>vals.push(v)));
+  let lo=Math.min(...vals),hi=Math.max(...vals);if(o.floor0)lo=Math.min(lo,0);
+  const pad=(hi-lo||Math.abs(hi)||1)*.1;lo-=pad;hi+=pad;if(o.floor0&&lo<0&&Math.min(...vals)>=0)lo=0;
+  const iw=W-m.l-m.r,ih=H-m.t-m.b,N=pts.length;
+  const X=i=>m.l+(N===1?iw/2:i/(N-1)*iw),Y=v=>m.t+(hi-v)/(hi-lo)*ih;
+  // grid + แกน Y
+  niceTicks(lo,hi,5).forEach(t=>{const y=Y(t);
+    el('line',{x1:m.l,x2:W-m.r,y1:y,y2:y,stroke:'var(--grid)','stroke-width':1},svg);
+    const tx=el('text',{x:m.l-8,y:y+4,'text-anchor':'end','font-size':11,fill:'var(--muted)'},svg);tx.textContent=fmt(t)});
+  // แกน X: วันที่ (เว้นระยะ ไม่ให้ซ้อน)
+  const step=Math.max(1,Math.ceil(N/Math.floor(iw/46)));let last='';
+  o.sg.forEach((g,i)=>{if(i%step)return;const d=g.t.getDate()+'/'+(g.t.getMonth()+1);if(d===last&&step===1&&false)return;last=d;
+    const tx=el('text',{x:X(i),y:H-12,'text-anchor':'middle','font-size':11,fill:'var(--muted)'},svg);tx.textContent=d});
+  // เส้นเกณฑ์ (UCL/LCL/CL/USL/LSL) + ป้ายตรงเส้น
+  const styles={ucl:['var(--limit)','6 4',1.5],lcl:['var(--limit)','6 4',1.5],cl:['var(--cl)','',1.2],spec:['var(--spec)','2 3',1.5]};
+  const labs=[];
+  o.lines.forEach(l=>{if(l.v==null)return;const s=styles[l.cls];
+    el('line',{x1:m.l,x2:W-m.r,y1:Y(l.v),y2:Y(l.v),stroke:s[0],'stroke-dasharray':s[1],'stroke-width':s[2]},svg);labs.push({y:Y(l.v),t:l.label+' '+fmt(l.v),c:l.cls==='spec'?'var(--spec)':'var(--ink)'})});
+  labs.sort((a,b)=>a.y-b.y);for(let i=1;i<labs.length;i++)if(labs[i].y-labs[i-1].y<12)labs[i].y=labs[i-1].y+12; // กันป้ายทับกัน
+  labs.forEach(l=>{const tx=el('text',{x:W-m.r+6,y:l.y+4,'font-size':11,'font-weight':600,fill:l.c},svg);tx.textContent=l.t});
+  // ค่ารายชิ้น (จางๆ)
+  if(o.dots)o.sg.forEach((g,i)=>o.dots(g).forEach(v=>el('circle',{cx:X(i),cy:Y(v),r:2.5,fill:'none',stroke:'var(--piece)','stroke-width':1.2},svg)));
+  // เส้นข้อมูล 2px
+  if(N>1)el('polyline',{points:pts.map((v,i)=>X(i)+','+Y(v)).join(' '),fill:'none',stroke:'var(--series)','stroke-width':2,'stroke-linejoin':'round'},svg);
+  // จุด: ปกติ=วงกลม · นอกเส้นควบคุม=สามเหลี่ยมแดง (ไม่พึ่งสีอย่างเดียว) · ขอบ 2px สีพื้น
+  o.sg.forEach((g,i)=>{const x=X(i),y=Y(pts[i]);
+    if(o.ooc(g)){const s=7;el('polygon',{points:[x+','+(y-s),(x+s)+','+(y+s*.8),(x-s)+','+(y+s*.8)].join(' '),fill:'var(--bad)',stroke:'var(--card)','stroke-width':2},svg)}
+    else el('circle',{cx:x,cy:y,r:4,fill:'var(--series)',stroke:'var(--card)','stroke-width':2},svg)});
+  // Hover: เส้นแนวตั้ง + Tooltip (พื้นที่จับกว้างกว่าจุด)
+  const cross=el('line',{y1:m.t,y2:m.t+ih,stroke:'var(--muted)','stroke-width':1,'stroke-dasharray':'3 3',visibility:'hidden'},svg);
+  const tip=document.createElement('div');tip.className='tip';host.appendChild(tip);
+  const hit=el('rect',{x:m.l,y:m.t,width:iw,height:ih,fill:'transparent'},svg);
+  const move=ev=>{const r=svg.getBoundingClientRect(),sx=W/r.width,px=(ev.clientX-r.left)*sx;
+    let i=N===1?0:Math.round((px-m.l)/iw*(N-1));i=Math.max(0,Math.min(N-1,i));
+    const g=o.sg[i];cross.setAttribute('x1',X(i));cross.setAttribute('x2',X(i));cross.setAttribute('visibility','visible');
+    tip.innerHTML=o.tip(g);tip.style.display='block';
+    const tw=tip.offsetWidth,hx=X(i)/sx;let left=hx+14;if(left+tw>r.width)left=hx-tw-14;
+    tip.style.left=Math.max(0,left)+'px';tip.style.top=Math.max(0,(Y(pts[i])/sx)-20)+'px'};
+  hit.addEventListener('pointermove',move);hit.addEventListener('pointerdown',move);
+  hit.addEventListener('pointerleave',()=>{cross.setAttribute('visibility','hidden');tip.style.display='none'});
+}
+
+const dt=g=>g.t.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'})+' '+g.t.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})+' น.';
+function pieceRows(g,u){return STAGES.map((s,i)=>'<div class="r"><span>'+s+'</span><span>'+(g.vals[i]==null?'—':fmt(g.vals[i])+(u?' '+esc(u):''))+'</span></div>').join('')}
+
+function draw(){
+  const key=$('f-item').value,month=$('f-month').value;
+  if(!$('f-part').value||!month)return;
+  const body=$('body');
+  if(!rows.length){body.innerHTML='<div class="card msg">ไม่พบข้อมูลการตรวจของ Part นี้ในเดือน '+esc(thMonth(month))+'</div>';return}
+  if(!itemsMap.size){body.innerHTML='<div class="card msg">Part นี้ไม่มีหัวข้อที่ตรวจเป็นตัวเลขในเดือนนี้ — กราฟ UCL/LCL ใช้ได้กับหัวข้อ “กรอกค่าตัวเลข” เท่านั้น</div>';return}
+  const it=itemsMap.get(key);if(!it)return;
+  const {sg,n,skipped}=buildSubgroups(key);
+  if(!sg.length){body.innerHTML='<div class="card msg">หัวข้อนี้ยังไม่มีชุดที่กรอกค่าครบ S / M / E ในเดือนนี้</div>';return}
+  const a=analyse(it,sg,n),u=it.unit,hasLim=a.N>=2;
+  const partName=($('f-part').selectedOptions[0]||{}).textContent||'';
+  const tile=(l,v,s,c)=>'<div class="tile '+(c||'')+'"><span>'+l+'</span><b>'+v+'</b>'+(s?'<small>'+s+'</small>':'')+'</div>';
+  const cpkC=a.cpk==null?'':a.cpk>=1.33?'good':'bad';
+  let h='';
+  if(a.N<20)h+='<div class="warn">มีข้อมูลเพียง '+a.N+' ชุด — เส้น UCL/LCL เป็นค่าประมาณ (ตามหลัก SPC ควรมีอย่างน้อย 20–25 ชุดจึงจะเชื่อถือได้)</div>';
+  if(skipped)h+='<div class="warn">ไม่นำมาคิด '+skipped+' ชุด ที่กรอกค่ายังไม่ครบทุกชิ้น</div>';
+  h+='<div class="card"><div class="tiles">'
+    +tile('จำนวนชุดที่ใช้',a.N,'ชุด · กลุ่มละ '+n+' ชิ้น')
+    +tile('ค่าเฉลี่ย X̿',fmt(a.xbb),u)
+    +tile('UCL',hasLim?fmt(a.uclX):'—','X̄ chart')
+    +tile('LCL',hasLim?fmt(a.lclX):'—','X̄ chart')
+    +tile('เกณฑ์ LSL – USL',(it.min!=null?fmt(it.min):'—')+' – '+(it.max!=null?fmt(it.max):'—'),u)
+    +tile('Cpk',a.cpk==null?'—':fmt(Math.round(a.cpk*100)/100),a.cpk==null?'':a.cpk>=1.33?'✔ ≥ 1.33':'✖ < 1.33',cpkC)
+    +tile('จุดนอกเส้นควบคุม',hasLim?a.nOoc:'—','ชุด',a.nOoc?'bad':'')
+    +tile('ค่านอกเกณฑ์ (NG)',a.nOos,'ชุด',a.nOos?'bad':'')
+    +'</div></div>';
+  const lg=(s,t)=>'<span><svg viewBox="0 0 26 10">'+s+'</svg>'+t+'</span>';
+  const legend='<div class="legend">'
+    +lg('<line x1="0" x2="26" y1="5" y2="5" stroke="var(--series)" stroke-width="2"/><circle cx="13" cy="5" r="4" fill="var(--series)" stroke="var(--card)" stroke-width="2"/>','ค่าเฉลี่ยของแต่ละชุด')
+    +lg('<circle cx="13" cy="5" r="2.5" fill="none" stroke="var(--piece)" stroke-width="1.2"/>','ค่ารายชิ้น (S/M/E)')
+    +lg('<line x1="0" x2="26" y1="5" y2="5" stroke="var(--limit)" stroke-width="1.5" stroke-dasharray="6 4"/>','UCL / LCL')
+    +lg('<line x1="0" x2="26" y1="5" y2="5" stroke="var(--spec)" stroke-width="1.5" stroke-dasharray="2 3"/>','USL / LSL (เกณฑ์)')
+    +lg('<polygon points="13,0 19,9 7,9" fill="var(--bad)"/>','นอกเส้นควบคุม')+'</div>';
+  h+='<div class="card"><h2>X̄ Chart — ค่าเฉลี่ยต่อชุด</h2><div class="sub">'+esc(partName)+' · '+esc(it.label)+(u?' ('+esc(u)+')':'')+' · '+esc(thMonth(month))+'</div>'+legend+'<div class="chartbox" id="c-x"></div></div>';
+  h+='<div class="card"><h2>R Chart — ช่วงกว้าง (Max − Min) ต่อชุด</h2><div class="sub">ดูความผันแปรภายในชุด S / M / E · ถ้า R สูงผิดปกติ แปลว่าชิ้นงานในชุดเดียวกันต่างกันมาก</div><div class="chartbox" id="c-r"></div></div>';
+  h+='<div class="card"><details><summary>ดูเป็นตาราง ('+a.N+' ชุด)</summary><div class="tblwrap"><table><thead><tr><th>วัน-เวลา</th><th>Production Order</th><th>ผู้ตรวจ</th>'+STAGES.map(s=>'<th>'+s+'</th>').join('')+'<th>X̄</th><th>R</th><th>สถานะ</th></tr></thead><tbody>'
+    +sg.map(g=>'<tr><td>'+esc(dt(g))+'</td><td>'+esc(g.r.production_order||'-')+'</td><td>'+esc(g.r.inspector||'-')+'</td>'
+      +STAGES.map((s,i)=>{const v=g.vals[i];const bad=v!=null&&((it.min!=null&&v<it.min)||(it.max!=null&&v>it.max));return '<td class="'+(bad?'bad':'')+'">'+(v==null?'—':fmt(v))+(bad?' ✖':'')+'</td>'}).join('')
+      +'<td class="'+(g.oocX?'bad':'')+'">'+fmt(g.mean)+(g.oocX?' ▲':'')+'</td><td class="'+(g.oocR?'bad':'')+'">'+fmt(g.range)+(g.oocR?' ▲':'')+'</td><td>'+(g.oos?'ค่านอกเกณฑ์':g.oocX||g.oocR?'นอกเส้นควบคุม':'ปกติ')+'</td></tr>').join('')
+    +'</tbody></table></div></details></div>';
+  h+='<div class="card note"><b>วิธีคำนวณ</b> · X̄ = ค่าเฉลี่ยของ S/M/E ในแต่ละชุด, R = ค่ามากสุด − น้อยสุด · <code>UCL/LCL = X̿ ± A₂·R̄</code> (n='+n+', A₂='+K[n].A2+') · R chart: <code>UCL = D₄·R̄</code> (D₄='+K[n].D4+'), LCL = 0 · Cpk ใช้ σ = R̄/d₂ (d₂='+K[n].d2+') เทียบกับเกณฑ์ LSL/USL ที่ตั้งไว้ · <b>UCL/LCL</b> (เส้นควบคุม) มาจากข้อมูลจริงของกระบวนการ ต่างจาก <b>USL/LSL</b> (เกณฑ์ที่ตั้งไว้ในระบบ)</div>';
+  body.innerHTML=h;
+  const cap=g=>'<b>'+esc(dt(g))+'</b>'+(g.r.production_order?'<div class="r"><span>Production Order</span><span>'+esc(g.r.production_order)+'</span></div>':'');
+  const status=(bad,txt)=>'<div class="st '+(bad?'bad':'ok')+'">'+(bad?'▲ ':'✔ ')+txt+'</div>';
+  chart($('c-x'),{title:'X-bar chart',sg,val:g=>g.mean,dots:g=>g.got,ooc:g=>g.oocX,
+    lines:[{v:hasLim?a.uclX:null,label:'UCL',cls:'ucl'},{v:a.xbb,label:'X̿',cls:'cl'},{v:hasLim?a.lclX:null,label:'LCL',cls:'lcl'},{v:it.max,label:'USL',cls:'spec'},{v:it.min,label:'LSL',cls:'spec'}],
+    tip:g=>cap(g)+pieceRows(g,u)+'<div class="r"><span>X̄</span><b>'+fmt(g.mean)+'</b></div>'+status(g.oocX||g.oos,g.oos?'มีค่านอกเกณฑ์ LSL/USL':g.oocX?'นอกเส้น UCL/LCL':'อยู่ในเส้นควบคุม')});
+  chart($('c-r'),{title:'R chart',sg,val:g=>g.range,ooc:g=>g.oocR,floor0:true,
+    lines:[{v:hasLim?a.uclR:null,label:'UCL',cls:'ucl'},{v:a.rbar,label:'R̄',cls:'cl'}],
+    tip:g=>cap(g)+pieceRows(g,u)+'<div class="r"><span>R</span><b>'+fmt(g.range)+'</b></div>'+status(g.oocR,g.oocR?'เกิน UCL ของ R':'อยู่ในเส้นควบคุม')});
+}
+
+// ── Events ──
+function sync(){const p=new URLSearchParams();if($('f-part').value)p.set('part',$('f-part').value);if($('f-month').value)p.set('month',$('f-month').value);history.replaceState(null,'','?'+p)}
+$('f-part').onchange=()=>{sync();loadData()};
+$('f-month').onchange=()=>{sync();loadData()};
+$('f-item').onchange=draw;
+$('btn-refresh').onclick=loadData;
+let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(document.querySelector('#c-x'))draw()},150)});
+(async()=>{
+  $('f-month').value=q.get('month')||thisMonth();
+  await loadMaster();
+  if(q.get('part')){$('f-part').value=q.get('part')}
+  loadData();
+})();
+</script>
+</body>
+</html>
