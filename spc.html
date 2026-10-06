@@ -150,7 +150,7 @@ async function loadData(){
 function itemLabel(it){
   const hasMin=it.min!=null,hasMax=it.max!=null;
   const spec=hasMin&&hasMax?fmt(+it.min)+' – '+fmt(+it.max):hasMin?'≥ '+fmt(+it.min):hasMax?'≤ '+fmt(+it.max):'';
-  return (it.no?'จุดที่ '+it.no+' · ':'')+it.label+(it.unit?' ('+it.unit+')':'')+(spec?' · เกณฑ์ '+spec:'');
+  return (it.no?'จุดที่ '+it.no+' · ':'')+it.label+(spec?' · เกณฑ์ '+spec+(it.unit?' '+it.unit:''):(it.unit?' ('+it.unit+')':''));
 }
 
 // สร้างกลุ่มย่อย (1 ชุดตรวจ = 1 จุด, ค่า S/M/E = สมาชิกในกลุ่ม) ของหัวข้อที่เลือก
