@@ -141,9 +141,16 @@ async function loadData(){
   hiddenAll=hidden>0;
   const keys=[...itemsMap.keys()];
   const prev=cur;
-  $('f-item').innerHTML=keys.length?keys.map(k=>'<option value="'+esc(k)+'">'+esc(itemsMap.get(k).label)+(itemsMap.get(k).unit?' ('+esc(itemsMap.get(k).unit)+')':'')+'</option>').join(''):'<option value="">— ไม่มีหัวข้อตัวเลข —</option>';
+  $('f-item').innerHTML=keys.length?keys.map(k=>'<option value="'+esc(k)+'">'+esc(itemLabel(itemsMap.get(k)))+'</option>').join(''):'<option value="">— ไม่มีหัวข้อตัวเลข —</option>';
   if(q.get('item')&&itemsMap.has(q.get('item')))$('f-item').value=q.get('item');
   draw();
+}
+
+// ข้อความในรายการเลือก: ชื่อหัวข้อ (หน่วย) · เกณฑ์ min – max
+function itemLabel(it){
+  const hasMin=it.min!=null,hasMax=it.max!=null;
+  const spec=hasMin&&hasMax?fmt(+it.min)+' – '+fmt(+it.max):hasMin?'≥ '+fmt(+it.min):hasMax?'≤ '+fmt(+it.max):'';
+  return it.label+(it.unit?' ('+it.unit+')':'')+(spec?' · เกณฑ์ '+spec:'');
 }
 
 // สร้างกลุ่มย่อย (1 ชุดตรวจ = 1 จุด, ค่า S/M/E = สมาชิกในกลุ่ม) ของหัวข้อที่เลือก
