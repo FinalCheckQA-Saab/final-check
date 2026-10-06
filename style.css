@@ -154,7 +154,7 @@ h1, h2, h3, h4, label, button, input, select, textarea, p, span, div {
   margin: -0.75rem -0.75rem 1rem;
   background: linear-gradient(120deg, var(--brand-navy-800), var(--brand-navy-700));
   border: none;
-  border-radius: 0;
+  border-radius: 0 0 22px 22px; /* มุมล่างโค้งมน */
   box-shadow: 0 4px 16px hsla(210, 60%, 15%, 0.22);
   position: sticky;
   top: 0;
@@ -163,7 +163,7 @@ h1, h2, h3, h4, label, button, input, select, textarea, p, span, div {
 .app-header::after {
   content: "";
   position: absolute;
-  left: 0; right: 0; bottom: -1px;
+  left: 22px; right: 22px; bottom: -1px; /* เว้นระยะเท่ารัศมีมุม ให้เส้นทองอยู่ในส่วนตรงของขอบล่าง */
   height: 2px;
   background: linear-gradient(90deg, transparent 0%, var(--brand-gold) 18%, var(--brand-gold) 82%, transparent 100%);
   opacity: 0.85;
@@ -1560,7 +1560,8 @@ h1, h2, h3, h4, label, button, input, select, textarea, p, span, div {
 
 /* ─── Header — small phones: shrink actions so the title always has room ─── */
 @media (max-width: 480px) {
-  .app-header { padding: 0.7rem 0.6rem; gap: 6px; }
+  .app-header { padding: 0.7rem 0.6rem; gap: 6px; border-radius: 0 0 16px 16px; }
+  .app-header::after { left: 16px; right: 16px; }
   .header-actions { gap: 5px; }
   .btn-icon { width: 28px; height: 28px; border-radius: 7px; }
   .btn-icon svg { width: 15px; height: 15px; }
