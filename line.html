@@ -35,6 +35,18 @@ h2{font-size:15px;margin:0 0 8px}
 .skip{color:var(--muted);font-size:13px}
 .warn{background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:13px}
 .empty{padding:40px;text-align:center;color:var(--muted)}
+.chk{margin:0 0 6px;padding-bottom:6px}
+.chk .tg{font:inherit;font-size:12px;font-weight:600;color:var(--navy);background:#eef2f7;border:0;border-radius:8px;padding:5px 10px;cursor:pointer}
+.stg{font-size:11px;color:var(--muted);margin:6px 0 2px}
+.tw{overflow-x:auto;margin-top:4px}
+table.ct{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+.ct th,.ct td{padding:6px 8px;border-bottom:1px solid #eef0f3;text-align:center;white-space:nowrap}
+.ct th{font-size:11px;color:var(--muted);font-weight:600;background:#fafbfc}
+.ct td.l,.ct th.l{text-align:left;white-space:normal}
+.ct td.no{color:var(--muted);width:34px}
+.ct .nt{display:block;font-size:11px;color:var(--ng);margin-top:2px}
+.ct .sp{color:var(--muted);font-size:12px}
+.pc.ok{color:var(--ok);font-weight:600}.pc.fixed{color:var(--fix);font-weight:600}.pc.ng{color:var(--ng);font-weight:700;background:#fee2e2}.pc.none{color:#9ca3af}
 </style>
 </head>
 <body>
@@ -55,6 +67,7 @@ const STAGES=['S','M','E'];
 const T={off:'ไม่ผลิตวันนี้',none:'ยังไม่ตรวจ',ok:'ผ่าน',ng:'NG',partial:'ตรวจยังไม่ครบ'};
 const q=new URLSearchParams(location.search), LINE=q.get('line');
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+const collapsed=new Set();
 let line=null, parts=[], status={}, skips=new Set(), errs=[];
 
 async function loadMaster(){
@@ -87,11 +100,48 @@ async function loadStatus(){
   const date=$('date').value;
   const sk=await sb.from('jig_skips').select('jig_id').eq('skip_date',date);
   if(sk.error)errs.push('อ่านรายการ Part ที่ไม่ผลิตวันนี้ไม่สำเร็จ ('+sk.error.message+') — ตัวเลขอาจรวม Part ที่ไม่ได้ผลิต');else(sk.data||[]).forEach(r=>skips.add(r.jig_id));
-  const {data,error}=await sb.from('history').select('id,jig_id,ts,items').eq('insp_date',date).order('ts',{ascending:true});
+  const {data,error}=await sb.from('history').select('id,jig_id,ts,items,production_order,inspector').eq('insp_date',date).order('ts',{ascending:true});
   if(error){errs.push('อ่านข้อมูลการตรวจไม่สำเร็จ: '+error.message);return}
-  (data||[]).forEach(r=>{status[r.jig_id]={st:stageStates(r),ts:r.ts}}); // ตัวสุดท้ายของ Part ทับ = ชุดล่าสุดของวัน
+  (data||[]).forEach(r=>{status[r.jig_id]={st:stageStates(r),ts:r.ts,items:r.items||[],po:r.production_order||'',by:r.inspector||''}}); // ตัวสุดท้ายของ Part ทับ = ชุดล่าสุดของวัน
 }
 const hhmm=ts=>ts?new Date(ts).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})+' น.':'';
+const fmt=v=>v==null||v===''||!isFinite(+v)?'—':String(Number((+v).toFixed(4)));
+const hm=t=>t?new Date(t).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}):'';
+function pcell(it,pc){
+  const has=pc&&(pc.status||pc.value!=null);
+  if(!has)return '<td class="pc none">–</td>';
+  const st=pc.status||'ok';
+  if(it.type==='numeric')return '<td class="pc '+(st==='ng'?'ng':'ok')+'">'+esc(pc.value!=null?pc.value:'–')+(st==='ng'?' ✖':'')+'</td>';
+  return '<td class="pc '+st+'">'+({ok:'✔',ng:'✖',fixed:'🔧'}[st]||'–')+'</td>';
+}
+function itemResult(it){
+  const ps=(it.pieces||[]).slice(0,3),done=ps.filter(x=>x&&x.status).length,n=Math.max(ps.length,3);
+  if(ps.some(x=>x&&x.status==='ng'))return '<span class="pill ng">NG</span>';
+  if(!done)return '<span class="pill">ยังไม่ตรวจ</span>';
+  if(done<n)return '<span class="pill partial">ไม่ครบ</span>';
+  return '<span class="pill ok">ผ่าน</span>';
+}
+function specText(it){
+  if(it.type!=='numeric')return 'ปกติ / ไม่ปกติ';
+  const a=it.min!=null,b=it.max!=null;
+  return (a&&b?fmt(it.min)+' – '+fmt(it.max):a?'≥ '+fmt(it.min):b?'≤ '+fmt(it.max):'—')+(it.unit?' '+esc(it.unit):'');
+}
+// รายละเอียดจุดตรวจของ Part (ชุดล่าสุดของวัน): ค่า/ผลของ S M E ต่อจุด
+function detail(p){
+  const r=status[p.id];if(!r||!r.items||!r.items.length)return '';
+  const hide=collapsed.has(p.id),n=r.items.length,ng=r.items.filter(i=>(i.pieces||[]).some(x=>x&&x.status==='ng')).length;
+  let h='<div class="chk"><button type="button" class="tg" data-id="'+esc(p.id)+'">'+(hide?'▸':'▾')+' จุดตรวจ '+n+' จุด'+(ng?' · NG '+ng:'')+'</button>';
+  if(!hide){
+    const first=(r.items[0].pieces||[]);
+    h+='<div class="stg">'+STAGES.map((l,i)=>l+' '+(first[i]&&first[i].at?hm(first[i].at)+(first[i].by?' ('+esc(first[i].by)+')':''):'ยังไม่ตรวจ')).join(' · ')+'</div>';
+    h+='<div class="tw"><table class="ct"><thead><tr><th>#</th><th class="l">จุดตรวจ</th><th>เกณฑ์</th>'+STAGES.map(l=>'<th>'+l+'</th>').join('')+'<th>ผล</th></tr></thead><tbody>'
+      +r.items.map((it,ix)=>'<tr><td class="no">'+(ix+1)+'</td><td class="l">'+esc(it.label)+(it.sub?'<span class="sp"> · '+esc(it.sub)+'</span>':'')+(it.note?'<span class="nt">หมายเหตุ: '+esc(it.note)+'</span>':'')+'</td><td class="sp">'+specText(it)+'</td>'
+        +STAGES.map((l,i)=>pcell(it,(it.pieces||[])[i])).join('')+'<td>'+itemResult(it)+'</td></tr>').join('')
+      +'</tbody></table></div>';
+  }
+  return h+'</div>';
+}
+$('body').addEventListener('click',e=>{const b=e.target.closest('.tg');if(!b)return;const id=b.dataset.id;collapsed.has(id)?collapsed.delete(id):collapsed.add(id);render()});
 function render(){
   $('warn').innerHTML=errs.map(e=>'<div class="warn">'+esc(e)+'</div>').join('');
   if(!line){$('body').innerHTML='<div class="empty">ไม่พบ Line นี้ — กลับไปเลือกจุดบน Layout อีกครั้ง</div>';return}
@@ -108,7 +158,7 @@ function render(){
     const byModel={};act.forEach(p=>(byModel[p.model]=byModel[p.model]||[]).push(p));
     h+='<div class="card"><h2>รายละเอียดราย Part</h2>'+Object.entries(byModel).map(([m,a])=>'<div class="model">Model: '+esc(m)+'</div>'+a.map(p=>{
       const r=status[p.id]||{st:['none','none','none']};
-      return '<div class="row"><div class="nm">'+esc(p.name)+(r.ts?'<small>ตรวจล่าสุด '+hhmm(r.ts)+'</small>':'')+'</div><div class="pills">'+STAGES.map((l,i)=>'<span class="pill '+r.st[i]+'">'+l+' · '+T[r.st[i]]+'</span>').join('')+'</div></div>'}).join('')).join('')+'</div>';
+      return '<div class="row"><div class="nm">'+esc(p.name)+(r.ts?'<small>ตรวจล่าสุด '+hhmm(r.ts)+(r.po?' · Production Order: '+esc(r.po):'')+(r.by?' · ผู้ตรวจ: '+esc(r.by):'')+'</small>':'')+'</div><div class="pills">'+STAGES.map((l,i)=>'<span class="pill '+r.st[i]+'">'+l+' · '+T[r.st[i]]+'</span>').join('')+'</div></div>'+detail(p)}).join('')).join('')+'</div>';
   }
   if(sk.length)h+='<div class="card skip">⏸ ไม่ผลิตวันนี้ (ไม่นำมาคิด '+sk.length+' Part): '+sk.map(p=>esc(p.name)).join(' · ')+'</div>';
   $('body').innerHTML=h;
