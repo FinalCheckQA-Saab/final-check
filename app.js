@@ -5227,14 +5227,15 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
             ${gpsDisplay}
             ${(() => {
               if (!admLoggedIn) return ''; // 🆕 เฉพาะ Admin เห็น — พนักงานทั่วไปไม่เห็นว่าถูกจับเวลา
-              if (hasStageMarks(h)) { // 🆕 CT แยกรายชิ้น: ⏱ S ... · ⏱ M ... · ⏱ E ...
-                return computeStageTimings(h).map((t, p) => {
+              if (hasStageMarks(h)) { // 🆕 CT แยกรายชิ้น: ⏱ S ... · ⏱ M ... · ⏱ E ... (อยู่กลุ่มเดียว บรรทัดเดียวกัน)
+                const parts = computeStageTimings(h).map((t, p) => {
                   if (!t) return '';
                   const sl = stageLabel(p), label = `⏱ ${sl.short} ${formatDurationTh(t.totalSec)}`;
                   return t.suspicious
                     ? `<span class="badge ng" title="CT ชิ้น ${sl.short}: เฉลี่ยตรวจแต่ละจุดเร็วกว่า 2 วินาที — อาจเป็นการนั่งไล่กดโดยไม่ได้เดินตรวจจริง ลองเช็คดูเพิ่มเติม">${label} ⚠</span>`
                     : `<span class="badge timing" title="CT ชิ้น ${sl.short} (${sl.th}) — ตั้งแต่ติ๊กจุดแรกถึงจุดสุดท้ายของรอบนี้ (${t.count} จุด)">${label}</span>`;
                 }).join('');
+                return `<span class="ct-group" style="display:inline-flex;flex-wrap:nowrap;gap:6px;white-space:nowrap;max-width:100%">${parts}</span>`;
               }
               const timing = computeInspectionTiming(h); // รายการเก่า (ไม่มีเวลาแยกชิ้น) — แสดงเวลารวมแบบเดิม
               if (!timing) return ''; // รายการเก่าก่อนมีฟีเจอร์นี้ — ไม่มีข้อมูลให้วิเคราะห์
