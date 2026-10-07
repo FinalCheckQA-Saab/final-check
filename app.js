@@ -598,6 +598,23 @@
     return pieces.map(p => p.status === 'ok' ? '✔' : p.status === 'ng' ? '✖' : p.status === 'fixed' ? '🔧' : '-').join(' / ');
   }
 
+  // ใช้ในรายงาน PDF: แสดงผลทีละชิ้น (S / M / E) โดยลงสีตามผลของแต่ละชิ้น — ผ่าน=เขียว, NG=แดง, ยังไม่ตรวจ=เทา
+  // (เดิมทั้งช่องเป็นสีเดียว และถ้าตรวจยังไม่ครบจะเป็นสีแดงทั้งที่ชิ้นที่ตรวจไปแล้วผ่าน)
+  function pieceSummaryHtml(item) {
+    const pieces = item.pieces || [];
+    if (!pieces.length) return '';
+    const col = st => st === 'ng' ? '#dc2626' : (st === 'ok' || st === 'fixed') ? '#15803d' : '#94a3b8';
+    const sep = '<span style="color:#94a3b8"> / </span>';
+    const cells = pieces.map(p => {
+      const st = p && p.status;
+      let txt;
+      if (item.type === 'numeric') txt = (p && p.value != null) ? `${escHtml(p.value)}${st === 'ng' ? '✖' : ''}` : '-';
+      else txt = st === 'ok' ? '✔' : st === 'ng' ? '✖' : st === 'fixed' ? '🔧' : '-';
+      return `<span style="color:${col(st)}">${txt}</span>`;
+    }).join(sep);
+    return cells + (item.type === 'numeric' && item.unit ? ` <span style="color:#475569;font-weight:400">${escHtml(item.unit)}</span>` : '');
+  }
+
   /* ══════════════════════════════════════════════════════════════
      STAGE: S (Start) → M (Middle) → E (End)
      หน้างานจริง: ตรวจทีละชิ้น ห่างกันคนละช่วงเวลา — ตรวจ S แล้ว "ส่งข้อมูล" → กลับมาตรวจ M แล้วส่ง → กลับมาตรวจ E แล้วส่ง
@@ -5363,13 +5380,14 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       // 🆕 Final Check: ตรวจ 3 ชิ้นต่อ Part — โชว์ผลทั้ง 3 ชิ้นในคอลัมน์เดียว เช่น "0.2 / 0.3✖ / 0.1 mm" หรือ "✔ / ✖ / ✔"
       const hasPieces = item.pieces && item.pieces.length;
       const valueStr = hasPieces
-        ? escHtml(pieceSummaryText(item))
+        ? pieceSummaryHtml(item)
         : (item.status === 'ok' || item.status === 'fixed') ? '<span class="pdf-value-icon">✓</span>'
         : item.status === 'ng' ? '<span class="pdf-value-icon">✗</span>'
         : `<span class="pdf-value-na">–</span>`; // ยังไม่ตรวจ — ไม่มีทั้งค่าตัวเลขและผลตรวจ
-      const valueClass = hasPieces || item.status === 'ok' || item.status === 'fixed' || item.status === 'ng'
-        ? (item.status === 'ok' || item.status === 'fixed' ? 'pdf-value-ok' : 'pdf-value-ng')
-        : '';
+      // มีผลรายชิ้น → ลงสีรายชิ้นใน pieceSummaryHtml แล้ว (ไม่ใส่สีทั้งช่อง)
+      const valueClass = hasPieces ? ''
+        : (item.status === 'ok' || item.status === 'fixed') ? 'pdf-value-ok'
+        : item.status === 'ng' ? 'pdf-value-ng' : '';
       const badge = item.status === 'ok'    ? '<span class="pdf-status-badge pdf-badge-ok">OK</span>'
                   : item.status === 'ng'    ? '<span class="pdf-status-badge pdf-badge-ng">NG</span>'
                   : item.status === 'fixed' ? '<span class="pdf-status-badge pdf-badge-fixed">FIXED</span>'
@@ -5500,7 +5518,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
           <div class="pdf-result-cell" style="display:flex;align-items:center;padding:10px">
             <div>
               <div class="pdf-result-label">Overall Result / ผลการตรวจ</div>
-              <div class="pdf-result-verdict ${allPass ? 'pdf-verdict-pass' : 'pdf-verdict-fail'}">
+              <div class="pdf-result-verdict ${allPass ? 'pdf-verdict-pass' : (ngCount === 0 && !complete ? '' : 'pdf-verdict-fail')}" ${ngCount === 0 && !complete ? 'style="color:#b45309"' : ''}>
                 ${ngCount === 0 && !complete ? '⏳ ตรวจยังไม่ครบ ' + escHtml(recProgressText(record)) : allPass ? '✅ PASS — ผ่านทุกจุดตรวจ' : '❌ FAIL — พบ NG ' + ngCount + ' จุด'}
               </div>
             </div>
