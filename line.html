@@ -30,6 +30,11 @@ h2{font-size:15px;margin:0 0 8px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid #f1f5f9;font-size:14px}
 .row .nm{flex:1;min-width:200px}.row small{display:block;color:var(--muted);font-size:11px}
 .row small.pn{color:var(--navy);font-weight:600}
+.filt{padding:12px 14px}.frow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}.frow+.frow{margin-top:10px}
+.filt label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted);font-weight:600}
+.filt select{font:inherit;font-size:13px;padding:7px 10px;border-radius:8px;border:1px solid #d1d5db;background:#fff;min-width:130px;max-width:220px}
+.dayh{font-size:15px;font-weight:700;color:var(--navy);margin:16px 2px 6px}
+.lnh{font-size:14px;font-weight:700;color:#fff;background:var(--navy);border-radius:8px;padding:6px 10px;margin:14px 0 4px}.lnh small{color:#cbd5e1;font-weight:400}
 .pills{display:flex;gap:6px}
 .pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--none);color:#475569;white-space:nowrap}
 .pill.ok{background:var(--ok);color:#fff}.pill.ng{background:var(--ng);color:#fff}.pill.partial{background:var(--part);color:#fff}
@@ -53,9 +58,24 @@ table.ct{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric
 <body>
 <header>
   <div><a class="back" id="back" href="layout.html">‹ ปิดหน้านี้</a><h1 id="ttl">รายละเอียด Line</h1><small id="sub"></small></div>
-  <div class="bar"><input type="date" id="date"><button id="btn-refresh" type="button">🔄 รีเฟรช</button></div>
+  <div class="bar"><button id="btn-refresh" type="button">🔄 รีเฟรช</button></div>
 </header>
 <main>
+  <section class="card filt">
+    <div class="frow">
+      <label>จากวันที่<input type="date" id="f-from"></label>
+      <label>ถึงวันที่<input type="date" id="f-to"></label>
+      <label>เลือกทั้งเดือน<input type="month" id="f-month"></label>
+      <button id="btn-today" type="button">วันนี้</button>
+    </div>
+    <div class="frow">
+      <label>แผนก<select id="f-sec"><option value="">ทุกแผนก</option></select></label>
+      <label>Line<select id="f-dept"><option value="">ทุก Line</option></select></label>
+      <label>Model<select id="f-model"><option value="">ทุก Model</option></select></label>
+      <label>Part number<input type="search" id="f-part" placeholder="พิมพ์ค้นหา Part No. / ชื่อ"></label>
+      <button id="btn-reset" type="button">รีเซ็ต</button>
+    </div>
+  </section>
   <div id="warn"></div>
   <div id="body"><div class="empty">กำลังโหลด...</div></div>
 </main>
@@ -69,15 +89,50 @@ const T={off:'ไม่ผลิตวันนี้',none:'ยังไม่�
 const q=new URLSearchParams(location.search), LINE=q.get('line');
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 const opened=new Set(); // Part ที่พี่บีกดขยายเอง (ค่าเริ่มต้น = ยุบทั้งหมด)
-let line=null, parts=[], status={}, skips=new Set(), errs=[];
+let parts=[], deptList=[], deptMap=Object.create(null), status={}, skipsBy={}, errs=[], mErrs=[], rangeBad=false, loadTk=0;
+const MAXD=62; // เลือกช่วงวันที่ได้ไม่เกิน 62 วัน
 
+// ดึงข้อมูลทีละ 1,000 แถว (Supabase จำกัดแถวต่อครั้ง) — ต้อง order ให้คงที่ทุกครั้งที่เรียก
+async function fetchAll(mk){const out=[];for(let a=0;;a+=1000){const {data,error}=await mk().range(a,a+999);if(error)return{data:out,error};out.push(...(data||[]));if(!data||data.length<1000)break}return{data:out,error:null}}
+const addDay=(s,n)=>{const d=new Date(s+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+const spanDays=(a,b)=>Math.round((Date.parse(b)-Date.parse(a))/864e5)+1;
 async function loadMaster(){
-  const [d,l,j]=await Promise.all([sb.from('departments').select('id,name,section').eq('id',LINE).maybeSingle(),sb.from('lines').select('id,name,dept_id').eq('dept_id',LINE),sb.from('jigs').select('id,name,line_id')]);
-  let dep=d;if(dep.error)dep=await sb.from('departments').select('id,name').eq('id',LINE).maybeSingle();
-  line=dep.data?{name:dep.data.name,section:dep.data.section||''}:null;
-  const ln={};(l.data||[]).forEach(x=>ln[x.id]=x.name);
-  parts=(j.data||[]).filter(p=>ln[p.line_id]!==undefined).map(p=>({id:p.id,name:p.name,model:ln[p.line_id]}));
+  const [d,l,j]=await Promise.all([sb.from('departments').select('id,name,section'),fetchAll(()=>sb.from('lines').select('id,name,dept_id').order('id')),fetchAll(()=>sb.from('jigs').select('id,name,line_id').order('id'))]);
+  let dep=d;if(dep.error)dep=await sb.from('departments').select('id,name');
+  if(dep.error)mErrs.push('อ่านรายการ Line ไม่สำเร็จ: '+dep.error.message);
+  if(l.error)mErrs.push('อ่านรายการ Model ไม่สำเร็จ: '+l.error.message);
+  if(j.error)mErrs.push('อ่านรายการ Part ไม่สำเร็จ: '+j.error.message);
+  deptList=(dep.data||[]).map(x=>({id:String(x.id),name:x.name,section:x.section||''}));
+  deptList.forEach(x=>deptMap[x.id]=x);
+  const ln={};(l.data||[]).forEach(x=>ln[x.id]={name:x.name,dept:String(x.dept_id)});
+  parts=(j.data||[]).filter(p=>ln[p.line_id]!==undefined&&deptMap[ln[p.line_id].dept]).map(p=>({id:p.id,name:p.name,model:ln[p.line_id].name,dept:ln[p.line_id].dept}));
+  if(LINE&&!deptMap[LINE])mErrs.push('ไม่พบ Line ตามลิงก์ที่เปิดมา — แสดงทุก Line แทน');
 }
+// ===== ตัวกรอง (แผนก → Line → Model ผูกกัน) =====
+function fillSel(id,opts,all){const el=$(id),cur=el.value;el.innerHTML='<option value="">'+all+'</option>'+opts.map(o=>'<option value="'+esc(o.v)+'">'+esc(o.t)+'</option>').join('');el.value=opts.some(o=>o.v===cur)?cur:''}
+function refreshOpts(){
+  const sec=$('f-sec').value;
+  fillSel('f-dept',deptList.filter(x=>!sec||x.section===sec).map(x=>({v:x.id,t:x.name})),'ทุก Line');
+  const d=$('f-dept').value;
+  const ms=[...new Set(parts.filter(p=>(!d||p.dept===d)&&(!sec||deptMap[p.dept].section===sec)).map(p=>p.model))].sort();
+  fillSel('f-model',ms.map(m=>({v:m,t:m})),'ทุก Model');
+}
+function applyInitFilters(){ // ค่าเริ่มต้น = Line ที่เปิดมาจากหน้า Layout (ถ้าไม่มี = ทั้งหมด)
+  const ok=!!deptMap[LINE];
+  $('f-sec').value=ok?deptMap[LINE].section:'';refreshOpts();
+  $('f-dept').value=ok?LINE:'';refreshOpts();
+  $('f-model').value='';$('f-part').value='';
+}
+function initFilters(){
+  const secs=[...new Set(deptList.map(x=>x.section).filter(Boolean))].sort();
+  fillSel('f-sec',secs.map(s=>({v:s,t:s})),'ทุกแผนก');
+  applyInitFilters();
+}
+function filtered(){
+  const s=$('f-sec').value,d=$('f-dept').value,m=$('f-model').value,k=$('f-part').value.trim().toLowerCase();
+  return parts.filter(p=>(!d||p.dept===d)&&(!s||deptMap[p.dept].section===s)&&(!m||p.model===m)&&(!k||String(p.id).toLowerCase().includes(k)||String(p.name).toLowerCase().includes(k)));
+}
+
 // สถานะของ 1 Part ต่อช่วง S/M/E (ตรรกะเดียวกับหน้า Layout)
 function stageStates(rec){
   const items=rec.items||[];
@@ -97,13 +152,23 @@ function aggStage(v){
   return 'partial';
 }
 async function loadStatus(){
-  status={};skips=new Set();errs=[];
-  const date=$('date').value;
-  const sk=await sb.from('jig_skips').select('jig_id').eq('skip_date',date);
-  if(sk.error)errs.push('อ่านรายการ Part ที่ไม่ผลิตวันนี้ไม่สำเร็จ ('+sk.error.message+') — ตัวเลขอาจรวม Part ที่ไม่ได้ผลิต');else(sk.data||[]).forEach(r=>skips.add(r.jig_id));
-  const {data,error}=await sb.from('history').select('id,jig_id,ts,items,production_order,inspector').eq('insp_date',date).order('ts',{ascending:true});
-  if(error){errs.push('อ่านข้อมูลการตรวจไม่สำเร็จ: '+error.message);return}
-  (data||[]).forEach(r=>{status[r.jig_id]={st:stageStates(r),ts:r.ts,items:r.items||[],po:r.production_order||'',by:r.inspector||''}}); // ตัวสุดท้ายของ Part ทับ = ชุดล่าสุดของวัน
+  const tk=++loadTk,st={},skp={},er=[];let bad=false;
+  const from=$('f-from').value,to=$('f-to').value;
+  if(!from||!to||spanDays(from,to)>MAXD){
+    bad=true;if(from&&to)er.push('เลือกช่วงวันที่ได้ไม่เกิน '+MAXD+' วัน กรุณาเลือกช่วงที่สั้นลง');
+  }else{
+    const [sk,hs]=await Promise.all([
+      fetchAll(()=>sb.from('jig_skips').select('jig_id,skip_date').gte('skip_date',from).lte('skip_date',to).order('skip_date').order('jig_id')),
+      fetchAll(()=>sb.from('history').select('id,jig_id,ts,items,production_order,inspector,insp_date').gte('insp_date',from).lte('insp_date',to).order('ts',{ascending:true}).order('id',{ascending:true}))
+    ]);
+    if(sk.error)er.push('อ่านรายการ Part ที่ไม่ผลิตไม่สำเร็จ ('+sk.error.message+') — ตัวเลขอาจรวม Part ที่ไม่ได้ผลิต');
+    (sk.data||[]).forEach(r=>{const d=String(r.skip_date).slice(0,10);(skp[d]=skp[d]||new Set()).add(r.jig_id)});
+    if(hs.error)er.push('อ่านข้อมูลการตรวจไม่สำเร็จ: '+hs.error.message);
+    // ตัวสุดท้ายของ Part ในแต่ละวันทับ = ชุดล่าสุดของวันนั้น
+    (hs.data||[]).forEach(r=>{const d=String(r.insp_date).slice(0,10);(st[d]=st[d]||{})[r.jig_id]={st:stageStates(r),ts:r.ts,items:r.items||[],po:r.production_order||'',by:r.inspector||''}});
+  }
+  if(tk!==loadTk)return false; // มีการเลือกช่วงใหม่ระหว่างโหลด — ทิ้งผลเก่า
+  status=st;skipsBy=skp;errs=er;rangeBad=bad;return true;
 }
 const hhmm=ts=>ts?new Date(ts).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})+' น.':'';
 const fmt=v=>v==null||v===''||!isFinite(+v)?'—':String(Number((+v).toFixed(4)));
@@ -127,11 +192,11 @@ function specText(it){
   const a=it.min!=null,b=it.max!=null;
   return (a&&b?fmt(it.min)+' – '+fmt(it.max):a?'≥ '+fmt(it.min):b?'≤ '+fmt(it.max):'—')+(it.unit?' '+esc(it.unit):'');
 }
-// รายละเอียดจุดตรวจของ Part (ชุดล่าสุดของวัน): ค่า/ผลของ S M E ต่อจุด
-function detail(p){
-  const r=status[p.id];if(!r||!r.items||!r.items.length)return '';
-  const hide=!opened.has(p.id),n=r.items.length,ng=r.items.filter(i=>(i.pieces||[]).some(x=>x&&x.status==='ng')).length;
-  let h='<div class="chk"><button type="button" class="tg" data-id="'+esc(p.id)+'">'+(hide?'▸':'▾')+' จุดตรวจ '+n+' จุด'+(ng?' · NG '+ng:'')+'</button>';
+// รายละเอียดจุดตรวจของ Part (ชุดล่าสุดของวัน): ค่า/ผลของ S M E ต่อจุด — ค่าเริ่มต้น "ยุบ"
+function detail(p,date,r){
+  if(!r||!r.items||!r.items.length)return '';
+  const key=date+'|'+p.id,hide=!opened.has(key),n=r.items.length,ng=r.items.filter(i=>(i.pieces||[]).some(x=>x&&x.status==='ng')).length;
+  let h='<div class="chk"><button type="button" class="tg" data-k="'+esc(key)+'">'+(hide?'▸':'▾')+' จุดตรวจ '+n+' จุด'+(ng?' · NG '+ng:'')+'</button>';
   if(!hide){
     const first=(r.items[0].pieces||[]);
     h+='<div class="stg">'+STAGES.map((l,i)=>l+' '+(first[i]&&first[i].at?hm(first[i].at)+(first[i].by?' ('+esc(first[i].by)+')':''):'ยังไม่ตรวจ')).join(' · ')+'</div>';
@@ -142,34 +207,82 @@ function detail(p){
   }
   return h+'</div>';
 }
-$('body').addEventListener('click',e=>{const b=e.target.closest('.tg');if(!b)return;const id=b.dataset.id;opened.has(id)?opened.delete(id):opened.add(id);render()});
-function render(){
-  $('warn').innerHTML=errs.map(e=>'<div class="warn">'+esc(e)+'</div>').join('');
-  if(!line){$('body').innerHTML='<div class="empty">ไม่พบ Line นี้ — กลับไปเลือกจุดบน Layout อีกครั้ง</div>';return}
-  $('ttl').textContent='Line: '+line.name;
-  $('sub').textContent='แผนก: '+(line.section||'-')+' · วันที่ '+$('date').value;
-  const act=parts.filter(p=>!skips.has(p.id)),sk=parts.filter(p=>skips.has(p.id));
-  let h='';
+$('body').addEventListener('click',e=>{const b=e.target.closest('.tg');if(!b)return;const k=b.dataset.k;opened.has(k)?opened.delete(k):opened.add(k);render()});
+function rowHTML(p,date,r){
+  return '<div class="row"><div class="nm">'+esc(p.name)+'<small class="pn">Part No.: '+esc(p.id)+'</small>'+(r.ts?'<small>ตรวจล่าสุด '+hhmm(r.ts)+(r.po?' · Production Order: '+esc(r.po):'')+(r.by?' · ผู้ตรวจ: '+esc(r.by):'')+'</small>':'')+'</div><div class="pills">'+STAGES.map((l,i)=>'<span class="pill '+r.st[i]+'">'+l+' · '+T[r.st[i]]+'</span>').join('')+'</div></div>'+detail(p,date,r);
+}
+function dayHTML(date,fp,multi){
+  const sk=skipsBy[date]||new Set(),stm=status[date]||{};
+  const act=fp.filter(p=>!sk.has(p.id)),skp=fp.filter(p=>sk.has(p.id));
+  const none={st:['none','none','none']};
+  let h=multi?'<div class="dayh">📅 วันที่ '+date+'</div>':'';
   if(!act.length){
-    h+='<div class="card"><div class="sum"><div class="sbox off"><b>—</b><span>ไม่ผลิตวันนี้</span></div></div></div>';
+    h+='<div class="card"><div class="sum"><div class="sbox off"><b>—</b><span>ไม่ผลิต</span></div></div></div>';
   }else{
-    const rows=act.map(p=>(status[p.id]||{st:['none','none','none']}).st);
+    const rows=act.map(p=>(stm[p.id]||none).st);
     const s=STAGES.map((_,i)=>aggStage(rows.map(r=>r[i])));
-    h+='<div class="card"><h2>สรุปทั้ง Line ('+act.length+'/'+parts.length+' Part ที่ผลิตวันนี้)</h2><div class="sum">'+STAGES.map((l,i)=>'<div class="sbox '+s[i]+'"><b>'+l+'</b><span>'+T[s[i]]+'</span></div>').join('')+'</div></div>';
-    const byModel={};act.forEach(p=>(byModel[p.model]=byModel[p.model]||[]).push(p));
-    h+='<div class="card"><h2>รายละเอียดราย Part</h2>'+Object.entries(byModel).map(([m,a])=>'<div class="model">Model: '+esc(m)+'</div>'+a.map(p=>{
-      const r=status[p.id]||{st:['none','none','none']};
-      return '<div class="row"><div class="nm">'+esc(p.name)+'<small class="pn">Part No.: '+esc(p.id)+'</small>'+(r.ts?'<small>ตรวจล่าสุด '+hhmm(r.ts)+(r.po?' · Production Order: '+esc(r.po):'')+(r.by?' · ผู้ตรวจ: '+esc(r.by):'')+'</small>':'')+'</div><div class="pills">'+STAGES.map((l,i)=>'<span class="pill '+r.st[i]+'">'+l+' · '+T[r.st[i]]+'</span>').join('')+'</div></div>'+detail(p)}).join('')).join('')+'</div>';
+    const whole=$('f-dept').value&&!$('f-model').value&&!$('f-part').value.trim();
+    h+='<div class="card"><h2>'+(whole?'สรุปทั้ง Line':'สรุปตามตัวกรอง')+' ('+act.length+'/'+fp.length+' Part ที่ผลิต'+(multi?'':'วันนี้')+')</h2><div class="sum">'+STAGES.map((l,i)=>'<div class="sbox '+s[i]+'"><b>'+l+'</b><span>'+T[s[i]]+'</span></div>').join('')+'</div></div>';
+    const byDept={};act.forEach(p=>{const d=(byDept[p.dept]=byDept[p.dept]||{});(d[p.model]=d[p.model]||[]).push(p)});
+    const multiLine=Object.keys(byDept).length>1;
+    h+='<div class="card"><h2>รายละเอียดราย Part</h2>'+Object.entries(byDept).map(([di,bm])=>
+      (multiLine?'<div class="lnh">Line: '+esc(deptMap[di].name)+(deptMap[di].section?' <small>· แผนก '+esc(deptMap[di].section)+'</small>':'')+'</div>':'')
+      +Object.entries(bm).map(([m,a])=>'<div class="model">Model: '+esc(m)+'</div>'+a.map(p=>rowHTML(p,date,stm[p.id]||none)).join('')).join('')
+    ).join('')+'</div>';
   }
-  if(sk.length)h+='<div class="card skip">⏸ ไม่ผลิตวันนี้ (ไม่นำมาคิด '+sk.length+' Part): '+sk.map(p=>esc(p.name)).join(' · ')+'</div>';
+  if(skp.length)h+='<div class="card skip">⏸ ไม่ผลิต'+(multi?'':'วันนี้')+' (ไม่นำมาคิด '+skp.length+' Part): '+skp.map(p=>esc(p.name)).join(' · ')+'</div>';
+  return h;
+}
+function render(){
+  $('warn').innerHTML=mErrs.concat(errs).map(e=>'<div class="warn">'+esc(e)+'</div>').join('');
+  const from=$('f-from').value,to=$('f-to').value,sd=$('f-dept').value,sec=$('f-sec').value;
+  $('ttl').textContent=sd?'Line: '+deptMap[sd].name:'Line: ทั้งหมด';
+  $('sub').textContent='แผนก: '+(sd?(deptMap[sd].section||'-'):(sec||'ทั้งหมด'))+' · '+(from===to?'วันที่ '+from:'วันที่ '+from+' ถึง '+to);
+  if(rangeBad){$('body').innerHTML='<div class="empty">กรุณาเลือกช่วงวันที่ให้ถูกต้อง (ไม่เกิน '+MAXD+' วัน)</div>';return}
+  if(!deptList.length){$('body').innerHTML='<div class="empty">ไม่พบข้อมูล Line</div>';return}
+  const fp=filtered();
+  if(!fp.length){$('body').innerHTML='<div class="empty">ไม่พบ Part ตามตัวกรองที่เลือก</div>';return}
+  const last=to<today()?to:today(),multi=from!==to;
+  let h='',hidden=0;
+  for(let d=last;d>=from;d=addDay(d,-1)){
+    // หลายวัน: แสดงเฉพาะวันที่มีการตรวจ เพื่อไม่ให้ยาวเกินไป
+    if(multi&&!fp.some(p=>(status[d]||{})[p.id])){hidden++;continue}
+    h+=dayHTML(d,fp,multi);
+  }
+  if(multi){
+    if(!h)h='<div class="empty">ไม่มีข้อมูลการตรวจในช่วงวันที่นี้</div>';
+    else if(hidden)h+='<div class="skip">ไม่มีข้อมูลการตรวจ '+hidden+' วัน (ไม่แสดง)</div>';
+  }else if(!h)h='<div class="empty">ยังไม่ถึงวันที่เลือก</div>';
   $('body').innerHTML=h;
 }
-async function refresh(){await loadStatus();render();$('back').href='layout.html?date='+$('date').value}
+async function refresh(silent){
+  if(!silent)$('body').innerHTML='<div class="empty">กำลังโหลด...</div>';
+  const ok=await loadStatus();
+  if(ok){render();$('back').href='layout.html?date='+$('f-from').value}
+}
 // เปิดมาจากแท็บ Layout → ปิดแท็บนี้เพื่อกลับ · ถ้าปิดไม่ได้ (เช่น เปิดลิงก์ตรง) ค่อยไปหน้า Layout
 $('back').onclick=e=>{e.preventDefault();window.close();setTimeout(()=>{location.href=$('back').href},200)};
-$('date').value=q.get('date')||today();$('date').onchange=refresh;$('btn-refresh').onclick=refresh;
-setInterval(refresh,60000);
-(async()=>{await loadMaster();await refresh()})();
+// --- ตัวกรองวันที่ (เปลี่ยนแล้วโหลดใหม่) ---
+const setRange=(a,b)=>{$('f-from').value=a;$('f-to').value=b};
+$('f-from').onchange=()=>{if(!$('f-from').value)return;if($('f-to').value<$('f-from').value)$('f-to').value=$('f-from').value;$('f-month').value='';refresh()};
+$('f-to').onchange=()=>{if(!$('f-to').value)return;if($('f-from').value>$('f-to').value)$('f-from').value=$('f-to').value;$('f-month').value='';refresh()};
+$('f-month').onchange=()=>{
+  const v=$('f-month').value;if(!v)return;
+  const [y,m]=v.split('-').map(Number),end=v+'-'+String(new Date(y,m,0).getDate()).padStart(2,'0');
+  setRange(v+'-01',end>today()?today():end);refresh();
+};
+$('btn-today').onclick=()=>{setRange(today(),today());$('f-month').value='';refresh()};
+$('btn-reset').onclick=()=>{setRange(today(),today());$('f-month').value='';applyInitFilters();refresh()};
+$('btn-refresh').onclick=()=>refresh(true);
+// --- ตัวกรองแผนก/Line/Model/Part (กรองจากข้อมูลที่โหลดแล้ว ไม่ต้องโหลดใหม่) ---
+$('f-sec').onchange=()=>{refreshOpts();render()};
+$('f-dept').onchange=()=>{refreshOpts();render()};
+$('f-model').onchange=render;
+$('f-part').oninput=render;
+// เข้าหน้านี้ = วันที่ปัจจุบันเสมอ (ไม่รับ ?date= จากลิงก์)
+setRange(today(),today());$('f-from').max=$('f-to').max=today();
+setInterval(()=>{if($('f-to').value>=today())refresh(true)},60000); // รีเฟรชอัตโนมัติเฉพาะเมื่อช่วงที่ดูรวมวันนี้
+(async()=>{await loadMaster();initFilters();await refresh()})();
 </script>
 </body>
 </html>
