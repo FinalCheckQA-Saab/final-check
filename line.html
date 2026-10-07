@@ -24,6 +24,13 @@ a.back{color:#c8d5e5;font-size:13px;text-decoration:none}a.back:hover{color:#fff
 .bar button:hover svg{transform:rotate(90deg)}
 .bar button.busy svg{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+.bar #btn-hd{padding:8px 10px}.bar #btn-hd svg{transition:transform .25s}.bar #btn-hd:hover svg{transform:none}
+/* ส่วนหัวแบบยุบ: เหลือแถบเดียว */
+header.hd-min{padding:8px 24px}
+header.hd-min>div:first-child{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header.hd-min h1{font-size:18px;margin:0}header.hd-min small{display:none}
+header.hd-min .bar{gap:10px}header.hd-min .bar button{padding:5px 12px}header.hd-min .bar #btn-hd{padding:5px 9px}
+header.hd-min #btn-hd svg{transform:rotate(180deg)}
 .live{font-size:12px;color:#bbf7d0;display:inline-flex;align-items:center;gap:7px}.live[hidden]{display:none}
 .live::before{content:"";width:8px;height:8px;border-radius:50%;background:#22c55e;animation:ping 2s infinite}
 @keyframes ping{0%{box-shadow:0 0 0 0 rgba(34,197,94,.7)}70%,100%{box-shadow:0 0 0 8px rgba(34,197,94,0)}}
@@ -103,7 +110,7 @@ table.ct{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric
 <body>
 <header>
   <div><a class="back" id="back" href="layout.html">‹ ปิดหน้านี้</a><h1 id="ttl">รายละเอียด Line</h1><small id="sub"></small></div>
-  <div class="bar"><span class="live" id="live" hidden>อัปเดตอัตโนมัติ</span><button id="btn-refresh" type="button" title="โหลดข้อมูลล่าสุด"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg><span>รีเฟรช</span></button></div>
+  <div class="bar"><span class="live" id="live" hidden>อัปเดตอัตโนมัติ</span><button id="btn-refresh" type="button" title="โหลดข้อมูลล่าสุด"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg><span>รีเฟรช</span></button><button id="btn-hd" type="button" title="ยุบส่วนหัว" aria-label="ยุบ/ขยายส่วนหัว" aria-expanded="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg></button></div>
 </header>
 <main>
   <section class="card filt">
@@ -322,6 +329,11 @@ $('f-month').onchange=()=>{
 $('btn-today').onclick=()=>{setRange(today(),today());$('f-month').value='';refresh()};
 $('btn-reset').onclick=()=>{setRange(today(),today());$('f-month').value='';applyInitFilters();refresh()};
 $('btn-refresh').onclick=()=>refresh(true);
+// ยุบ/ขยายส่วนหัว (จำค่าที่เลือกไว้ในเบราว์เซอร์นี้)
+const hd=document.querySelector('header');
+function setHd(min){hd.classList.toggle('hd-min',min);const b=$('btn-hd');b.setAttribute('aria-expanded',String(!min));b.title=min?'ขยายส่วนหัว':'ยุบส่วนหัว';try{localStorage.setItem('line_hd_min',min?'1':'0')}catch(e){}}
+$('btn-hd').onclick=()=>setHd(!hd.classList.contains('hd-min'));
+try{if(localStorage.getItem('line_hd_min')==='1')setHd(true)}catch(e){}
 // --- ตัวกรองแผนก/Line/Model/Part (กรองจากข้อมูลที่โหลดแล้ว ไม่ต้องโหลดใหม่) ---
 $('f-sec').onchange=()=>{refreshOpts();render()};
 $('f-dept').onchange=()=>{refreshOpts();render()};
