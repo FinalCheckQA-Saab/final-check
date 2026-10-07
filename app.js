@@ -3942,12 +3942,12 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
      ทุก RPC ต้องแนบรหัสผ่าน Admin ไปด้วยเสมอ (getAdminPass) — DB เป็นคนตัดสินสุดท้าย
   ══════════════════════════════════════ */
   function roleLabelTh(role) {
-    return { inspector: 'ผู้ตรวจสอบ', supervisor: 'หัวหน้างาน', manager: 'Supervisor' }[role] || role;
+    return { inspector: 'ผู้ตรวจสอบ', supervisor: 'หัวหน้างาน', manager: 'หัวหน้าส่วนงาน (Supervisor)' }[role] || role;
   }
 
   // ข้อความในช่องเลือกสิทธิ์: แสดงเป็นชื่อบทบาทที่คนใช้เรียกจริง (ค่าที่เก็บในฐานข้อมูลยังเป็น inspector/supervisor/manager เหมือนเดิม)
   function roleOptionTh(role) {
-    return { inspector: 'ผู้ตรวจสอบ (Inspector)', supervisor: 'หัวหน้างาน (Leader)', manager: 'Supervisor' }[role] || role;
+    return { inspector: 'ผู้ตรวจสอบ (Inspector)', supervisor: 'หัวหน้างาน (Leader)', manager: 'หัวหน้าส่วนงาน (Supervisor)' }[role] || role;
   }
 
   async function renderStaffAccountList() {
