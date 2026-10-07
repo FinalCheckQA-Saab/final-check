@@ -29,6 +29,7 @@ h2{font-size:15px;margin:0 0 8px}
 .model{font-size:13px;font-weight:700;color:var(--navy);margin:10px 0 4px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid #f1f5f9;font-size:14px}
 .row .nm{flex:1;min-width:200px}.row small{display:block;color:var(--muted);font-size:11px}
+.row small.pn{color:var(--navy);font-weight:600}
 .pills{display:flex;gap:6px}
 .pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--none);color:#475569;white-space:nowrap}
 .pill.ok{background:var(--ok);color:#fff}.pill.ng{background:var(--ng);color:#fff}.pill.partial{background:var(--part);color:#fff}
@@ -158,7 +159,7 @@ function render(){
     const byModel={};act.forEach(p=>(byModel[p.model]=byModel[p.model]||[]).push(p));
     h+='<div class="card"><h2>รายละเอียดราย Part</h2>'+Object.entries(byModel).map(([m,a])=>'<div class="model">Model: '+esc(m)+'</div>'+a.map(p=>{
       const r=status[p.id]||{st:['none','none','none']};
-      return '<div class="row"><div class="nm">'+esc(p.name)+(r.ts?'<small>ตรวจล่าสุด '+hhmm(r.ts)+(r.po?' · Production Order: '+esc(r.po):'')+(r.by?' · ผู้ตรวจ: '+esc(r.by):'')+'</small>':'')+'</div><div class="pills">'+STAGES.map((l,i)=>'<span class="pill '+r.st[i]+'">'+l+' · '+T[r.st[i]]+'</span>').join('')+'</div></div>'+detail(p)}).join('')).join('')+'</div>';
+      return '<div class="row"><div class="nm">'+esc(p.name)+'<small class="pn">Part No.: '+esc(p.id)+'</small>'+(r.ts?'<small>ตรวจล่าสุด '+hhmm(r.ts)+(r.po?' · Production Order: '+esc(r.po):'')+(r.by?' · ผู้ตรวจ: '+esc(r.by):'')+'</small>':'')+'</div><div class="pills">'+STAGES.map((l,i)=>'<span class="pill '+r.st[i]+'">'+l+' · '+T[r.st[i]]+'</span>').join('')+'</div></div>'+detail(p)}).join('')).join('')+'</div>';
   }
   if(sk.length)h+='<div class="card skip">⏸ ไม่ผลิตวันนี้ (ไม่นำมาคิด '+sk.length+' Part): '+sk.map(p=>esc(p.name)).join(' · ')+'</div>';
   $('body').innerHTML=h;
