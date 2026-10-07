@@ -2465,6 +2465,42 @@ ${record.jigDocNo ? `_${escHtml(record.jigDocNo)}_` : ''}
     return msg;
   }
 
+  /* ── ส่ง Telegram ทุกครั้งที่กดส่งข้อมูลแต่ละชิ้น (S / M) — ผ่านหรือ NG ก็แจ้ง ── */
+  function buildStageSubmitTelegram(record, cur) {
+    const sl = stageLabel(cur), n = recordPieceCount(record) || DEFAULT_PIECE_COUNT;
+    const total = record.items.length;
+    const ngItems = record.items.filter(i => i.pieces && i.pieces[cur] && i.pieces[cur].status === 'ng');
+    const ngCount = ngItems.length;
+    const head = ngCount > 0
+      ? `⚠️ *ส่งผลตรวจชิ้น ${sl.short} (${sl.th}) — พบ NG*`
+      : `✅ *ส่งผลตรวจชิ้น ${sl.short} (${sl.th}) — ผ่านทั้งหมด*`;
+    let msg = `
+${head}
+🔄 ตรวจไปแล้ว ${cur + 1}/${n} ชิ้น — รอชิ้นถัดไป
+━━━━━━━━━━━━━━━━━━━━━━━━━
+*${escHtml(record.jigName)}*
+${escHtml(record.jigId)}
+${record.jigDocNo ? `_${escHtml(record.jigDocNo)}_` : ''}
+
+📅 วันที่: ${record.date}   🔄 กะ: ${record.shift}
+🏷 Production Order: ${escHtml(record.productionOrder || '-')}
+👤 ผู้ตรวจ: ${escHtml(record.items[0].pieces[cur].by || record.inspector)}
+🕐 เวลาส่ง: ${fmtHM(record.items[0].pieces[cur].at)}
+
+🔍 จุดเช็ค ${total} จุด • ✅ ผ่าน ${total - ngCount} • ❌ NG ${ngCount}
+`;
+    if (ngCount) {
+      msg += `\n*🔴 รายการที่ไม่ผ่านในชิ้น ${sl.short}:*\n`;
+      ngItems.forEach((item, k) => {
+        const pc = item.pieces[cur];
+        const val = item.type === 'numeric' && pc.value != null ? ` (${pc.value}${item.unit ? ' ' + item.unit : ''}, เกณฑ์ ${fmtSpec(item)})` : '';
+        const note = item.note ? ` - _${escHtml(item.note)}_` : '';
+        msg += `${k + 1}. ${escHtml(item.label)}${val}${note}\n`;
+      });
+    }
+    return msg;
+  }
+
   function updateSvgPoint(pointId, status) {
     const g = document.querySelector(`.svg-pt[data-point="${pointId}"]`);
     if (!g) return;
@@ -2746,7 +2782,7 @@ ${escHtml(record.jigId || '')}
       if (!complete) {
         const nextSl = stageLabel(cur + 1);
         toast(`✅ ส่งชิ้น ${sl.short} สำเร็จ! — กลับมาตรวจชิ้น ${nextSl.short} (${nextSl.th}) ได้เลยเมื่อถึงรอบ • ${where}`, 'ok');
-        if (ngNow > 0) await sendTelegramMessage(buildStageNgTelegram(record, cur)); // NG แจ้งทันที ไม่ต้องรอให้ครบ 3 ชิ้น
+        await sendTelegramMessage(buildStageSubmitTelegram(record, cur)); // แจ้งทันทีทุกครั้งที่กดส่ง (ผ่านหรือ NG) ไม่ต้องรอให้ครบ 3 ชิ้น
       } else {
         toast(`✅ ตรวจครบทุกชิ้น (S/M/E) และส่งเข้าระบบแล้ว! • ${where}`, 'ok');
         const items = record.items;
