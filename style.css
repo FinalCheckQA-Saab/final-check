@@ -3138,3 +3138,7 @@ html[data-palette="coffee"][data-theme="dark"] {
 @media (prefers-reduced-motion: reduce) {
   .adm-modal, .adm-modal-back, .adm-tile { transition: none; }
 }
+
+.adm-modal-body > #storage-stats-panel { margin: 0 !important; }
+.adm-modal-body .storage-panel-title { display: none; }
+.adm-modal-body .storage-panel { border: 0; background: transparent; padding: 0; box-shadow: none; }

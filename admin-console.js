@@ -44,6 +44,10 @@
   store.id = 'adm-store';
   panel.appendChild(store);
 
+  /* สถานะพื้นที่จัดเก็บ (ไม่ใช่ .admin-section แต่ย้ายเข้า Modal แบบเดียวกัน) */
+  var storageEl = document.getElementById('storage-stats-panel');
+  var STORAGE_ICON = ico('<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>');
+
   var items = sections.map(function (sec, i) {
     var t = sec.querySelector(':scope > .admin-section-title');
     var raw = (t ? t.textContent : 'หัวข้อ ' + (i + 1)).replace(/\s+/g, ' ').trim();
@@ -57,6 +61,11 @@
     store.appendChild(sec);
     return it;
   });
+
+  if (storageEl) {
+    store.appendChild(storageEl);
+    items.unshift({ sec: storageEl, name: 'สถานะพื้นที่จัดเก็บ', desc: 'กำลังโหลด…', grp: 'ข้อมูลและการสำรอง', icon: STORAGE_ICON, full: 'สถานะพื้นที่จัดเก็บ Storage', href: null, live: true });
+  }
 
   /* ── Launcher ── */
   var launcher = document.createElement('div');
@@ -96,6 +105,19 @@
     groupsWrap.appendChild(box);
   });
   head.insertAdjacentElement('afterend', launcher);
+
+  /* ให้ไอคอนสถานะพื้นที่จัดเก็บแสดง % การใช้งานแบบสด */
+  items.forEach(function (it) {
+    if (!it.live || !it.tile) return;
+    var d = it.tile.querySelector('.adm-tile-desc');
+    function sync() {
+      var t = it.sec.querySelectorAll('svg text');
+      if (t.length >= 2) d.textContent = 'ใช้ ' + t[0].textContent.trim() + ' · ' + t[1].textContent.trim();
+      else if (it.sec.querySelector('.storage-panel')) d.textContent = 'ดูรายละเอียดพื้นที่';
+    }
+    new MutationObserver(sync).observe(it.sec, { childList: true, subtree: true });
+    sync();
+  });
 
   search.addEventListener('input', function () {
     var q = search.value.trim().toLowerCase(), any = false;
