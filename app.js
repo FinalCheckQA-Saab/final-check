@@ -2370,6 +2370,7 @@
               inp.classList.toggle('needs-value', !inRange); // แดงเบาๆ เตือนค่าที่เกินเกณฑ์ทันที
             }
             item.markedAt = new Date().toISOString();
+            item.pieces[p].mk = item.markedAt; // 🆕 เวลาที่ติ๊ก/กรอกของ "ชิ้นนี้" (S/M/E) — ใช้คำนวณ CT แยกรายชิ้นในหน้าประวัติ
             refreshAggregate();
           });
           if (allowNeg) {
@@ -2389,6 +2390,7 @@
                 item.pieces[p].status = btn.dataset.v;
                 group.querySelectorAll('.rbtn').forEach(b => b.classList.toggle('active', b === btn));
                 item.markedAt = new Date().toISOString();
+                item.pieces[p].mk = item.markedAt; // 🆕 เวลาที่ติ๊กของ "ชิ้นนี้" (S/M/E) — ใช้คำนวณ CT แยกรายชิ้น
                 refreshAggregate();
               });
             });
@@ -5127,6 +5129,25 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     return { totalSec, count: marks.length, suspicious: avgSecPerPoint < 2 };
   }
 
+  // 🆕 CT แยกรายชิ้น S / M / E — ใช้ pieces[p].mk (เวลาที่ติ๊ก/กรอกของชิ้นนั้น) จากจุดตรวจแรกถึงจุดสุดท้ายของ "รอบนั้น"
+  // คืน array ยาวเท่าจำนวนชิ้น: แต่ละช่อง = { totalSec, count, suspicious } หรือ null (ยังไม่ตรวจ/มีจุดตรวจน้อยเกินวิเคราะห์)
+  function computeStageTimings(h) {
+    const items = h.items || [];
+    const n = recordPieceCount(h) || DEFAULT_PIECE_COUNT;
+    return Array.from({ length: n }, (_, p) => {
+      const marks = items
+        .map(i => { const pc = (i.pieces || [])[p]; return (pc && pc.status && pc.mk) ? new Date(pc.mk).getTime() : NaN; })
+        .filter(t => isFinite(t)).sort((a, b) => a - b);
+      if (marks.length < 2) return null;
+      const totalSec = Math.round((marks[marks.length - 1] - marks[0]) / 1000);
+      return { totalSec, count: marks.length, suspicious: totalSec / (marks.length - 1) < 2 };
+    });
+  }
+  // รายการที่บันทึกก่อนมีฟีเจอร์ CT แยกชิ้น จะไม่มี pieces[].mk เลย → ใช้การแสดงผลแบบรวมเดิม
+  function hasStageMarks(h) {
+    return (h.items || []).some(i => (i.pieces || []).some(pc => pc && pc.mk));
+  }
+
   // 🆕 แปลงวินาทีเป็นข้อความอ่านง่าย เช่น "4 นาที 12 วินาที" หรือ "38 วินาที"
   function formatDurationTh(totalSec) {
     const m = Math.floor(totalSec / 60), s = totalSec % 60;
@@ -5206,7 +5227,16 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
             ${gpsDisplay}
             ${(() => {
               if (!admLoggedIn) return ''; // 🆕 เฉพาะ Admin เห็น — พนักงานทั่วไปไม่เห็นว่าถูกจับเวลา
-              const timing = computeInspectionTiming(h);
+              if (hasStageMarks(h)) { // 🆕 CT แยกรายชิ้น: ⏱ S ... · ⏱ M ... · ⏱ E ...
+                return computeStageTimings(h).map((t, p) => {
+                  if (!t) return '';
+                  const sl = stageLabel(p), label = `⏱ ${sl.short} ${formatDurationTh(t.totalSec)}`;
+                  return t.suspicious
+                    ? `<span class="badge ng" title="CT ชิ้น ${sl.short}: เฉลี่ยตรวจแต่ละจุดเร็วกว่า 2 วินาที — อาจเป็นการนั่งไล่กดโดยไม่ได้เดินตรวจจริง ลองเช็คดูเพิ่มเติม">${label} ⚠</span>`
+                    : `<span class="badge timing" title="CT ชิ้น ${sl.short} (${sl.th}) — ตั้งแต่ติ๊กจุดแรกถึงจุดสุดท้ายของรอบนี้ (${t.count} จุด)">${label}</span>`;
+                }).join('');
+              }
+              const timing = computeInspectionTiming(h); // รายการเก่า (ไม่มีเวลาแยกชิ้น) — แสดงเวลารวมแบบเดิม
               if (!timing) return ''; // รายการเก่าก่อนมีฟีเจอร์นี้ — ไม่มีข้อมูลให้วิเคราะห์
               const label = `⏱ ${formatDurationTh(timing.totalSec)}`;
               return timing.suspicious
