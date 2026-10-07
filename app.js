@@ -4179,7 +4179,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     const label = prompt('ชื่อจุด', p.label);
     if (label === null) return;
     if (!label.trim()) { toast('ชื่อจุดห้ามว่าง', 'ng'); return; }
-    const sub = prompt('เกณฑ์', p.sub || '');
+    const sub = prompt('รายละเอียด/ตำแหน่งที่วัด', p.sub || '');
     if (sub === null) return;
     const method = prompt('วิธีตรวจ', p.method || '');
     if (method === null) return;
