@@ -3945,6 +3945,11 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     return { inspector: 'ผู้ตรวจสอบ', supervisor: 'หัวหน้างาน', manager: 'Supervisor' }[role] || role;
   }
 
+  // ข้อความในช่องเลือกสิทธิ์: แสดงเป็นชื่อบทบาทที่คนใช้เรียกจริง (ค่าที่เก็บในฐานข้อมูลยังเป็น inspector/supervisor/manager เหมือนเดิม)
+  function roleOptionTh(role) {
+    return { inspector: 'ผู้ตรวจสอบ (Inspector)', supervisor: 'หัวหน้างาน (Leader)', manager: 'Supervisor' }[role] || role;
+  }
+
   async function renderStaffAccountList() {
     const box = $('adm-user-list');
     if (!box) return;
@@ -4031,7 +4036,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
             </div>
             <div class="admin-input-row">
               <select class="eu-role adm-sel">
-                ${['inspector', 'supervisor', 'manager'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r} — ${roleLabelTh(r)}</option>`).join('')}
+                ${['inspector', 'supervisor', 'manager'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${roleOptionTh(r)}</option>`).join('')}
               </select>
               <button class="btn-adm-add eu-save">💾 บันทึก</button>
               <button class="adm-item-edit eu-cancel" type="button">ยกเลิก</button>
