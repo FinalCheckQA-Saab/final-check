@@ -1519,7 +1519,7 @@ h1, h2, h3, h4, label, button, input, select, textarea, p, span, div {
   position: fixed; bottom: 1.5rem; left: 50%;
   transform: translateX(-50%) translateY(100px);
   padding: 12px 24px; border-radius: 10px;
-  font-size: 13px; display: none; z-index: 999;
+  font-size: 13px; display: none; z-index: 99998;
   font-weight: 500; white-space: nowrap; color: #fff;
   box-shadow: 0 6px 24px hsla(0,0%,0%,0.3);
   font-family: var(--font-thai);
