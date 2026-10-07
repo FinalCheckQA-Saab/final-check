@@ -746,7 +746,7 @@
 ${esc(row.jig_id || '')}
 ${row.jig_doc_no ? `_${esc(row.jig_doc_no)}_` : ''}
 
-📅 วันที่ตรวจ: ${esc(row.insp_date)} เวลา ${esc(time)}
+📅 วันที่ตรวจ: ${esc(row.insp_date)} เวลา ${esc(time)}${time ? ' น.' : ''}
 🏷 Production Order: ${esc(row.production_order || '-')}
 👤 ผู้ตรวจ: ${esc(row.inspector)}
 🔍 จุดเช็คทั้งหมด: ${items.length} จุด

@@ -659,7 +659,7 @@
   }
   function stageTimeline(rec) {
     const first = ((rec.items || [])[0] || {}).pieces || [];
-    return first.filter(p => p.at).map((p, k) => `${stageLabel(k).short} ${fmtHM(p.at)}`).join(' → ');
+    return first.filter(p => p.at).map((p, k) => `${stageLabel(k).short} ${fmtHM(p.at)} น.`).join(' → ');
   }
 
   /* ══════════════════════════════════════
@@ -2485,7 +2485,7 @@ ${record.jigDocNo ? `_${escHtml(record.jigDocNo)}_` : ''}
 📅 วันที่: ${record.date}   🔄 กะ: ${record.shift}
 🏷 Production Order: ${escHtml(record.productionOrder || '-')}
 👤 ผู้ตรวจ: ${escHtml(record.items[0].pieces[cur].by || record.inspector)}
-🕐 เวลาส่ง: ${fmtHM(record.items[0].pieces[cur].at)}
+🕐 เวลาส่ง: ${fmtHM(record.items[0].pieces[cur].at)} น.
 
 🔍 จุดเช็ค ${total} จุด • ✅ ผ่าน ${total - ngCount} • ❌ NG ${ngCount}
 `;
@@ -2818,7 +2818,7 @@ ${record.jigDocNo ? `_${escHtml(record.jigDocNo)}_` : ''}
 
 📅 วันที่: ${record.date}
 🏷 Production Order: ${escHtml(record.productionOrder || '-')}
-🕐 ส่งชิ้นสุดท้าย: ${time}
+🕐 ตรวจชิ้นสุดท้าย: ${time} น.
 ⏱ ${escHtml(stageTimeline(record))}
 🔄 กะ: ${record.shift}
 👤 ผู้ตรวจ: ${escHtml(record.inspector)}
