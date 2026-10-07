@@ -290,8 +290,8 @@
   function clearRememberedPin() { _rememberedPin = null; }
   const TELEGRAM_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/send-telegram`;
   const APPROVED_NOTIFY_CHAT_ID = '-5170940793'; // กลุ่ม Telegram ที่แจ้งผล "ตรวจสอบแล้ว" (แจ้งซ้ำตอนหัวหน้าตรวจสอบ เพื่อให้ทุกคนตามงานได้)
-  // Telegram chat id ของกลุ่มผู้จัดการฝ่ายผลิต — แจ้งเตือนให้เข้ามาอนุมัติขั้นที่ 2
-  const MANAGER_NOTIFY_CHAT_ID = '-5415757971'; // กลุ่ม Telegram แจ้งผู้จัดการฝ่ายผลิตให้เข้ามาอนุมัติขั้นที่ 2
+  // Telegram chat id ของกลุ่ม "DQI Sup.Approved" (Supervisor) — แจ้งเตือนให้เข้ามาอนุมัติขั้นที่ 2
+  const MANAGER_NOTIFY_CHAT_ID = '-5225233965'; // กลุ่ม Telegram แจ้งผู้จัดการฝ่ายผลิตให้เข้ามาอนุมัติขั้นที่ 2
 
   const app = document.getElementById('app');
   const params = new URLSearchParams(window.location.search);
