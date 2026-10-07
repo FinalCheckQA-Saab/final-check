@@ -960,6 +960,7 @@
     
     e.stopPropagation();
     const { etype, id } = btn.dataset;
+    if (!etype) return; // 🆕 ปุ่ม .adm-item-edit ที่ไม่ใช่ของ Catalog (เช่น ปุ่มในรายการบัญชีผู้ใช้) มี handler ของตัวเองแล้ว — ห้ามตกมาโชว์ "แก้ไขสำเร็จ"/saveCatalog ที่นี่
     let pendingRename = null; // 🆕 { kind, oldId, newId } — ถ้าเปลี่ยนรหัส ต้องย้ายข้อมูลบน Supabase ตาม
     // ถามรหัสใหม่ (คืน null = ยกเลิก, '' ไม่ได้ใช้) — ห้ามว่าง/มีช่องว่าง/ซ้ำ
     const askNewId = (label, current, existsFn) => {
