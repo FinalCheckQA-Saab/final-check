@@ -3507,6 +3507,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
           localStorage.setItem('fc_admin_user', username);
           $('admin-login-modal').classList.add('hidden');
           openPanel('admin-panel');
+          renderStaffAccountList(); // 🆕 โหลดรายชื่อบัญชีผู้ใช้ทันทีหลัง login (เดิมว่างเปล่าจนกว่าจะเปิด Admin Panel ซ้ำ)
           renderUncheckedLinesReport();   // 🆕 Model ที่ไม่มีการตรวจเช็คในแต่ละวัน
           toast(`เข้าสู่ระบบสำเร็จ (${username})`, 'ok');
         } else {
@@ -3975,8 +3976,10 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
           </div>
         </div>
         <div>
+          <button class="adm-item-edit btn-user-edit" title="แก้ไขชื่อ / Username / สิทธิ์">${ico(ICO_EDIT_P)}</button>
           <button class="adm-item-edit btn-user-reset" title="รีเซ็ตรหัสผ่าน">${ico(ICO_KEY_P)}</button>
           <button class="adm-item-edit btn-user-toggle" title="${u.active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}">${u.active ? '⏸️' : '▶️'}</button>
+          <button class="adm-item-del btn-user-del" title="ลบบัญชีนี้">${ico(ICO_TRASH_P)}</button>
         </div>
       </div>
     `).join('');
@@ -4011,6 +4014,74 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         renderStaffAccountList();
       });
     });
+
+    // 🆕 แก้ไขบัญชี (Username / ชื่อ-นามสกุล / สิทธิ์) — แก้ในแถวรายการเลย
+    const usersById = new Map(users.map(u => [String(u.id), u]));
+    box.querySelectorAll('.btn-user-edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.closest('.adm-item');
+        const u = usersById.get(item.dataset.uid);
+        if (!u) return;
+        item.innerHTML = `
+          <div style="flex:1; min-width:0;">
+            <div class="admin-input-row">
+              <input type="text" class="eu-username" value="${escHtml(u.username)}" placeholder="Username (eng, ไม่ซ้ำ)">
+              <input type="text" class="eu-fullname" value="${escHtml(u.full_name)}" placeholder="ชื่อ-นามสกุล">
+            </div>
+            <div class="admin-input-row">
+              <select class="eu-role adm-sel">
+                ${['inspector', 'supervisor', 'manager'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r} — ${roleLabelTh(r)}</option>`).join('')}
+              </select>
+              <button class="btn-adm-add eu-save">💾 บันทึก</button>
+              <button class="adm-item-edit eu-cancel" type="button">ยกเลิก</button>
+            </div>
+          </div>`;
+        item.querySelector('.eu-cancel').addEventListener('click', () => renderStaffAccountList());
+        item.querySelector('.eu-save').addEventListener('click', async (ev) => {
+          const username = item.querySelector('.eu-username').value.trim();
+          const fullName = item.querySelector('.eu-fullname').value.trim();
+          const role = item.querySelector('.eu-role').value;
+          if (!username || !fullName) { toast('กรอก Username และชื่อ-นามสกุลให้ครบ', 'ng'); return; }
+          if (u.role !== role && !(await showConfirmModal(`เปลี่ยนสิทธิ์ของ "${fullName}" จาก ${roleLabelTh(u.role)} เป็น ${roleLabelTh(role)}?`, { confirmLabel: 'เปลี่ยนสิทธิ์' }))) return;
+          const p = getAdminPass();
+          if (!p) return;
+          const sbtn = ev.currentTarget; sbtn.disabled = true;
+          const { data: st, error: e } = await sb.rpc('admin_update_app_user', {
+            p_admin_password: p, p_user_id: u.id, p_username: username, p_full_name: fullName, p_role: role,
+          });
+          sbtn.disabled = false;
+          if (e) { console.error('admin_update_app_user error:', e); toast(staffRpcErrorText(e), 'ng'); return; }
+          if (st === 'ok') { toast(`บันทึกบัญชี "${fullName}" แล้ว`, 'ok'); renderStaffAccountList(); return; }
+          toast(st === 'duplicate' ? 'Username นี้มีอยู่แล้ว' : st === 'not_authorized' ? 'รหัสผ่าน Admin ไม่ถูกต้อง หรือไม่พบบัญชีนี้' : 'บันทึกไม่สำเร็จ', 'ng');
+          if (st === 'not_authorized') _adminSessionPass = null;
+        });
+      });
+    });
+
+    // 🆕 ลบบัญชี — ถ้าบัญชีมีประวัติ Login ผูกอยู่ DB จะไม่ให้ลบ (แนะนำให้ "ปิดใช้งาน" แทน เพื่อเก็บประวัติไว้ตรวจสอบ)
+    box.querySelectorAll('.btn-user-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const item = btn.closest('.adm-item');
+        const u = usersById.get(item.dataset.uid);
+        if (!u) return;
+        if (!(await showConfirmModal(`ลบบัญชี "${u.full_name}" (@${u.username}) ?\nการลบนี้ย้อนกลับไม่ได้ — ถ้าแค่ไม่ต้องการให้ล็อกอิน แนะนำกด "ปิดใช้งาน" แทน`, { confirmLabel: 'ลบบัญชี', danger: true }))) return;
+        const p = getAdminPass();
+        if (!p) return;
+        const { data: st, error: e } = await sb.rpc('admin_delete_app_user', { p_admin_password: p, p_user_id: u.id });
+        if (e) { console.error('admin_delete_app_user error:', e); toast(staffRpcErrorText(e), 'ng'); return; }
+        if (st === 'ok') { toast(`ลบบัญชี "${u.full_name}" แล้ว`, 'ok'); renderStaffAccountList(); return; }
+        if (st === 'has_logs') { toast('ลบไม่ได้ เพราะบัญชีนี้มีประวัติการ Login ผูกอยู่ — ใช้ "ปิดใช้งาน" (⏸️) แทน', 'ng', 6000); return; }
+        toast(st === 'not_authorized' ? 'รหัสผ่าน Admin ไม่ถูกต้อง หรือไม่พบบัญชีนี้' : 'ลบไม่สำเร็จ', 'ng');
+        if (st === 'not_authorized') _adminSessionPass = null;
+      });
+    });
+  }
+
+  // แปลง error ของ RPC แก้ไข/ลบบัญชี เป็นข้อความอ่านง่าย (กรณียังไม่ได้รัน SQL ใน Supabase)
+  function staffRpcErrorText(e) {
+    return /could not find|does not exist|schema cache/i.test((e && e.message) || '')
+      ? 'ยังไม่ได้รัน SQL (app_users_edit_delete.sql) ใน Supabase — แจ้งผู้ดูแลระบบก่อน'
+      : 'ทำรายการไม่สำเร็จ — รหัสผ่าน Admin อาจไม่ถูกต้อง';
   }
 
   async function renderLoginLogList() {
