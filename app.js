@@ -5405,6 +5405,22 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         </tr>`;
     }).join('');
 
+    // ── เวลาตรวจแยกตามชิ้น S / M / E (ตรวจคนละช่วงเวลา) ──
+    const stageNum = recordPieceCount(record) || 0;
+    const stageFirst = (record.items[0] && record.items[0].pieces) || [];
+    const stageTimeBlock = stageNum ? `
+        <div style="display:flex;border-bottom:1px solid #e2e8f0;background:#f8fafc">
+          ${Array.from({ length: stageNum }, (_, p) => {
+            const pc = stageFirst[p] || {};
+            const sl = stageLabel(p);
+            const t = pc.at ? fmtHM(pc.at) : '';
+            return `<div style="flex:1;padding:5px 10px;${p < stageNum - 1 ? 'border-right:1px solid #e2e8f0;' : ''}">
+              <div style="font-size:8px;font-weight:600;text-transform:uppercase;color:#6b7280">เวลาตรวจ ${escHtml(sl.short)} / ${escHtml(sl.th)}</div>
+              <div style="font-size:11px;font-weight:700;color:${t ? '#15803d' : '#94a3b8'}">${t ? escHtml(t) + ' น.' : 'ยังไม่ตรวจ'}${t && pc.by ? ` <span style="font-size:9px;font-weight:400;color:#475569">· ${escHtml(pc.by)}</span>` : ''}</div>
+            </div>`;
+          }).join('')}
+        </div>` : '';
+
     return `
       <div class="pdf-page">
 
@@ -5482,6 +5498,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
             <div class="pdf-scope-value">${escHtml(record.jigId || '—')} — ${escHtml(record.jigName || '—')}</div>
           </div>
         </div>
+
+        ${stageTimeBlock}
 
         <!-- ── INSPECTION TABLE (ISO: LSL / USL / Actual / Status) ── -->
         <div class="pdf-table-wrap">
