@@ -327,6 +327,24 @@
     });
     return `\n*🔴 รายการที่ไม่ผ่าน:*\n${lines.join('\n')}\n`;
   }
+  // สรุปผลรายชิ้น S / M / E ใส่ในข้อความแจ้ง Supervisor (ผ่านกี่จุด / NG กี่จุด / เวลาที่ส่ง)
+  function stageSummaryText(items, inspector) {
+    const first = (items && items[0] && items[0].pieces) || [];
+    const n = (items && items[0] && (items[0].pieceCount || first.length)) || 0;
+    if (!n) return '';
+    const names = ['S (Start)', 'M (Middle)', 'E (End)'];
+    let t = '\n📌 *สรุปผลรายชิ้น S / M / E:*\n';
+    for (let p = 0; p < n; p++) {
+      const st = items.map(i => (i.pieces && i.pieces[p] && i.pieces[p].status) || '');
+      const ok = st.filter(x => x === 'ok' || x === 'fixed').length;
+      const ng = st.filter(x => x === 'ng').length;
+      const pc = first[p] || {};
+      const at = pc.at ? new Date(pc.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+      const by = pc.by && pc.by !== inspector ? ` — ${esc(pc.by)}` : '';
+      t += `${ng > 0 ? '❌' : '✅'} *${esc(names[p] || ('ชิ้น ' + (p + 1)))}*: ผ่าน ${ok}/${items.length}${ng > 0 ? ` • NG ${ng}` : ''}${at ? ` · ${esc(at)} น.` : ''}${by}\n`;
+    }
+    return t;
+  }
   // ── ระบุ stage การอนุมัติ (หัวหน้างาน = หน้านี้ / Supervisor = manager-approve.html) ──
   function approvalStage(row) {
     const supApproved = row.approval_status === 'approved';
@@ -771,7 +789,7 @@ ${row.jig_doc_no ? `_${esc(row.jig_doc_no)}_` : ''}
 👤 ผู้ตรวจ: ${esc(row.inspector)}
 🔍 จุดเช็คทั้งหมด: ${items.length} จุด
 ✅ ผ่าน (OK): ${okCount}${ngCount > 0 ? `  ❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
-${ngListText(items)}
+${stageSummaryText(items, row.inspector)}${ngListText(items)}
 ✅ หัวหน้างานตรวจสอบแล้วโดย: ${esc(row.approved_by)}
 🕐 เมื่อ: ${new Date(row.approved_at).toLocaleString('th-TH')}
 ${row.supervisor_comment ? `💬 ความเห็น: ${esc(row.supervisor_comment)}` : ''}
