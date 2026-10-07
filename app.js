@@ -5236,10 +5236,15 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   // ตัวเลข = งานค้างใน 30 วันล่าสุด (นับจากประวัติในเครื่องที่ realtime sync อยู่แล้ว — ไม่ยิง query เพิ่ม)
   // ⚠️ ซ่อนที่หน้าจอเท่านั้น — การอนุมัติจริงยังต้องกรอก PIN และตรวจที่ฝั่ง Supabase เหมือนเดิม
   function updateApprovalNav() {
+    // แสดงเมนูตามสิทธิ์: หัวหน้างาน (supervisor) → Leader Check · หัวหน้าส่วนงาน (manager) → Supervisor Approved · Admin (ล็อกอินที่ Admin Panel) → เห็นทั้งสอง
     const role = currentAppUser && currentAppUser.role;
-    const show = role === 'supervisor' || role === 'manager' || admLoggedIn; // Admin (ล็อกอินที่ Admin Panel) เห็นด้วย
-    document.querySelectorAll('[data-approve-nav]').forEach(el => { el.style.display = show ? '' : 'none'; });
-    if (!show) return;
+    const showLeader = role === 'supervisor' || admLoggedIn;
+    const showSup = role === 'manager' || admLoggedIn;
+    const setShow = (el, on) => { if (el) el.style.display = on ? '' : 'none'; };
+    setShow($('nav-leader-check'), showLeader);
+    setShow($('nav-sup-approved'), showSup);
+    document.querySelectorAll('[data-approve-nav]:not(a)').forEach(el => setShow(el, showLeader || showSup)); // เส้นคั่น + หัวข้อ "การอนุมัติ"
+    if (!showLeader && !showSup) return;
     const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     let leader = 0, sup = 0;
     loadHistory().forEach(h => {
