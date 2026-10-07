@@ -2681,6 +2681,16 @@ body.sidebar-collapsed .sidebar-brand { display: none; }
 body.sidebar-collapsed .sidebar-nav .tab-btn.side-nav-item,
 body.sidebar-collapsed .sidebar-nav a.side-nav-item { justify-content: center; padding: 10px 0; }
 
+/* 🆕 ตัวเลขงานค้างบนเมนู Leader Check / Supervisor Approved */
+.sidebar-nav a.side-nav-item { position: relative; }
+.nav-count {
+  margin-left: auto; min-width: 20px; padding: 1px 7px; border-radius: 999px;
+  background: #ef4444; color: #fff; font-size: 11px; font-weight: 700; line-height: 1.5;
+  text-align: center; font-variant-numeric: tabular-nums;
+}
+.nav-count[hidden] { display: none; }
+body.sidebar-collapsed .nav-count { position: absolute; top: 2px; right: 6px; margin: 0; min-width: 16px; padding: 0 4px; font-size: 10px; }
+
 /* mobile — off-canvas drawer */
 @media (max-width: 900px) {
   .sidebar {
@@ -2696,6 +2706,7 @@ body.sidebar-collapsed .sidebar-nav a.side-nav-item { justify-content: center; p
   body.sidebar-collapsed .sidebar-nav-label,
   body.sidebar-collapsed .sidebar-foot-text { display: block; }
   body.sidebar-collapsed .sidebar-brand { display: flex; }
+  body.sidebar-collapsed .nav-count { position: static; margin-left: auto; min-width: 20px; padding: 1px 7px; font-size: 11px; }
   .sidebar-collapse-toggle { display: none; }
   .app-container, body.sidebar-collapsed .app-container { margin-left: 0 !important; }
   .hamburger-btn { display: flex; }

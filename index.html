@@ -145,6 +145,20 @@
       <span class="sidebar-link-text">ประวัติ</span>
     </button>
 
+    <!-- 🆕 เมนูอนุมัติ — แสดงเฉพาะบัญชีที่ role = หัวหน้างาน / Supervisor (ควบคุมโดย updateApprovalNav() ใน app.js) -->
+    <div class="sidebar-divider" data-approve-nav style="display:none"></div>
+    <span class="sidebar-nav-label" data-approve-nav style="display:none">การอนุมัติ</span>
+    <a class="side-nav-item" id="nav-leader-check" data-approve-nav style="display:none" href="approve.html" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+      <span class="sidebar-link-text">Leader Check</span>
+      <span class="nav-count" id="nav-leader-count" hidden></span>
+    </a>
+    <a class="side-nav-item" id="nav-sup-approved" data-approve-nav style="display:none" href="manager-approve.html" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+      <span class="sidebar-link-text">Supervisor Approved</span>
+      <span class="nav-count" id="nav-sup-count" hidden></span>
+    </a>
+
     <div class="sidebar-divider"></div>
     <span class="sidebar-nav-label">เอกสาร &amp; อนุมัติ</span>
     <a class="side-nav-item" href="documents.html" target="_blank" rel="noopener">

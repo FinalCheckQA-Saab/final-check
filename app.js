@@ -3290,6 +3290,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   function unlockApp() {
     $('app-login-gate').classList.add('hidden');
     renderAppUserBadge();
+    updateApprovalNav(); // 🆕 โชว์/ซ่อนเมนูอนุมัติตาม role ทันทีหลัง Login
     // Auto-fill ชื่อผู้ตรวจสอบจากบัญชีที่ Login (ยังแก้ไขเองได้ภายหลังถ้าจำเป็น)
     const inspInp = $('inp-inspector');
     if (inspInp && !inspInp.value.trim() && currentAppUser) inspInp.value = currentAppUser.full_name;
@@ -3298,7 +3299,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     init().catch(err => { // ⚠️ ดัก error ที่อาจเกิดใน init() ไม่ให้หายไปเงียบๆ
       console.error('init() error:', err);
       dbgLog('❌ init() THROW ERROR', err.message || String(err));
-    }); // เริ่มโหลดข้อมูลจริงของแอป หลัง Login สำเร็จเท่านั้น
+    }).finally(() => { if (typeof updateApprovalNav === 'function') updateApprovalNav(); }); // เริ่มโหลดข้อมูลจริงของแอป หลัง Login สำเร็จเท่านั้น (แล้วค่อยแสดงเมนูอนุมัติ + ตัวเลขงานค้าง)
   }
 
   // ซิงก์ชื่อจากช่อง "ข้อมูลทั่วไป > ผู้ตรวจสอบ" ไปที่ช่อง "ลายเซ็นรับรอง (พิมพ์ชื่อ) > ผู้ตรวจสอบ"
@@ -5154,7 +5155,30 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     return m > 0 ? `${m} นาที ${s} วินาที` : `${s} วินาที`;
   }
 
+  // 🆕 เมนู Leader Check / Supervisor Approved ในแถบข้าง — เห็นเฉพาะ role หัวหน้างาน (supervisor) และ Supervisor (manager)
+  // ตัวเลข = งานค้างใน 30 วันล่าสุด (นับจากประวัติในเครื่องที่ realtime sync อยู่แล้ว — ไม่ยิง query เพิ่ม)
+  // ⚠️ ซ่อนที่หน้าจอเท่านั้น — การอนุมัติจริงยังต้องกรอก PIN และตรวจที่ฝั่ง Supabase เหมือนเดิม
+  function updateApprovalNav() {
+    const role = currentAppUser && currentAppUser.role;
+    const show = role === 'supervisor' || role === 'manager';
+    document.querySelectorAll('[data-approve-nav]').forEach(el => { el.style.display = show ? '' : 'none'; });
+    if (!show) return;
+    const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    let leader = 0, sup = 0;
+    loadHistory().forEach(h => {
+      if (!h || !h.date || h.date < since || !isRecordComplete(h)) return;
+      const k = approvalStage(h).key;
+      if (k === 'pending') leader++; else if (k === 'partial') sup++;
+    });
+    [['nav-leader-count', leader], ['nav-sup-count', sup]].forEach(([id, n]) => {
+      const el = $(id); if (!el) return;
+      el.textContent = n > 99 ? '99+' : String(n);
+      el.hidden = n === 0;
+    });
+  }
+
   function populateHistoryPanel() {
+    updateApprovalNav();
     // 🆕 โชว์แถบ "โหลดประวัติทั้งหมด" เฉพาะ Admin และเฉพาะตอนยังไม่เคยกดโหลดเต็มในเซสชันนี้
     const loadFullRow = $('hist-load-full-row');
     if (loadFullRow) loadFullRow.classList.toggle('hidden', !admLoggedIn || _fullHistoryLoaded);
