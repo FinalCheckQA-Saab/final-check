@@ -2782,7 +2782,11 @@ ${escHtml(record.jigId || '')}
       if (!complete) {
         const nextSl = stageLabel(cur + 1);
         toast(`✅ ส่งชิ้น ${sl.short} สำเร็จ! — กลับมาตรวจชิ้น ${nextSl.short} (${nextSl.th}) ได้เลยเมื่อถึงรอบ • ${where}`, 'ok');
-        await sendTelegramMessage(buildStageSubmitTelegram(record, cur)); // แจ้งทันทีทุกครั้งที่กดส่ง (ผ่านหรือ NG) ไม่ต้องรอให้ครบ 3 ชิ้น
+        // แจ้งทันทีทุกครั้งที่กดส่ง (ผ่านหรือ NG) ไม่ต้องรอให้ครบ 3 ชิ้น + แนบปุ่มให้ Leader กดเปิดดูผลการตรวจ (line.html)
+        // (approve.html ยังไม่เปิดให้อนุมัติจนกว่าจะครบ S/M/E จึงให้ดูผลที่ line.html ก่อน — ครบแล้วค่อยได้ปุ่มอนุมัติ)
+        const viewUrl = new URL('line.html', window.location.href).href
+          + `?line=${encodeURIComponent(record.deptId)}&date=${encodeURIComponent(record.date)}`;
+        await sendTelegramMessage(buildStageSubmitTelegram(record, cur), viewUrl, '🔎 ดูผลการตรวจ');
       } else {
         toast(`✅ ตรวจครบทุกชิ้น (S/M/E) และส่งเข้าระบบแล้ว! • ${where}`, 'ok');
         const items = record.items;
