@@ -3470,7 +3470,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       if (!sb) {
         const localPass = localStorage.getItem('fc_admin_pass');
         if (pass === localPass) {
-          admLoggedIn = true;
+          admLoggedIn = true; updateApprovalNav();
           _adminSessionPass = pass; // เก็บไว้ใน memory ใช้แนบ RPC (โหมด local ไม่มี RPC จริงอยู่แล้ว แต่ตั้งไว้ให้ครบ flow)
           $('admin-login-modal').classList.add('hidden');
           openPanel('admin-panel');
@@ -3502,7 +3502,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         }
 
         if (ok) {
-          admLoggedIn = true;
+          admLoggedIn = true; updateApprovalNav();
           _adminSessionPass = pass; // เก็บรหัสผ่านไว้ใน memory เพื่อแนบไปกับ RPC เขียนข้อมูลต่อจากนี้
           localStorage.setItem('fc_admin_user', username);
           $('admin-login-modal').classList.add('hidden');
@@ -3527,7 +3527,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     // เคลียร์ทั้ง memory (_adminSessionPass), state (admLoggedIn) และ localStorage
     $('btn-admin-logout').addEventListener('click', async () => {
       if (!(await showConfirmModal('ต้องการออกจากระบบ Admin ใช่หรือไม่?', { confirmLabel: 'ออกจากระบบ' }))) return;
-      admLoggedIn = false;
+      admLoggedIn = false; updateApprovalNav();
       _adminSessionPass = null;
       localStorage.removeItem('fc_admin_user');
       closePanel('admin-panel');
@@ -5160,7 +5160,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   // ⚠️ ซ่อนที่หน้าจอเท่านั้น — การอนุมัติจริงยังต้องกรอก PIN และตรวจที่ฝั่ง Supabase เหมือนเดิม
   function updateApprovalNav() {
     const role = currentAppUser && currentAppUser.role;
-    const show = role === 'supervisor' || role === 'manager';
+    const show = role === 'supervisor' || role === 'manager' || admLoggedIn; // Admin (ล็อกอินที่ Admin Panel) เห็นด้วย
     document.querySelectorAll('[data-approve-nav]').forEach(el => { el.style.display = show ? '' : 'none'; });
     if (!show) return;
     const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
