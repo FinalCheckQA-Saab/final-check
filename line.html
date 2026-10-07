@@ -68,7 +68,7 @@ const STAGES=['S','M','E'];
 const T={off:'ไม่ผลิตวันนี้',none:'ยังไม่ตรวจ',ok:'ผ่าน',ng:'NG',partial:'ตรวจยังไม่ครบ'};
 const q=new URLSearchParams(location.search), LINE=q.get('line');
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
-const collapsed=new Set();
+const opened=new Set(); // Part ที่พี่บีกดขยายเอง (ค่าเริ่มต้น = ยุบทั้งหมด)
 let line=null, parts=[], status={}, skips=new Set(), errs=[];
 
 async function loadMaster(){
@@ -130,7 +130,7 @@ function specText(it){
 // รายละเอียดจุดตรวจของ Part (ชุดล่าสุดของวัน): ค่า/ผลของ S M E ต่อจุด
 function detail(p){
   const r=status[p.id];if(!r||!r.items||!r.items.length)return '';
-  const hide=collapsed.has(p.id),n=r.items.length,ng=r.items.filter(i=>(i.pieces||[]).some(x=>x&&x.status==='ng')).length;
+  const hide=!opened.has(p.id),n=r.items.length,ng=r.items.filter(i=>(i.pieces||[]).some(x=>x&&x.status==='ng')).length;
   let h='<div class="chk"><button type="button" class="tg" data-id="'+esc(p.id)+'">'+(hide?'▸':'▾')+' จุดตรวจ '+n+' จุด'+(ng?' · NG '+ng:'')+'</button>';
   if(!hide){
     const first=(r.items[0].pieces||[]);
@@ -142,7 +142,7 @@ function detail(p){
   }
   return h+'</div>';
 }
-$('body').addEventListener('click',e=>{const b=e.target.closest('.tg');if(!b)return;const id=b.dataset.id;collapsed.has(id)?collapsed.delete(id):collapsed.add(id);render()});
+$('body').addEventListener('click',e=>{const b=e.target.closest('.tg');if(!b)return;const id=b.dataset.id;opened.has(id)?opened.delete(id):opened.add(id);render()});
 function render(){
   $('warn').innerHTML=errs.map(e=>'<div class="warn">'+esc(e)+'</div>').join('');
   if(!line){$('body').innerHTML='<div class="empty">ไม่พบ Line นี้ — กลับไปเลือกจุดบน Layout อีกครั้ง</div>';return}
