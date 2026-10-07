@@ -3587,6 +3587,9 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 
     /* Checkpoint Management — extracted to bindCpJigDropdown() so it can be re-called */
     bindCpJigDropdown();
+    if ($('adm-cp-type')) $('adm-cp-type').addEventListener('change', () => {
+      $('adm-cp-spec').style.display = $('adm-cp-type').value === 'numeric' ? 'flex' : 'none';
+    });
     $('btn-adm-cp').addEventListener('click', () => {
       const jid = $('adm-cp-jig').value;
       if (!jid) return;
@@ -3596,11 +3599,19 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       const sub = $('adm-cp-sub').value.trim();
       const method = $('adm-cp-method').value.trim();
       if (!label) { toast('กรุณาใส่ชื่อจุดตรวจ', 'ng'); return; }
+      const isNum = $('adm-cp-type') && $('adm-cp-type').value === 'numeric';
+      let spec = null;
+      if (isNum) {
+        const mn = parseFloat($('adm-cp-min').value), mx = parseFloat($('adm-cp-max').value);
+        if (isNaN(mn) || isNaN(mx)) { toast('กรุณาใส่เกณฑ์ต่ำสุด (Min) และสูงสุด (Max) เป็นตัวเลข', 'ng'); return; }
+        if (mn > mx) { toast('เกณฑ์ต่ำสุดต้องไม่มากกว่าเกณฑ์สูงสุด', 'ng'); return; }
+        spec = { type: 'numeric', min: mn, max: mx, unit: $('adm-cp-unit').value.trim() };
+      }
       const newId = jig.checkpoints.length ? Math.max(...jig.checkpoints.map(p=>p.id)) + 1 : 1;
       // วางจุดใหม่ไว้กลางแผนผังแบบสุ่มเล็กน้อยกันซ้อนทับ แล้วให้ผู้ใช้ลากจัดตำแหน่งเอง
       const x = 300 + Math.round(Math.random() * 60 - 30);
       const y = 170 + Math.round(Math.random() * 60 - 30);
-      jig.checkpoints.push({ id: newId, label, sub, method, x, y });
+      jig.checkpoints.push(Object.assign({ id: newId, label, sub, method, x, y }, spec || {}));
       
       // ตั้ง _syncing = true ระหว่างเพิ่มจุด เพื่อไม่ให้ realtime event echo มาแทรก
       // (ถ้าปล่อยให้ realtime event มา จะเรียก renderAdminLists() แล้ว dropdown รีเซ็ต 
@@ -3612,6 +3623,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       setTimeout(() => { _syncing = false; }, 2000);
       
       $('adm-cp-label').value = ''; $('adm-cp-sub').value = ''; $('adm-cp-method').value = '';
+      if ($('adm-cp-type')) { $('adm-cp-type').value = ''; $('adm-cp-min').value = ''; $('adm-cp-max').value = ''; $('adm-cp-unit').value = ''; $('adm-cp-spec').style.display = 'none'; }
       renderAdmCpMap(jid);
       renderCpList(jid);
       toast('เพิ่มจุดตรวจแล้ว — ลากจุดบนแผนผังเพื่อจัดตำแหน่ง', 'ok');

@@ -973,7 +973,23 @@
         </div>
         <div class="admin-input-row">
           <input type="text" id="adm-cp-method" placeholder="วิธีตรวจ (เช่น วัดด้วย Gauge, Caliper)" style="flex:2">
-          <button class="btn-adm-add" id="btn-adm-cp">+ เพิ่มจุดตรวจ</button>
+        </div>
+        <div class="admin-input-row" style="margin-bottom:6px; align-items:flex-end">
+          <label class="adm-fld" style="flex:2; min-width:170px">
+            <span>ชนิดการตรวจ</span>
+            <select id="adm-cp-type" class="adm-sel">
+              <option value="">ปกติ / ไม่ปกติ (Pass / Fail)</option>
+              <option value="numeric">กรอกค่าตัวเลข (มีเกณฑ์ Standard)</option>
+            </select>
+          </label>
+        </div>
+        <div class="admin-input-row adm-cp-spec" id="adm-cp-spec" style="display:none; margin-bottom:6px">
+          <label class="adm-fld"><span>เกณฑ์ต่ำสุด (Min)</span><input type="number" step="any" inputmode="decimal" id="adm-cp-min" placeholder="เช่น 0.4"></label>
+          <label class="adm-fld"><span>เกณฑ์สูงสุด (Max)</span><input type="number" step="any" inputmode="decimal" id="adm-cp-max" placeholder="เช่น 0.6"></label>
+          <label class="adm-fld"><span>หน่วย</span><input type="text" id="adm-cp-unit" placeholder="เช่น mm, MPa" style="min-width:80px"></label>
+        </div>
+        <div class="admin-input-row">
+          <button class="btn-adm-add" id="btn-adm-cp" style="width:100%">+ เพิ่มจุดตรวจ</button>
         </div>
         <div class="admin-list admin-list-scroll" id="adm-cp-list" style="margin-top:10px;"></div>
       </div>

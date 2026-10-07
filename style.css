@@ -3175,3 +3175,7 @@ html[data-palette="coffee"][data-theme="dark"] {
   #admin-panel .btn-logout-admin { padding: 0 10px; font-size: 0; gap: 0; }
   #admin-panel .btn-logout-admin svg { margin: 0; }
 }
+
+.adm-fld { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 100px; }
+.adm-fld > span { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.adm-fld > input, .adm-fld > select { width: 100%; box-sizing: border-box; }
