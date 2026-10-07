@@ -291,7 +291,7 @@
   const TELEGRAM_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/send-telegram`;
   const APPROVED_NOTIFY_CHAT_ID = '-5170940793'; // กลุ่ม Telegram ที่แจ้งผล "ตรวจสอบแล้ว" (แจ้งซ้ำตอนหัวหน้าตรวจสอบ เพื่อให้ทุกคนตามงานได้)
   // Telegram chat id ของกลุ่ม "DQI Sup.Approved" (Supervisor) — แจ้งเตือนให้เข้ามาอนุมัติขั้นที่ 2
-  const MANAGER_NOTIFY_CHAT_ID = '-5225233965'; // กลุ่ม Telegram แจ้งผู้จัดการฝ่ายผลิตให้เข้ามาอนุมัติขั้นที่ 2
+  const MANAGER_NOTIFY_CHAT_ID = '-5225233965'; // กลุ่ม Telegram แจ้ง Supervisor ให้เข้ามาอนุมัติขั้นที่ 2
 
   const app = document.getElementById('app');
   const params = new URLSearchParams(window.location.search);
@@ -327,12 +327,12 @@
     });
     return `\n*🔴 รายการที่ไม่ผ่าน:*\n${lines.join('\n')}\n`;
   }
-  // ── ระบุ stage การอนุมัติ (หัวหน้างาน = หน้านี้ / ผู้จัดการฝ่ายผลิต = manager-approve.html) ──
+  // ── ระบุ stage การอนุมัติ (หัวหน้างาน = หน้านี้ / Supervisor = manager-approve.html) ──
   function approvalStage(row) {
     const supApproved = row.approval_status === 'approved';
     const mgrApproved  = row.manager_approval_status === 'approved';
     if (supApproved && mgrApproved) return { key: 'approved', label: '✅ อนุมัติครบแล้ว' };
-    if (supApproved && !mgrApproved) return { key: 'partial', label: '🔵 รอผู้จัดการฝ่ายผลิตอนุมัติ' };
+    if (supApproved && !mgrApproved) return { key: 'partial', label: '🔵 รอ Supervisor อนุมัติ' };
     return { key: 'pending', label: '🟡 รอหัวหน้างานตรวจสอบ' };
   }
 
@@ -421,7 +421,7 @@
           <div class="kpi kpi-pending"><b>${totalPending}</b><span>รอหัวหน้าตรวจสอบ</span></div>
           <div class="kpi kpi-ok"><b>${totalApproved}</b><span>ผ่านหัวหน้าแล้ว</span></div>
         </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px;">ℹ️ หลังหัวหน้าตรวจสอบแล้ว ยังต้องรอผู้จัดการฝ่ายผลิตอนุมัติต่อ (ขั้นที่ 2) ก่อนจะถือว่าสมบูรณ์</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;">ℹ️ หลังหัวหน้าตรวจสอบแล้ว ยังต้องรอ Supervisor อนุมัติต่อ (ขั้นที่ 2) ก่อนจะถือว่าสมบูรณ์</div>
         ${lineRows.length ? `
         <table class="line-table">
           <thead><tr><th>Model</th><th>รอตรวจสอบ</th><th>ตรวจสอบแล้ว</th></tr></thead>
@@ -525,12 +525,12 @@
     if (recordId && ids.includes(recordId)) loadReport(); // ถ้าหน้ารายละเอียดที่เปิดอยู่โดนตรวจสอบไปด้วย ให้รีเฟรชตามด้วย
   }
 
-  // ── แจ้งผู้จัดการฝ่ายผลิตหลังหัวหน้างานตรวจสอบแบบกลุ่ม — ยังต้องผ่านอนุมัติขั้นที่ 2 ทุกใบเช่นกัน ──
+  // ── แจ้ง Supervisor หลังหัวหน้างานตรวจสอบแบบกลุ่ม — ยังต้องผ่านอนุมัติขั้นที่ 2 ทุกใบเช่นกัน ──
   async function notifyBulkManagerPending(lineName, count, approverName) {
     const managerDashUrl = window.location.href.replace(/approve\.html.*$/, '').replace(/\/?$/, '/') + `manager-approve.html`;
     const text = `
 📋 *Daily Quality Inspection Report*
-🔵 สถานะ: รอผู้จัดการฝ่ายผลิตอนุมัติ (ขั้นที่ 2) — ตรวจสอบแบบกลุ่ม
+🔵 สถานะ: รอ Supervisor อนุมัติ (ขั้นที่ 2) — ตรวจสอบแบบกลุ่ม
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 🏭 Model: ${esc(lineName)}
 📦 จำนวน: ${count} รายการ (ผ่านทั้งหมด ไม่มี NG)
@@ -544,7 +544,7 @@
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
         body: JSON.stringify({
           text, chatId: MANAGER_NOTIFY_CHAT_ID,
-          buttonUrl: managerDashUrl, buttonText: '✅ เปิดรายการรออนุมัติ (ผู้จัดการฝ่ายผลิต)',
+          buttonUrl: managerDashUrl, buttonText: '✅ เปิดรายการรออนุมัติ (Supervisor)',
         }),
       });
     } catch (e) {
@@ -650,7 +650,7 @@
           👔 หัวหน้างาน: <strong>${esc(row.approved_by)}</strong> — ${row.approved_at ? new Date(row.approved_at).toLocaleString('th-TH') : '-'}
           ${row.supervisor_comment ? `<br>💬 ${esc(row.supervisor_comment)}` : ''}
           <br><br>
-          🏭 ผู้จัดการฝ่ายผลิต: <strong>${esc(row.manager_approved_by)}</strong> — ${row.manager_approved_at ? new Date(row.manager_approved_at).toLocaleString('th-TH') : '-'}
+          🏭 Supervisor: <strong>${esc(row.manager_approved_by)}</strong> — ${row.manager_approved_at ? new Date(row.manager_approved_at).toLocaleString('th-TH') : '-'}
           ${row.manager_comment ? `<br>💬 ${esc(row.manager_comment)}` : ''}
         </div>
       `;
@@ -658,14 +658,14 @@
     }
 
     if (stage.key === 'partial') {
-      // หัวหน้างานตรวจสอบแล้ว — รอผู้จัดการฝ่ายผลิต (อนุมัติที่หน้า manager-approve.html)
+      // หัวหน้างานตรวจสอบแล้ว — รอ Supervisor (อนุมัติที่หน้า manager-approve.html)
       box.innerHTML = `
         <div class="section-title">✅ หัวหน้างานตรวจสอบแล้ว</div>
         <div class="partial-box">
           👔 ตรวจสอบโดย <strong>${esc(row.approved_by)}</strong><br>
           เมื่อ ${row.approved_at ? new Date(row.approved_at).toLocaleString('th-TH') : '-'}
           ${row.supervisor_comment ? `<br><br>💬 ความเห็น: ${esc(row.supervisor_comment)}` : ''}
-          <br><br>🔵 ขั้นต่อไป: รอผู้จัดการฝ่ายผลิตอนุมัติผ่านลิงก์ที่ส่งให้ทาง Telegram
+          <br><br>🔵 ขั้นต่อไป: รอ Supervisor อนุมัติผ่านลิงก์ที่ส่งให้ทาง Telegram
         </div>
       `;
       return;
@@ -745,13 +745,13 @@
     row.approved_at = new Date().toISOString();
     row.supervisor_comment = commentEl.value.trim() || null;
     renderApprovalCard(row);
-    document.querySelector('.status-badge').outerHTML = `<span class="status-badge status-partial">🔵 รอผู้จัดการฝ่ายผลิตอนุมัติ</span>`;
+    document.querySelector('.status-badge').outerHTML = `<span class="status-badge status-partial">🔵 รอ Supervisor อนุมัติ</span>`;
 
-    notifyManagerPending(row); // ยิงแจ้งเตือนไปหาผู้จัดการฝ่ายผลิต พร้อมลิงก์ไปอนุมัติขั้นที่ 2 — ไม่ต้องรอผล ไม่บล็อกหน้าจอ
+    notifyManagerPending(row); // ยิงแจ้งเตือนไปหา Supervisor พร้อมลิงก์ไปอนุมัติขั้นที่ 2 — ไม่ต้องรอผล ไม่บล็อกหน้าจอ
     loadDashboard(); // รีเฟรชภาพรวมด้านบนให้ตัวเลขอัปเดตทันที ไม่ต้องรอ reload หน้า
   }
 
-  // ── แจ้งผู้จัดการฝ่ายผลิตให้เข้ามาอนุมัติต่อ (ขั้นที่ 2) หลังหัวหน้างานตรวจสอบแล้ว ──
+  // ── แจ้ง Supervisor ให้เข้ามาอนุมัติต่อ (ขั้นที่ 2) หลังหัวหน้างานตรวจสอบแล้ว ──
   async function notifyManagerPending(row) {
     const items = row.items || [];
     const okCount = items.filter(i => i.status === 'ok' || i.status === 'fixed').length;
@@ -760,7 +760,7 @@
 
     const text = `
 📋 *Daily Quality Inspection Report*
-🔵 สถานะ: รอผู้จัดการฝ่ายผลิตอนุมัติ (ขั้นที่ 2)
+🔵 สถานะ: รอ Supervisor อนุมัติ (ขั้นที่ 2)
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 *${esc(row.jig_name)}*
 ${esc(row.jig_id || '')}
@@ -778,7 +778,7 @@ ${row.supervisor_comment ? `💬 ความเห็น: ${esc(row.supervisor_
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
 
-    // ลิงก์หน้าอนุมัติของผู้จัดการฝ่ายผลิต — ใช้ path เดียวกับที่ deploy อยู่จริง
+    // ลิงก์หน้าอนุมัติของ Supervisor — ใช้ path เดียวกับที่ deploy อยู่จริง
     const managerUrl = window.location.href.replace(/approve\.html.*$/, '').replace(/\/?$/, '/')
       + `manager-approve.html?id=${encodeURIComponent(row.id)}`;
 
@@ -791,7 +791,7 @@ ${row.supervisor_comment ? `💬 ความเห็น: ${esc(row.supervisor_
         },
         body: JSON.stringify({
           text, chatId: MANAGER_NOTIFY_CHAT_ID,
-          buttonUrl: managerUrl, buttonText: '✅ เปิดเพื่ออนุมัติ (ผู้จัดการฝ่ายผลิต)',
+          buttonUrl: managerUrl, buttonText: '✅ เปิดเพื่ออนุมัติ (Supervisor)',
         }),
       });
     } catch (e) {

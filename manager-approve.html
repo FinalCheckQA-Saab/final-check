@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="theme-color" content="#16324f">
-<title>อนุมัติรายงานการตรวจ Part — ผู้จัดการฝ่ายผลิต</title>
+<title>อนุมัติรายงานการตรวจ Part — Supervisor</title>
   <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
@@ -252,7 +252,7 @@
       </div>
       <div>
         <h1>อนุมัติรายงานการตรวจ Part</h1>
-        <p>ผู้จัดการฝ่ายผลิต (ขั้นที่ 2)</p>
+        <p>Supervisor (ขั้นที่ 2)</p>
       </div>
     </div>
   </header>
@@ -325,12 +325,12 @@
     });
     return `\n*🔴 รายการที่ไม่ผ่าน:*\n${lines.join('\n')}\n`;
   }
-  // ── ระบุ stage การอนุมัติ (หัวหน้างาน = หน้านี้ / ผู้จัดการฝ่ายผลิต = manager-approve.html) ──
+  // ── ระบุ stage การอนุมัติ (หัวหน้างาน = หน้านี้ / Supervisor = manager-approve.html) ──
   function approvalStage(row) {
     const supApproved = row.approval_status === 'approved';
     const mgrApproved  = row.manager_approval_status === 'approved';
     if (supApproved && mgrApproved) return { key: 'approved', label: '✅ อนุมัติครบแล้ว' };
-    if (supApproved && !mgrApproved) return { key: 'partial', label: '🔵 รอผู้จัดการฝ่ายผลิตอนุมัติ' };
+    if (supApproved && !mgrApproved) return { key: 'partial', label: '🔵 รอ Supervisor อนุมัติ' };
     return { key: 'pending', label: '🟡 รอหัวหน้างานตรวจสอบ' };
   }
 
@@ -351,7 +351,7 @@
 
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     // หน้านี้ดูเฉพาะรายงานที่ "หัวหน้างานตรวจสอบแล้ว" เท่านั้น (approval_status = 'approved')
-    // ที่เหลือรอผู้จัดการฝ่ายผลิตอนุมัติต่อ (manager_approval_status)
+    // ที่เหลือรอ Supervisor อนุมัติต่อ (manager_approval_status)
     const { data, error } = await sb.from('history')
       .select('id, jig_name, line_name, insp_date, ts, approval_status, manager_approval_status, inspector, items')
       .eq('approval_status', 'approved')
@@ -368,7 +368,7 @@
   function renderDashboard(rows) {
     const dash = document.getElementById('dashboard');
 
-    // จัดกลุ่มตาม Model นับ pending / approved (นับเฉพาะขั้นผู้จัดการฝ่ายผลิต)
+    // จัดกลุ่มตาม Model นับ pending / approved (นับเฉพาะขั้น Supervisor)
     const byLine = new Map();
     rows.forEach(r => {
       const key = r.line_name || 'ไม่ระบุ Model';
@@ -399,12 +399,12 @@
 
     dash.innerHTML = `
       <div class="card">
-        <div class="section-title">📊 ภาพรวมการอนุมัติของผู้จัดการฝ่ายผลิต (30 วันล่าสุด)</div>
+        <div class="section-title">📊 ภาพรวมการอนุมัติของ Supervisor (30 วันล่าสุด)</div>
         <div class="kpi-row">
-          <div class="kpi kpi-pending"><b>${totalPending}</b><span>รอผู้จัดการอนุมัติ</span></div>
+          <div class="kpi kpi-pending"><b>${totalPending}</b><span>รอ Supervisor อนุมัติ</span></div>
           <div class="kpi kpi-ok"><b>${totalApproved}</b><span>อนุมัติครบแล้ว</span></div>
         </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px;">ℹ️ รายการทั้งหมดที่นี่ผ่านหัวหน้างานตรวจสอบแล้ว รอผู้จัดการฝ่ายผลิตอนุมัติขั้นสุดท้าย</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;">ℹ️ รายการทั้งหมดที่นี่ผ่านหัวหน้างานตรวจสอบแล้ว รอ Supervisor อนุมัติขั้นสุดท้าย</div>
         ${lineRows.length ? `
         <table class="line-table">
           <thead><tr><th>Model</th><th>รออนุมัติ</th><th>อนุมัติแล้ว</th></tr></thead>
@@ -421,7 +421,7 @@
       </div>
 
       <div class="card">
-        <div class="section-title">🔵 รายการที่รอผู้จัดการฝ่ายผลิตอนุมัติ (${pendingList.length})</div>
+        <div class="section-title">🔵 รายการที่รอ Supervisor อนุมัติ (${pendingList.length})</div>
         ${pendingLineEntries.length ? pendingLineEntries.map(([lineName, g]) => `
           <div class="pending-line-group">
             <div class="pending-line-header">🏭 ${esc(lineName)} <span class="pending-line-count">(${g.clean.length + g.ng.length})</span></div>
@@ -474,12 +474,12 @@
 
   async function bulkApprove(lineName, ids, btn) {
     if (!ids.length) return;
-    const name = askName(`ยืนยันอนุมัติทั้งหมด ${ids.length} รายการของ Model "${lineName}" (ไม่มี NG ทุกรายการ)\n\nกรุณาพิมพ์ชื่อผู้อนุมัติ (ผู้จัดการฝ่ายผลิต):`);
+    const name = askName(`ยืนยันอนุมัติทั้งหมด ${ids.length} รายการของ Model "${lineName}" (ไม่มี NG ทุกรายการ)\n\nกรุณาพิมพ์ชื่อผู้อนุมัติ (Supervisor):`);
     if (!name || !name.trim()) return;
     const approverName = _rememberedName;
-    // ✅ SECURITY: ต้องกรอก PIN ผู้จัดการก่อนอนุมัติได้ — เช็คฝั่ง Supabase (RPC) เท่านั้น
+    // ✅ SECURITY: ต้องกรอก PIN Supervisor ก่อนอนุมัติได้ — เช็คฝั่ง Supabase (RPC) เท่านั้น
     // (จำ PIN ไว้ในหน้านี้ ถ้าเคยกรอกถูกแล้วไม่ต้องพิมพ์ซ้ำ)
-    const pin = askPin('กรุณากรอก PIN ผู้จัดการฝ่ายผลิต เพื่อยืนยันการอนุมัติ:');
+    const pin = askPin('กรุณากรอก PIN Supervisor เพื่อยืนยันการอนุมัติ:');
     if (!pin) return;
 
     btn.disabled = true;
@@ -508,7 +508,7 @@
     if (recordId && ids.includes(recordId)) loadReport(); // ถ้าหน้ารายละเอียดที่เปิดอยู่โดนอนุมัติไปด้วย ให้รีเฟรชตามด้วย
   }
 
-  // ── แจ้งผลอนุมัติครบทุกขั้นตอนแล้ว (อนุมัติแบบกลุ่มโดยผู้จัดการฝ่ายผลิต) ──
+  // ── แจ้งผลอนุมัติครบทุกขั้นตอนแล้ว (อนุมัติแบบกลุ่มโดย Supervisor) ──
   async function notifyBulkFullyApproved(lineName, count, approverName) {
     const text = `
 📋 *Daily Quality Inspection Report*
@@ -516,7 +516,7 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 🏭 Model: ${esc(lineName)}
 📦 จำนวน: ${count} รายการ (ผ่านทั้งหมด ไม่มี NG)
-🏭 ผู้จัดการฝ่ายผลิตอนุมัติโดย: ${esc(approverName)}
+🏭 Supervisor อนุมัติโดย: ${esc(approverName)}
 🕐 เมื่อ: ${new Date().toLocaleString('th-TH')}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
@@ -625,7 +625,7 @@
           👔 หัวหน้างาน: <strong>${esc(row.approved_by)}</strong> — ${row.approved_at ? new Date(row.approved_at).toLocaleString('th-TH') : '-'}
           ${row.supervisor_comment ? `<br>💬 ${esc(row.supervisor_comment)}` : ''}
           <br><br>
-          🏭 ผู้จัดการฝ่ายผลิต: <strong>${esc(row.manager_approved_by)}</strong> — ${row.manager_approved_at ? new Date(row.manager_approved_at).toLocaleString('th-TH') : '-'}
+          🏭 Supervisor: <strong>${esc(row.manager_approved_by)}</strong> — ${row.manager_approved_at ? new Date(row.manager_approved_at).toLocaleString('th-TH') : '-'}
           ${row.manager_comment ? `<br>💬 ${esc(row.manager_comment)}` : ''}
         </div>
       `;
@@ -633,7 +633,7 @@
     }
 
     if (stage.key === 'pending') {
-      // หัวหน้างานยังไม่ตรวจสอบ — ผู้จัดการฝ่ายผลิตยังอนุมัติที่นี่ไม่ได้
+      // หัวหน้างานยังไม่ตรวจสอบ — Supervisor ยังอนุมัติที่นี่ไม่ได้
       box.innerHTML = `
         <div class="section-title">⏸️ ยังอนุมัติไม่ได้</div>
         <div class="partial-box" style="background:var(--pending-bg);color:var(--pending);">
@@ -644,7 +644,7 @@
       return;
     }
 
-    // stage.key === 'partial' → หัวหน้างานตรวจสอบแล้ว รอผู้จัดการฝ่ายผลิตอนุมัติที่นี่
+    // stage.key === 'partial' → หัวหน้างานตรวจสอบแล้ว รอ Supervisor อนุมัติที่นี่
     box.innerHTML = `
       <div class="section-title">✅ หัวหน้างานตรวจสอบแล้ว</div>
       <div class="partial-box">
@@ -652,10 +652,10 @@
         เมื่อ ${row.approved_at ? new Date(row.approved_at).toLocaleString('th-TH') : '-'}
         ${row.supervisor_comment ? `<br><br>💬 ความเห็นหัวหน้างาน: ${esc(row.supervisor_comment)}` : ''}
       </div>
-      <div class="section-title" style="margin-top:16px;">✍️ อนุมัติรายงานนี้ (ผู้จัดการฝ่ายผลิต)</div>
-      <label class="field-label">ชื่อผู้อนุมัติ (ผู้จัดการฝ่ายผลิต)</label>
+      <div class="section-title" style="margin-top:16px;">✍️ อนุมัติรายงานนี้ (Supervisor)</div>
+      <label class="field-label">ชื่อผู้อนุมัติ (Supervisor)</label>
       <input type="text" id="approver-name" placeholder="พิมพ์ชื่อ-นามสกุล" value="${_rememberedName ? escAttr(_rememberedName) : ''}">
-      <label class="field-label">PIN ผู้จัดการฝ่ายผลิต</label>
+      <label class="field-label">PIN Supervisor</label>
       <input type="password" id="approver-pin" placeholder="กรอก PIN เพื่อยืนยันตัวตน" inputmode="numeric" value="${_rememberedPin ? escAttr(_rememberedPin) : ''}">
       <label class="field-label">ความเห็นเพิ่มเติม (ถ้ามี)</label>
       <textarea id="approver-comment" placeholder="เช่น รับทราบ อนุมัติให้ดำเนินการต่อ"></textarea>
@@ -689,7 +689,7 @@
       return;
     }
     if (!pin) {
-      msgEl.textContent = 'กรุณากรอก PIN ผู้จัดการก่อน';
+      msgEl.textContent = 'กรุณากรอก PIN Supervisor ก่อน';
       pinEl.focus();
       return;
     }
@@ -731,7 +731,7 @@
     loadDashboard(); // รีเฟรชภาพรวมด้านบนให้ตัวเลขอัปเดตทันที ไม่ต้องรอ reload หน้า
   }
 
-  // ── แจ้งผลอนุมัติครบทุกขั้นตอนแล้ว (หัวหน้างาน + ผู้จัดการฝ่ายผลิต) ──
+  // ── แจ้งผลอนุมัติครบทุกขั้นตอนแล้ว (หัวหน้างาน + Supervisor) ──
   async function notifyFullyApproved(row) {
     const items = row.items || [];
     const okCount = items.filter(i => i.status === 'ok' || i.status === 'fixed').length;
@@ -753,7 +753,7 @@ ${row.jig_doc_no ? `_${esc(row.jig_doc_no)}_` : ''}
 ✅ ผ่าน (OK): ${okCount}${ngCount > 0 ? `  ❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 ${ngListText(items)}
 👔 หัวหน้างาน: ${esc(row.approved_by)} (${row.approved_at ? new Date(row.approved_at).toLocaleString('th-TH') : '-'})
-🏭 ผู้จัดการฝ่ายผลิต: ${esc(row.manager_approved_by)} (${new Date(row.manager_approved_at).toLocaleString('th-TH')})
+🏭 Supervisor: ${esc(row.manager_approved_by)} (${new Date(row.manager_approved_at).toLocaleString('th-TH')})
 ${row.manager_comment ? `💬 ความเห็น: ${esc(row.manager_comment)}` : ''}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
@@ -769,7 +769,7 @@ ${row.manager_comment ? `💬 ความเห็น: ${esc(row.manager_commen
       });
     } catch (e) {
       console.error('notifyFullyApproved error:', e);
-      // ไม่ต้องโชว์ error ให้ผู้จัดการเห็น — การอนุมัติบันทึกลง DB สำเร็จแล้ว แค่แจ้งเตือนอาจพลาด
+      // ไม่ต้องโชว์ error ให้ Supervisor เห็น — การอนุมัติบันทึกลง DB สำเร็จแล้ว แค่แจ้งเตือนอาจพลาด
     }
   }
 

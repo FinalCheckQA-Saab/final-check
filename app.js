@@ -315,7 +315,7 @@
         approved_by: h.approvedBy || null,
         approved_at: h.approvedAt || null,
         supervisor_comment: h.supervisorComment || null,
-        // ─── Approval Workflow (Stage 2: ผู้จัดการฝ่ายผลิต) ───
+        // ─── Approval Workflow (Stage 2: Supervisor) ───
         manager_approval_status: h.managerApprovalStatus || 'pending',
         manager_approved_by: h.managerApprovedBy || null,
         manager_approved_at: h.managerApprovedAt || null,
@@ -603,7 +603,7 @@
      หน้างานจริง: ตรวจทีละชิ้น ห่างกันคนละช่วงเวลา — ตรวจ S แล้ว "ส่งข้อมูล" → กลับมาตรวจ M แล้วส่ง → กลับมาตรวจ E แล้วส่ง
      ถึงจะครบกระบวนการ 1 ชุดการตรวจ (1 Record ต่อ Part ต่อชุด)
      - ไม่ต้องเพิ่มคอลัมน์ใหม่ใน Supabase: ความคืบหน้าคำนวณจาก items[].pieces[].status ที่เก็บอยู่แล้ว
-     - Record จะเข้าขั้นตอนอนุมัติ (Telegram → หัวหน้างาน → ผู้จัดการ) ก็ต่อเมื่อส่งครบทุกชิ้นแล้วเท่านั้น
+     - Record จะเข้าขั้นตอนอนุมัติ (Telegram → หัวหน้างาน → Supervisor) ก็ต่อเมื่อส่งครบทุกชิ้นแล้วเท่านั้น
   ══════════════════════════════════════════════════════════════ */
   const STAGES = [
     { short: 'S', th: 'Start',  desc: 'ต้นงาน' },
@@ -1551,7 +1551,7 @@
   }
 
   // Format an ISO timestamp as "DD/MM/YYYY HH:MM น." ปี ค.ศ. — ใช้ให้ช่องลายเซ็นทั้ง 3
-  // (ผู้ตรวจสอบ / หัวหน้างาน / ผู้จัดการฝ่ายผลิต) ในหน้า PDF โชว์วันที่-เวลาแบบเดียวกัน
+  // (ผู้ตรวจสอบ / หัวหน้างาน / Supervisor) ในหน้า PDF โชว์วันที่-เวลาแบบเดียวกัน
   function sigDateTime(iso) {
     if (!iso) return '';
     const d = new Date(iso);
@@ -2624,7 +2624,7 @@ ${record.jigDocNo ? `_${escHtml(record.jigDocNo)}_` : ''}
       const body = { text: msg };
       if (buttonUrl) {
         body.buttonUrl = buttonUrl;
-        body.buttonText = buttonText || '✅ เปิดเพื่อตรวจสอบ';
+        body.buttonText = buttonText || '✅ เปิดเพื่อตรวจสอบ (Leader)';
       }
       const response = await fetch(TELEGRAM_FUNCTION_URL, {
         method: 'POST',
@@ -2795,6 +2795,19 @@ ${escHtml(record.jigId || '')}
         const ngCount = ngItems.length;
         const time = fmtHM(nowIso);
 
+        // สรุปผลรายชิ้น S / M / E (ตอนส่งชิ้นสุดท้าย แนบสรุปของทุกชิ้นมาด้วย)
+        const stageSummaryText = (() => {
+          let t = '\n📌 *สรุปผลรายชิ้น:*\n';
+          for (let p = 0; p < n; p++) {
+            const st = items.map(i => (i.pieces && i.pieces[p] && i.pieces[p].status) || '');
+            const ng = st.filter(x => x === 'ng').length;
+            const ok = st.filter(x => x === 'ok' || x === 'fixed').length;
+            const by = items[0] && items[0].pieces && items[0].pieces[p] ? items[0].pieces[p].by : '';
+            t += `${ng > 0 ? '❌' : '✅'} *${stageLabel(p).short}* (${stageLabel(p).th}): ผ่าน ${ok}/${items.length}${ng > 0 ? ` • NG ${ng}` : ''}${by && by !== record.inspector ? ` — ${escHtml(by)}` : ''}\n`;
+          }
+          return t;
+        })();
+
         let telegramMsg = `
 📋 *Daily Quality Inspection Report* (ตรวจครบ S/M/E)
 🟡 สถานะ: รอหัวหน้างานตรวจสอบ
@@ -2812,7 +2825,7 @@ ${record.jigDocNo ? `_${escHtml(record.jigDocNo)}_` : ''}
 
 🔍 จุดเช็คทั้งหมด: ${items.length} จุด × ${n} ชิ้น
 ✅ ผ่าน (OK): ${okCount}
-${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
+${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummaryText}
 `;
         if (ngItems.length > 0) {
           telegramMsg += `\n*🔴 รายการที่ไม่ผ่าน:*\n`;
@@ -2831,7 +2844,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 `;
         const approveUrl = window.location.href.replace(/index\.html.*$/, '').replace(/\/?$/, '/')
           + `approve.html?id=${encodeURIComponent(record.id)}`;
-        await sendTelegramMessage(telegramMsg, approveUrl, '✅ เปิดเพื่อตรวจสอบ');
+        await sendTelegramMessage(telegramMsg, approveUrl, '✅ เปิดเพื่อตรวจสอบ (Leader)');
       }
 
       // กลับไปหน้า "เลือก Model" ทันที — กันกดส่งซ้ำที่ฟอร์มเดิม ต้องเลือก Part ใหม่ทั้งกระบวนการ (รอบถัดไปจะต่อชุดเดิมให้เอง)
@@ -2884,8 +2897,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           'สถานะอนุมัติ': approvalStage(h).label,
           'หัวหน้างานตรวจสอบโดย': h.approvedBy || '',
           'ความเห็นหัวหน้างาน': h.supervisorComment || '',
-          'ผู้จัดการฝ่ายผลิตอนุมัติโดย': h.managerApprovedBy || '',
-          'ความเห็นผู้จัดการฝ่ายผลิต': h.managerComment || '',
+          'Supervisor อนุมัติโดย': h.managerApprovedBy || '',
+          'ความเห็น Supervisor': h.managerComment || '',
           'GPS ละติจูด': h.gps?.latitude ?? '',
           'GPS ลองจิจูด': h.gps?.longitude ?? '',
           'ความคืบหน้า S/M/E': isRecordComplete(h) ? 'ครบ' : recProgressText(h),
@@ -3907,7 +3920,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
      ทุก RPC ต้องแนบรหัสผ่าน Admin ไปด้วยเสมอ (getAdminPass) — DB เป็นคนตัดสินสุดท้าย
   ══════════════════════════════════════ */
   function roleLabelTh(role) {
-    return { inspector: 'ผู้ตรวจสอบ', supervisor: 'หัวหน้างาน', manager: 'ผู้จัดการ' }[role] || role;
+    return { inspector: 'ผู้ตรวจสอบ', supervisor: 'หัวหน้างาน', manager: 'Supervisor' }[role] || role;
   }
 
   async function renderStaffAccountList() {
@@ -5167,9 +5180,9 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
               if (!isRecordComplete(h)) return `<span class="badge partial" title="ตรวจยังไม่ครบ S/M/E — ยังไม่เข้าขั้นตอนอนุมัติ">⏳ ตรวจแล้ว ${escHtml(recProgressText(h))}</span>`;
               const st = approvalStage(h);
               const title = st.key === 'approved'
-                ? `หัวหน้างาน: ${escHtml(h.approvedBy || '')} · ผู้จัดการฝ่ายผลิต: ${escHtml(h.managerApprovedBy || '')} เมื่อ ${h.managerApprovedAt ? new Date(h.managerApprovedAt).toLocaleString('th-TH') : ''}`
+                ? `หัวหน้างาน: ${escHtml(h.approvedBy || '')} · Supervisor: ${escHtml(h.managerApprovedBy || '')} เมื่อ ${h.managerApprovedAt ? new Date(h.managerApprovedAt).toLocaleString('th-TH') : ''}`
                 : st.key === 'partial'
-                ? `หัวหน้างานตรวจสอบโดย ${escHtml(h.approvedBy || '')} เมื่อ ${h.approvedAt ? new Date(h.approvedAt).toLocaleString('th-TH') : ''} — รอผู้จัดการฝ่ายผลิต`
+                ? `หัวหน้างานตรวจสอบโดย ${escHtml(h.approvedBy || '')} เมื่อ ${h.approvedAt ? new Date(h.approvedAt).toLocaleString('th-TH') : ''} — รอ Supervisor`
                 : '';
               return `<span class="badge ${st.badgeClass}" title="${title}">${st.badge}</span>`;
             })()}
@@ -5195,7 +5208,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           </div>
         </div>
         ${h.supervisorComment ? `<div class="hi-supervisor-comment">💬 <strong>ความเห็นหัวหน้างาน:</strong> ${escHtml(h.supervisorComment)}</div>` : ''}
-        ${h.managerComment ? `<div class="hi-supervisor-comment">💬 <strong>ความเห็นผู้จัดการฝ่ายผลิต:</strong> ${escHtml(h.managerComment)}</div>` : ''}
+        ${h.managerComment ? `<div class="hi-supervisor-comment">💬 <strong>ความเห็น Supervisor:</strong> ${escHtml(h.managerComment)}</div>` : ''}
         ${ngItems.length ? `<div class="hi-ng-list">
           ${ngItems.map(i => `<div class="hi-ng-item">
             <span class="hi-ng-label">❌ ข้อ ${i.id}: ${escHtml(i.label || '')}</span>
@@ -5207,7 +5220,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
         ${(h.sigInspector||h.approvedBy||h.managerApprovedBy) ? `<div class="hi-sigs" style="font-size:11px; color:var(--text-main); margin-top:6px; display:flex; gap:16px; flex-wrap:wrap;">
           ${h.sigInspector?`<div><strong>ผู้ตรวจ:</strong> ${escHtml(h.sigInspector)}</div>`:''}
           ${h.approvedBy?`<div><strong>หัวหน้า:</strong> ${escHtml(h.approvedBy)}</div>`:''}
-          ${h.managerApprovedBy?`<div><strong>ผู้จัดการ:</strong> ${escHtml(h.managerApprovedBy)}</div>`:''}
+          ${h.managerApprovedBy?`<div><strong>Supervisor:</strong> ${escHtml(h.managerApprovedBy)}</div>`:''}
         </div>` : ''}
         <div class="hi-actions">
           <div class="hi-actions-left">
@@ -5268,7 +5281,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
        This guarantees correct Thai rendering regardless
        of what fonts jsPDF ships with.
   ══════════════════════════════════════ */
-  // ── ระบุ stage การอนุมัติ (2 ขั้นตอน: หัวหน้างาน → ผู้จัดการฝ่ายผลิต) ──
+  // ── ระบุ stage การอนุมัติ (2 ขั้นตอน: หัวหน้างาน → Supervisor) ──
   // ใช้ร่วมกันทั้งใน History badge / PDF / Excel export เพื่อให้สถานะตรงกันทุกที่
   function approvalStage(h) {
     const supApproved = h.approvalStatus === 'approved';
@@ -5276,7 +5289,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
     if (supApproved && mgrApproved) {
       return { key: 'approved', label: 'อนุมัติครบแล้ว', badge: '✅ อนุมัติครบแล้ว', badgeClass: 'approved' };
     } else if (supApproved && !mgrApproved) {
-      return { key: 'partial', label: 'รอผู้จัดการฝ่ายผลิตอนุมัติ', badge: '🔵 รอผู้จัดการฝ่ายผลิต', badgeClass: 'partial' };
+      return { key: 'partial', label: 'รอ Supervisor อนุมัติ', badge: '🔵 รอ Supervisor', badgeClass: 'partial' };
     }
     return { key: 'pending', label: 'รอหัวหน้างานตรวจสอบ', badge: '🟡 รอหัวหน้างาน', badgeClass: 'pending' };
   }
@@ -5329,16 +5342,16 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
       ? `${record.gps.latitude.toFixed(6)}, ${record.gps.longitude.toFixed(6)} (±${Math.round(record.gps.accuracy)}m)`
       : 'N/A';
 
-    // ── Approval (2-stage: หัวหน้างาน → ผู้จัดการฝ่ายผลิต) ──
+    // ── Approval (2-stage: หัวหน้างาน → Supervisor) ──
     const stage = approvalStage(record);
     const isApproved = stage.key === 'approved'; // อนุมัติครบทุกขั้นตอนแล้วเท่านั้น
     const approvalBadgeClass = stage.key === 'approved' ? 'pdf-approval-approved'
                               : stage.key === 'partial'  ? 'pdf-approval-partial'
                               : 'pdf-approval-pending';
     const approvalText = stage.key === 'approved'
-      ? `✅ Approved<br><span style="white-space:nowrap">หัวหน้างาน:</span> ${escHtml(record.approvedBy || '')}<br><span style="white-space:nowrap">ผู้จัดการฝ่ายผลิต:</span> ${escHtml(record.managerApprovedBy || '')} (${record.managerApprovedAt ? formatDateDMY(record.managerApprovedAt) : ''})`
+      ? `✅ Approved<br><span style="white-space:nowrap">หัวหน้างาน:</span> ${escHtml(record.approvedBy || '')}<br><span style="white-space:nowrap">Supervisor:</span> ${escHtml(record.managerApprovedBy || '')} (${record.managerApprovedAt ? formatDateDMY(record.managerApprovedAt) : ''})`
       : stage.key === 'partial'
-      ? `🔵 หัวหน้างานตรวจสอบแล้ว (${escHtml(record.approvedBy || '')}) — รอ<span style="white-space:nowrap">ผู้จัดการฝ่ายผลิต</span>อนุมัติ`
+      ? `🔵 หัวหน้างานตรวจสอบแล้ว (${escHtml(record.approvedBy || '')}) — รอ <span style="white-space:nowrap">Supervisor</span> อนุมัติ`
       : '🟡 Pending Approval';
 
     // ── Table rows (ISO/IATF: include spec LSL/USL + Actual Value + Status Badge) ──
@@ -5520,7 +5533,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
             <div style="font-size:8px;color:#6b7280;margin-top:2px">${record.approvalStatus === 'approved' ? sigDateTime(record.approvedAt) : '\u00A0'}</div>
           </div>
           <div class="pdf-sig-cell">
-            <div class="pdf-sig-role">Production Manager / ผู้จัดการฝ่ายผลิต</div>
+            <div class="pdf-sig-role">Supervisor</div>
             <div class="pdf-sig-name">${record.managerApprovedBy ? escHtml(record.managerApprovedBy) : '\u00A0'}</div>
             ${stage.key === 'approved'
               ? `<div style="margin-top:4px"><span class="pdf-sig-approval-badge pdf-approval-approved">✅ อนุมัติแล้ว</span></div>
@@ -5530,7 +5543,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
           </div>
         </div>
         ${record.managerComment ? `<div class="pdf-notes-block" style="margin-top:6px">
-          <span class="pdf-notes-label">📝 ความเห็นผู้จัดการฝ่ายผลิต:</span>
+          <span class="pdf-notes-label">📝 ความเห็น Supervisor:</span>
           <span style="color:#7c3aed;font-weight:600">${escHtml(record.managerComment)}</span>
         </div>` : ''}
 
