@@ -395,19 +395,31 @@
   }
   @media (prefers-reduced-motion: reduce) { .doc-row, .doc-arrow, .action-row .btn { transition: none; } }
 
-  /* ── สัญลักษณ์ Revision แบบสามเหลี่ยม (มาตรฐานงานเอกสาร/แบบ ISO) ── */
-  .doc-rev-tile { width: 54px; height: auto; background: none; box-shadow: none; border-radius: 0; gap: 0; color: var(--navy); }
-  .doc-rev-tile.has-rev { background: none; box-shadow: none; color: #9a7416; }
-  .doc-row.is-obsolete .doc-rev-tile { background: none; box-shadow: none; color: #9ca3af; }
-  .rev-tri { position: relative; width: 52px; height: 46px; display: block; }
+  /* ── สัญลักษณ์ Revision แบบสามเหลี่ยม (มาตรฐานงานเอกสาร/แบบ ISO) — ทึบไล่เฉด มีเงาและแสงด้านบนให้ได้มิติ ── */
+  .doc-rev-tile, .doc-rev-tile.has-rev, .doc-row.is-obsolete .doc-rev-tile { width: 54px; height: auto; background: none; box-shadow: none; border-radius: 0; gap: 0; }
+  .rev-tri { position: relative; width: 52px; height: 46px; display: block; filter: drop-shadow(0 4px 4px rgba(15,33,55,.32)); transition: transform .18s ease, filter .18s ease; }
+  .doc-row:hover .rev-tri { transform: translateY(-2px); filter: drop-shadow(0 7px 6px rgba(15,33,55,.32)); }
   .rev-tri svg { display: block; }
-  .doc-rev-tile .rev-tri b { position: absolute; left: 0; right: 0; bottom: 5px; text-align: center; font-size: 17px; line-height: 1; opacity: 1; }
-  .doc-rev-tile .rev-tri b.two { font-size: 13.5px; bottom: 6px; }
-  .doc-rev-tile small { margin-top: 3px; font-size: 9.5px; opacity: .65; }
-  @media (max-width: 600px) { .doc-rev-tile { width: 46px; } .rev-tri { transform: scale(.88); transform-origin: top center; margin-bottom: -5px; } }
+  .tri-body { fill: url(#revNavy); stroke: #16324f; }
+  .has-rev .tri-body { fill: url(#revGold); stroke: #b8903a; }
+  .is-obsolete .tri-body { fill: url(#revGray); stroke: #8b929d; }
+  .tri-gloss { fill: #fff; fill-opacity: .2; }
+  .doc-rev-tile .rev-tri b { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font-size: 16px; line-height: 1; color: #fff; opacity: 1; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+  .doc-rev-tile .rev-tri b.two { font-size: 13px; bottom: 7px; }
+  .has-rev .rev-tri b { color: #3b2a04; text-shadow: 0 1px 0 rgba(255,255,255,.35); }
+  .doc-rev-tile small { margin-top: 5px; font-size: 9.5px; font-weight: 700; letter-spacing: .08em; color: var(--muted); opacity: 1; }
+  @media (max-width: 600px) { .doc-rev-tile { width: 46px; } .rev-tri { transform: scale(.88); transform-origin: top center; margin-bottom: -5px; } .doc-row:hover .rev-tri { transform: scale(.88); } }
+  @media (prefers-reduced-motion: reduce) { .rev-tri { transition: none; } .doc-row:hover .rev-tri { transform: none; } }
 </style>
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="revNavy" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b6aa6"/><stop offset="1" stop-color="#16324f"/></linearGradient>
+      <linearGradient id="revGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ecca74"/><stop offset="1" stop-color="#b8903a"/></linearGradient>
+      <linearGradient id="revGray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3c8d0"/><stop offset="1" stop-color="#8b929d"/></linearGradient>
+    </defs>
+  </svg>
   <!-- 🆕 GENERIC CONFIRM MODAL — แทนที่ confirm() ของเบราว์เซอร์ในหน้านี้ (Promise-based ผ่าน showConfirmModal()) -->
   <div id="doc-confirm-overlay" class="doc-confirm-overlay hidden">
     <div class="doc-confirm-box">
@@ -673,7 +685,7 @@
       <div class="doc-row${obsolete ? ' is-obsolete' : ''}" data-id="${escAttr(d.id)}">
         <div class="doc-rev-tile${revNo > 0 ? ' has-rev' : ''}" title="Revision ปัจจุบัน: REV ${revNo}" role="img" aria-label="Revision ${revNo}">
           <span class="rev-tri">
-            <svg viewBox="0 0 52 46" width="52" height="46" aria-hidden="true"><polygon points="26,4 48,42 4,42" fill="currentColor" fill-opacity=".1" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>
+            <svg viewBox="0 0 52 46" width="52" height="46" aria-hidden="true"><polygon class="tri-body" points="26,6 46,40 6,40" stroke-width="5" stroke-linejoin="round"/><polygon class="tri-gloss" points="26,8 36,25 16,25"/></svg>
             <b class="${String(revNo).length > 1 ? 'two' : ''}">${revNo}</b>
           </span>
           <small>REV</small>
