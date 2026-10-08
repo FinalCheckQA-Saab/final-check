@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="th" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="theme-color" content="#16324f">
+<script>(function(){try{var p=localStorage.getItem('fc_palette');if(p&&/^[a-z]+$/.test(p)&&p!=='default')document.documentElement.setAttribute('data-palette',p)}catch(e){}})()</script>
 <title>อนุมัติรายงานการตรวจ Part — Supervisor</title>
   <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
   <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
@@ -236,6 +237,198 @@
     background: #dbeafe; color: #1e3a8a; border-radius: 10px;
     padding: 12px 14px; font-size: 13px; margin-top: 4px; line-height: 1.6;
   }
+
+/* ═════ v2 — World-class refresh (ตามสีธีมของแอปหลัก: fc_palette) ═════ */
+:root{--brand-navy-900:#0f2137;--brand-navy-800:#16324f;--brand-navy-700:#1e3a5f;--brand-navy-600:#2d5586;--brand-gold:#b8903a;
+ --navy:var(--brand-navy-700);--navy-light:var(--brand-navy-600);--gold:var(--brand-gold);--num:'Outfit','Noto Sans Thai',sans-serif;
+ --sh:0 1px 2px rgba(15,33,55,.06),0 12px 30px -12px rgba(15,33,55,.18);--accent-dim:hsla(213,62%,48%,.1)}
+html[data-palette="ocean"] {
+  --brand-navy-900: #0f2433; --brand-navy-800: #19374d; --brand-navy-700: #244760; --brand-navy-600: #3a6788;
+  --brand-gold: #e0a030; --brand-gold-dim: hsla(38, 74%, 53%, 0.16);
+}
+html[data-palette="ocean"][data-theme="light"] {
+  --accent: #1f72ad; --accent-hover: #185886; --accent-dim: hsla(205, 70%, 40%, 0.1);
+  --chip-active-bg: hsla(205, 70%, 46%, 0.1); --chip-active-bdr: #1f72ad;
+  --text-heading: #244760;
+}
+html[data-palette="ocean"][data-theme="dark"] {
+  --accent: #5aa9e2; --accent-hover: #86c0ea; --accent-dim: hsla(205, 70%, 62%, 0.16);
+  --chip-active-bg: hsla(205, 70%, 55%, 0.2); --chip-active-bdr: #49a0df;
+}
+html[data-palette="emerald"] {
+  --brand-navy-900: #103226; --brand-navy-800: #1b4b39; --brand-navy-700: #265f4a; --brand-navy-600: #3c866b;
+  --brand-gold: #d4af4a; --brand-gold-dim: hsla(44, 62%, 56%, 0.16);
+}
+html[data-palette="emerald"][data-theme="light"] {
+  --accent: #27a577; --accent-hover: #1e805c; --accent-dim: hsla(158, 62%, 40%, 0.1);
+  --chip-active-bg: hsla(158, 62%, 46%, 0.1); --chip-active-bdr: #27a577;
+  --text-heading: #265f4a;
+}
+html[data-palette="emerald"][data-theme="dark"] {
+  --accent: #62daae; --accent-hover: #8be4c3; --accent-dim: hsla(158, 62%, 62%, 0.16);
+  --chip-active-bg: hsla(158, 62%, 55%, 0.2); --chip-active-bdr: #51d6a6;
+}
+html[data-palette="teal"] {
+  --brand-navy-900: #103032; --brand-navy-800: #1b484b; --brand-navy-700: #265b5f; --brand-navy-600: #3c8186;
+  --brand-gold: #f08a5d; --brand-gold-dim: hsla(18, 83%, 65%, 0.16);
+}
+html[data-palette="teal"][data-theme="light"] {
+  --accent: #21a2ab; --accent-hover: #197e85; --accent-dim: hsla(184, 68%, 40%, 0.1);
+  --chip-active-bg: hsla(184, 68%, 46%, 0.1); --chip-active-bdr: #21a2ab;
+  --text-heading: #265b5f;
+}
+html[data-palette="teal"][data-theme="dark"] {
+  --accent: #5cd7e0; --accent-hover: #87e2e8; --accent-dim: hsla(184, 68%, 62%, 0.16);
+  --chip-active-bg: hsla(184, 68%, 55%, 0.2); --chip-active-bdr: #4bd3dd;
+}
+html[data-palette="purple"] {
+  --brand-navy-900: #1f1132; --brand-navy-800: #301c4a; --brand-navy-700: #3f275d; --brand-navy-600: #5c3e84;
+  --brand-gold: #e0b04a; --brand-gold-dim: hsla(41, 71%, 58%, 0.16);
+}
+html[data-palette="purple"][data-theme="light"] {
+  --accent: #5f2e9e; --accent-hover: #49247b; --accent-dim: hsla(266, 55%, 40%, 0.1);
+  --chip-active-bg: hsla(266, 55%, 46%, 0.1); --chip-active-bdr: #5f2e9e;
+  --text-heading: #3f275d;
+}
+html[data-palette="purple"][data-theme="dark"] {
+  --accent: #9769d3; --accent-hover: #b290df; --accent-dim: hsla(266, 55%, 62%, 0.16);
+  --chip-active-bg: hsla(266, 55%, 55%, 0.2); --chip-active-bdr: #8c59cf;
+}
+html[data-palette="crimson"] {
+  --brand-navy-900: #321016; --brand-navy-800: #4b1b23; --brand-navy-700: #5f262f; --brand-navy-600: #863c48;
+  --brand-gold: #e0b04a; --brand-gold-dim: hsla(41, 71%, 58%, 0.16);
+}
+html[data-palette="crimson"][data-theme="light"] {
+  --accent: #a5273c; --accent-hover: #801e2e; --accent-dim: hsla(350, 62%, 40%, 0.1);
+  --chip-active-bg: hsla(350, 62%, 46%, 0.1); --chip-active-bdr: #a5273c;
+  --text-heading: #5f262f;
+}
+html[data-palette="crimson"][data-theme="dark"] {
+  --accent: #da6276; --accent-hover: #e48b9a; --accent-dim: hsla(350, 62%, 62%, 0.16);
+  --chip-active-bg: hsla(350, 62%, 55%, 0.2); --chip-active-bdr: #d65168;
+}
+html[data-palette="orange"] {
+  --brand-navy-900: #331c0f; --brand-navy-800: #4d2c19; --brand-navy-700: #603a24; --brand-navy-600: #88573a;
+  --brand-gold: #f4c04e; --brand-gold-dim: hsla(41, 88%, 63%, 0.16);
+}
+html[data-palette="orange"][data-theme="light"] {
+  --accent: #b65116; --accent-hover: #8d3f11; --accent-dim: hsla(22, 78%, 40%, 0.1);
+  --chip-active-bg: hsla(22, 78%, 46%, 0.1); --chip-active-bdr: #b65116;
+  --text-heading: #603a24;
+}
+html[data-palette="orange"][data-theme="dark"] {
+  --accent: #ea8a53; --accent-hover: #efa980; --accent-dim: hsla(22, 78%, 62%, 0.16);
+  --chip-active-bg: hsla(22, 78%, 55%, 0.2); --chip-active-bdr: #e77e40;
+}
+html[data-palette="rose"] {
+  --brand-navy-900: #311220; --brand-navy-800: #491d32; --brand-navy-700: #5c2941; --brand-navy-600: #82405f;
+  --brand-gold: #e8b27a; --brand-gold-dim: hsla(31, 71%, 69%, 0.16);
+}
+html[data-palette="rose"][data-theme="light"] {
+  --accent: #a32962; --accent-hover: #7e204c; --accent-dim: hsla(332, 60%, 40%, 0.1);
+  --chip-active-bg: hsla(332, 60%, 46%, 0.1); --chip-active-bdr: #a32962;
+  --text-heading: #5c2941;
+}
+html[data-palette="rose"][data-theme="dark"] {
+  --accent: #d8649a; --accent-hover: #e28db5; --accent-dim: hsla(332, 60%, 62%, 0.16);
+  --chip-active-bg: hsla(332, 60%, 55%, 0.2); --chip-active-bdr: #d45490;
+}
+html[data-palette="graphite"] {
+  --brand-navy-900: #1d2025; --brand-navy-800: #2d3239; --brand-navy-700: #3c4149; --brand-navy-600: #585f69;
+  --brand-gold: #d4af5a; --brand-gold-dim: hsla(42, 59%, 59%, 0.16);
+}
+html[data-palette="graphite"][data-theme="light"] {
+  --accent: #456487; --accent-hover: #364d68; --accent-dim: hsla(212, 32%, 40%, 0.1);
+  --chip-active-bg: hsla(212, 32%, 46%, 0.1); --chip-active-bdr: #456487;
+  --text-heading: #3c4149;
+}
+html[data-palette="graphite"][data-theme="dark"] {
+  --accent: #7f9cbd; --accent-hover: #a1b6ce; --accent-dim: hsla(212, 32%, 62%, 0.16);
+  --chip-active-bg: hsla(212, 32%, 55%, 0.2); --chip-active-bdr: #7292b6;
+}
+html[data-palette="coffee"] {
+  --brand-navy-900: #2c2016; --brand-navy-800: #423224; --brand-navy-700: #544130; --brand-navy-600: #785f4a;
+  --brand-gold: #e0b060; --brand-gold-dim: hsla(38, 67%, 63%, 0.16);
+}
+html[data-palette="coffee"][data-theme="light"] {
+  --accent: #a1622b; --accent-hover: #7d4c21; --accent-dim: hsla(28, 58%, 40%, 0.1);
+  --chip-active-bg: hsla(28, 58%, 46%, 0.1); --chip-active-bdr: #a1622b;
+  --text-heading: #544130;
+}
+html[data-palette="coffee"][data-theme="dark"] {
+  --accent: #d69a66; --accent-hover: #e1b58e; --accent-dim: hsla(28, 58%, 62%, 0.16);
+  --chip-active-bg: hsla(28, 58%, 55%, 0.2); --chip-active-bdr: #d29056;
+}
+
+body{min-height:100vh;padding-bottom:56px;background:radial-gradient(900px 340px at 85% -40px,var(--accent-dim),transparent 70%),#eef1f6}
+header{position:sticky;top:0;z-index:30;padding:16px 16px 14px;
+ background:radial-gradient(520px 140px at 92% -30px,color-mix(in srgb,var(--accent) 42%,transparent),transparent 70%),linear-gradient(120deg,var(--brand-navy-900),var(--brand-navy-800) 55%,var(--brand-navy-700));box-shadow:0 10px 28px -12px rgba(15,33,55,.6)}
+header::after{height:3px;background:linear-gradient(90deg,transparent,var(--gold) 20%,var(--gold) 80%,transparent);opacity:1}
+header h1{font-size:19px;letter-spacing:.2px}
+header p{display:inline-block;margin:6px 0 0;padding:2px 12px;border-radius:999px;font-size:12px;font-weight:600;opacity:1;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#f1e3b4}
+.header-logo{width:48px;height:48px;border-radius:15px;border:0;background:linear-gradient(135deg,#f3d98b,var(--gold));box-shadow:0 8px 20px -6px rgba(201,162,74,.65),inset 0 1px 0 rgba(255,255,255,.5)}
+.header-logo svg{stroke:#0f2137}
+.header-back-link{padding:7px 14px;transition:.18s;backdrop-filter:blur(8px)}
+.header-back-link:hover{border-color:rgba(236,201,114,.8);transform:translateY(-1px)}
+.steps{display:flex;align-items:center;justify-content:center;gap:10px;margin:12px auto 0;font-size:11.5px;font-weight:600;color:rgba(255,255,255,.6)}
+.steps span{display:inline-flex;align-items:center;gap:7px}
+.steps span::before{content:attr(data-n);width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-family:var(--num);font-size:11px;border:1.5px solid rgba(255,255,255,.35)}
+.steps .done{color:#9be3b5}.steps .done::before{content:"✓";background:#16a34a;border-color:#16a34a;color:#fff}
+.steps .on{color:#fff}.steps .on::before{background:linear-gradient(135deg,#f3d98b,var(--gold));border-color:transparent;color:#0f2137;box-shadow:0 0 0 4px rgba(201,162,74,.25)}
+.steps i{width:34px;height:2px;border-radius:2px;background:rgba(255,255,255,.25)}.steps i.fill{background:#16a34a}
+.wrap{max-width:720px;margin:0 auto;padding:20px 16px}
+.card{border-radius:20px;padding:22px;margin-bottom:18px;border:1px solid rgba(15,33,55,.06);box-shadow:var(--sh)}
+.section-title{display:flex;align-items:center;gap:6px;font-size:15px;color:var(--navy);margin-bottom:14px}
+.ti{display:inline-block;width:20px;height:20px;flex:none;background:currentColor;-webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat}
+.section-title .ti{width:24px;height:24px;padding:0}
+.ti-chart{--m:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 3v18h18'/%3E%3Cpath d='M8 17v-5M13 17V8M18 17v-8'/%3E%3C/svg%3E")}
+.ti-clock{--m:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E")}
+.ti-factory{--m:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 21V10l6 4v-4l6 4V4h6v17z'/%3E%3C/svg%3E")}
+.ti-check{--m:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8 12 3 3 5-6'/%3E%3C/svg%3E")}
+.ti-alert{--m:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 8v5M12 16h.01'/%3E%3C/svg%3E")}
+.ti-search{--m:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E")}
+.ti-info{--m:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 8h.01'/%3E%3C/svg%3E")}
+
+.kpi-row{gap:14px;margin:6px 0 14px}
+.kpi{position:relative;overflow:hidden;text-align:left;padding:16px 18px 16px 22px;border-radius:16px;border:1px solid color-mix(in srgb,currentColor 18%,transparent)}
+.kpi::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:5px;border-radius:0 5px 5px 0;background:currentColor}
+.kpi-pending{background:linear-gradient(135deg,#fff3cf,#fffaf0)}.kpi-ok{background:linear-gradient(135deg,#d6f7e1,#f4fdf7)}
+.kpi b{font-family:var(--num);font-size:40px;font-weight:600;line-height:1.05;letter-spacing:-1px}
+.kpi span{font-size:12.5px;font-weight:600;color:var(--text);opacity:.75}
+#dashboard .card>div[style*="font-size:11px"]{font-size:12.5px!important;line-height:1.6;margin:0 0 14px!important;padding:10px 14px;border-radius:12px;background:var(--accent-dim);color:var(--navy)!important}
+.line-table th{padding:8px 6px;font-size:12px}.line-table td{padding:11px 6px}
+.line-table tbody tr{transition:background .15s}.line-table tbody tr:hover{background:var(--accent-dim)}
+.line-name-cell{font-size:14.5px;color:var(--navy)}
+.mini-badge{min-width:30px;padding:3px 11px;font-family:var(--num);font-size:13px}
+.pending-line-group{margin-bottom:22px}
+.pending-line-header{display:flex;align-items:center;gap:8px;padding:10px 14px;border:0;border-radius:12px;font-size:15px;color:#fff;background:linear-gradient(120deg,var(--brand-navy-800),var(--brand-navy-600))}
+.pending-line-header .ti{width:18px;height:18px}.pending-line-count{color:rgba(255,255,255,.7)}
+.pending-subgroup{margin-top:8px}
+.pending-subgroup-head{padding:12px 4px 6px;font-size:12.5px;color:var(--text)}
+.pending-subgroup-head .ti{color:var(--ok)}.pending-subgroup-head .ti-alert{color:var(--ng)}
+.btn-bulk{padding:8px 16px;border-radius:10px;background:linear-gradient(135deg,#22c55e,#15803d);box-shadow:0 8px 18px -8px rgba(21,128,61,.7);transition:.18s}
+.btn-bulk:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 12px 22px -8px rgba(21,128,61,.8)}.btn-bulk:active{transform:none}
+.pending-item{padding:13px 12px;margin:2px 0;border:0;border-radius:14px;transition:background .15s,box-shadow .15s}
+a.pending-item:hover{background:var(--accent-dim);box-shadow:inset 3px 0 0 var(--ng)}
+.pending-item+.pending-item{border-top:1px solid var(--border);border-top-left-radius:0;border-top-right-radius:0}
+.pending-item-jig{font-size:14.5px;color:var(--navy)}.pending-item-meta{font-size:12px;margin-top:3px}
+.pending-item>div:first-child{flex:1;min-width:0}
+.pending-item-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;font-size:11.5px;font-family:var(--num)}
+.pending-item-badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.pending-item-cta{padding:8px 14px;border-radius:10px;font-size:12px;background:linear-gradient(135deg,var(--brand-navy-700),var(--brand-navy-900));box-shadow:0 8px 16px -8px rgba(15,33,55,.7);transition:.18s}
+a.pending-item:hover .pending-item-cta{transform:translateX(2px);box-shadow:0 10px 20px -8px rgba(15,33,55,.85)}
+.pending-item-cta .ti{width:13px;height:13px;margin-right:4px;vertical-align:-2px}
+.center-msg{padding:44px 16px}
+.jig-title{font-size:20px;color:var(--navy)}
+.status-badge{padding:7px 14px}
+.item-row{padding:11px 6px;border-radius:10px;transition:background .15s}.item-row:hover{background:var(--accent-dim)}
+textarea,input[type=text]{border:1.5px solid var(--border);border-radius:12px;transition:border-color .18s,box-shadow .18s}
+textarea:focus,input[type=text]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-dim);background:#fff}
+.btn{border-radius:14px;padding:15px;transition:.18s}
+.btn-approve{background:linear-gradient(135deg,#22c55e,#15803d);box-shadow:0 12px 24px -10px rgba(21,128,61,.75)}
+.btn-approve:hover:not(:disabled){transform:translateY(-1px)}.btn-approve:disabled{box-shadow:none}
+@media (max-width:520px){.wrap{padding:14px 12px}.card{padding:18px 16px}.kpi b{font-size:32px}.pending-item{flex-wrap:wrap}.steps i{width:22px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
@@ -255,6 +448,7 @@
         <p>Supervisor (ขั้นที่ 2)</p>
       </div>
     </div>
+  <div class="steps"><span class="done" data-n="1">Leader</span><i class="fill"></i><span class="on" data-n="2">Supervisor</span></div>
   </header>
 
   <div class="wrap">
@@ -271,7 +465,7 @@
     if (!SUPABASE_CONFIGURED) console.warn('[Daily Quality Inspection] ยังไม่ได้ตั้งค่า Supabase');
     const sb = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-  // ✅ จำ PIN และชื่อผู้อนุมัติไว้ชั่วคราวระหว่างที่หน้านี้ยังเปิดอยู่ (หายไปเองถ้า refresh/ปิดหน้า)
+  // <i class="ti ti-check"></i>จำ PIN และชื่อผู้อนุมัติไว้ชั่วคราวระหว่างที่หน้านี้ยังเปิดอยู่ (หายไปเองถ้า refresh/ปิดหน้า)
   // เพื่อไม่ต้องพิมพ์ซ้ำทุกครั้งที่กดอนุมัติหลายรายการติดกัน
   let _rememberedPin = null;
   let _rememberedName = null;
@@ -323,15 +517,15 @@
       const note = item.note ? ` - _${esc(item.note)}_` : '';
       return `${idx + 1}. ${esc(item.label)}${value}${note}`;
     });
-    return `\n*🔴 รายการที่ไม่ผ่าน:*\n${lines.join('\n')}\n`;
+    return `\n*<i class="ti ti-alert"></i>รายการที่ไม่ผ่าน:*\n${lines.join('\n')}\n`;
   }
-  // ── ระบุ stage การอนุมัติ (หัวหน้างาน = หน้านี้ / Supervisor = manager-approve.html) ──
+  // ── ระบุ stage การอนุมัติ (Leader = หน้านี้ / Supervisor = manager-approve.html) ──
   function approvalStage(row) {
     const supApproved = row.approval_status === 'approved';
     const mgrApproved  = row.manager_approval_status === 'approved';
-    if (supApproved && mgrApproved) return { key: 'approved', label: '✅ อนุมัติครบแล้ว' };
-    if (supApproved && !mgrApproved) return { key: 'partial', label: '🔵 รอ Supervisor อนุมัติ' };
-    return { key: 'pending', label: '🟡 รอหัวหน้างานตรวจสอบ' };
+    if (supApproved && mgrApproved) return { key: 'approved', label: '<i class="ti ti-check"></i>อนุมัติครบแล้ว' };
+    if (supApproved && !mgrApproved) return { key: 'partial', label: '<i class="ti ti-clock"></i>รอ Supervisor อนุมัติ' };
+    return { key: 'pending', label: '<i class="ti ti-clock"></i>รอLeaderตรวจสอบ' };
   }
 
   async function loadDashboard() {
@@ -350,7 +544,7 @@
     }
 
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    // หน้านี้ดูเฉพาะรายงานที่ "หัวหน้างานตรวจสอบแล้ว" เท่านั้น (approval_status = 'approved')
+    // หน้านี้ดูเฉพาะรายงานที่ "Leaderตรวจสอบแล้ว" เท่านั้น (approval_status = 'approved')
     // ที่เหลือรอ Supervisor อนุมัติต่อ (manager_approval_status)
     const { data, error } = await sb.from('history')
       .select('id, jig_name, line_name, insp_date, ts, approval_status, manager_approval_status, inspector, items')
@@ -359,7 +553,7 @@
       .order('ts', { ascending: false });
 
     if (error || !data) {
-      dash.innerHTML = `<div class="card"><div class="section-title">📊 ภาพรวมการอนุมัติ</div><div class="center-msg" style="padding:10px 0;">โหลดข้อมูลไม่สำเร็จ</div></div>`;
+      dash.innerHTML = `<div class="card"><div class="section-title"><i class="ti ti-chart"></i>ภาพรวมการอนุมัติ</div><div class="center-msg" style="padding:10px 0;">โหลดข้อมูลไม่สำเร็จ</div></div>`;
       return;
     }
     renderDashboard(data);
@@ -399,12 +593,12 @@
 
     dash.innerHTML = `
       <div class="card">
-        <div class="section-title">📊 ภาพรวมการอนุมัติของ Supervisor (30 วันล่าสุด)</div>
+        <div class="section-title"><i class="ti ti-chart"></i>ภาพรวมการอนุมัติของ Supervisor (30 วันล่าสุด)</div>
         <div class="kpi-row">
           <div class="kpi kpi-pending"><b>${totalPending}</b><span>รอ Supervisor อนุมัติ</span></div>
           <div class="kpi kpi-ok"><b>${totalApproved}</b><span>อนุมัติครบแล้ว</span></div>
         </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px;">ℹ️ รายการทั้งหมดที่นี่ผ่านหัวหน้างานตรวจสอบแล้ว รอ Supervisor อนุมัติขั้นสุดท้าย</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;"><i class="ti ti-info"></i>รายการทั้งหมดที่นี่ผ่านLeaderตรวจสอบแล้ว รอ Supervisor อนุมัติขั้นสุดท้าย</div>
         ${lineRows.length ? `
         <table class="line-table">
           <thead><tr><th>Model</th><th>รออนุมัติ</th><th>อนุมัติแล้ว</th></tr></thead>
@@ -421,15 +615,15 @@
       </div>
 
       <div class="card">
-        <div class="section-title">🔵 รายการที่รอ Supervisor อนุมัติ (${pendingList.length})</div>
+        <div class="section-title"><i class="ti ti-clock"></i>รายการที่รอ Supervisor อนุมัติ (${pendingList.length})</div>
         ${pendingLineEntries.length ? pendingLineEntries.map(([lineName, g]) => `
           <div class="pending-line-group">
-            <div class="pending-line-header">🏭 ${esc(lineName)} <span class="pending-line-count">(${g.clean.length + g.ng.length})</span></div>
+            <div class="pending-line-header"><i class="ti ti-factory"></i>${esc(lineName)} <span class="pending-line-count">(${g.clean.length + g.ng.length})</span></div>
 
             ${g.clean.length ? `
               <div class="pending-subgroup">
                 <div class="pending-subgroup-head">
-                  <span>✅ ไม่มี NG — อนุมัติทีเดียวได้ (${g.clean.length})</span>
+                  <span><i class="ti ti-check"></i>ไม่มี NG — อนุมัติทีเดียวได้ (${g.clean.length})</span>
                   <button class="btn-bulk" data-line="${escAttr(lineName)}" data-ids="${g.clean.map(r => r.id).join(',')}">อนุมัติทั้งหมด</button>
                 </div>
                 ${g.clean.map(r => `
@@ -445,7 +639,7 @@
 
             ${g.ng.length ? `
               <div class="pending-subgroup">
-                <div class="pending-subgroup-head"><span>🔴 มี NG — ต้องตรวจสอบทีละรายการ (${g.ng.length})</span></div>
+                <div class="pending-subgroup-head"><span><i class="ti ti-alert"></i>มี NG — ต้องตรวจสอบทีละรายการ (${g.ng.length})</span></div>
                 ${g.ng.map(r => `
                   <a class="pending-item" href="manager-approve.html?id=${encodeURIComponent(r.id)}">
                     <div>
@@ -453,7 +647,7 @@
                       <div class="pending-item-meta">${esc(r.insp_date)} · ผู้ตรวจ: ${esc(r.inspector)}</div>
                     </div>
                     <span class="pending-item-badge">NG ${r.ngCount}</span>
-                    <span class="pending-item-cta">🔍 ตรวจสอบ &amp; อนุมัติ ›</span>
+                    <span class="pending-item-cta"><i class="ti ti-search"></i>ตรวจสอบ &amp; อนุมัติ ›</span>
                   </a>
                 `).join('')}
               </div>
@@ -477,7 +671,7 @@
     const name = askName(`ยืนยันอนุมัติทั้งหมด ${ids.length} รายการของ Model "${lineName}" (ไม่มี NG ทุกรายการ)\n\nกรุณาพิมพ์ชื่อผู้อนุมัติ (Supervisor):`);
     if (!name || !name.trim()) return;
     const approverName = _rememberedName;
-    // ✅ SECURITY: ต้องกรอก PIN Supervisor ก่อนอนุมัติได้ — เช็คฝั่ง Supabase (RPC) เท่านั้น
+    // <i class="ti ti-check"></i>SECURITY: ต้องกรอก PIN Supervisor ก่อนอนุมัติได้ — เช็คฝั่ง Supabase (RPC) เท่านั้น
     // (จำ PIN ไว้ในหน้านี้ ถ้าเคยกรอกถูกแล้วไม่ต้องพิมพ์ซ้ำ)
     const pin = askPin('กรุณากรอก PIN Supervisor เพื่อยืนยันการอนุมัติ:');
     if (!pin) return;
@@ -512,11 +706,11 @@
   async function notifyBulkFullyApproved(lineName, count, approverName) {
     const text = `
 📋 *Daily Quality Inspection Report*
-✅ สถานะ: อนุมัติครบทุกขั้นตอนแล้ว — อนุมัติแบบกลุ่ม
+<i class="ti ti-check"></i>สถานะ: อนุมัติครบทุกขั้นตอนแล้ว — อนุมัติแบบกลุ่ม
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-🏭 Model: ${esc(lineName)}
+<i class="ti ti-factory"></i>Model: ${esc(lineName)}
 📦 จำนวน: ${count} รายการ (ผ่านทั้งหมด ไม่มี NG)
-🏭 Supervisor อนุมัติโดย: ${esc(approverName)}
+<i class="ti ti-factory"></i>Supervisor อนุมัติโดย: ${esc(approverName)}
 🕐 เมื่อ: ${new Date().toLocaleString('th-TH')}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
@@ -574,7 +768,7 @@
 
       ${ngItems.length ? `
       <div class="card">
-        <div class="section-title">🔴 รายการที่ไม่ผ่าน (${ngItems.length})</div>
+        <div class="section-title"><i class="ti ti-alert"></i>รายการที่ไม่ผ่าน (${ngItems.length})</div>
         ${ngItems.map(i => `
           <div class="item-row">
             <div class="item-label">
@@ -620,12 +814,12 @@
     if (stage.key === 'approved') {
       // อนุมัติครบทั้ง 2 ขั้นตอนแล้ว
       box.innerHTML = `
-        <div class="section-title">✅ สถานะการอนุมัติ</div>
+        <div class="section-title"><i class="ti ti-check"></i>สถานะการอนุมัติ</div>
         <div class="approved-box">
-          👔 หัวหน้างาน: <strong>${esc(row.approved_by)}</strong> — ${row.approved_at ? new Date(row.approved_at).toLocaleString('th-TH') : '-'}
+          👔 Leader: <strong>${esc(row.approved_by)}</strong> — ${row.approved_at ? new Date(row.approved_at).toLocaleString('th-TH') : '-'}
           ${row.supervisor_comment ? `<br>💬 ${esc(row.supervisor_comment)}` : ''}
           <br><br>
-          🏭 Supervisor: <strong>${esc(row.manager_approved_by)}</strong> — ${row.manager_approved_at ? new Date(row.manager_approved_at).toLocaleString('th-TH') : '-'}
+          <i class="ti ti-factory"></i>Supervisor: <strong>${esc(row.manager_approved_by)}</strong> — ${row.manager_approved_at ? new Date(row.manager_approved_at).toLocaleString('th-TH') : '-'}
           ${row.manager_comment ? `<br>💬 ${esc(row.manager_comment)}` : ''}
         </div>
       `;
@@ -633,24 +827,24 @@
     }
 
     if (stage.key === 'pending') {
-      // หัวหน้างานยังไม่ตรวจสอบ — Supervisor ยังอนุมัติที่นี่ไม่ได้
+      // Leaderยังไม่ตรวจสอบ — Supervisor ยังอนุมัติที่นี่ไม่ได้
       box.innerHTML = `
         <div class="section-title">⏸️ ยังอนุมัติไม่ได้</div>
         <div class="partial-box" style="background:var(--pending-bg);color:var(--pending);">
-          🟡 รายงานนี้ยังไม่ผ่านการตรวจสอบจากหัวหน้างาน<br>
-          ต้องรอหัวหน้างานตรวจสอบก่อน (ขั้นที่ 1) จึงจะอนุมัติขั้นที่ 2 ได้ครับ
+          <i class="ti ti-clock"></i>รายงานนี้ยังไม่ผ่านการตรวจสอบจากLeader<br>
+          ต้องรอLeaderตรวจสอบก่อน (ขั้นที่ 1) จึงจะอนุมัติขั้นที่ 2 ได้ครับ
         </div>
       `;
       return;
     }
 
-    // stage.key === 'partial' → หัวหน้างานตรวจสอบแล้ว รอ Supervisor อนุมัติที่นี่
+    // stage.key === 'partial' → Leaderตรวจสอบแล้ว รอ Supervisor อนุมัติที่นี่
     box.innerHTML = `
-      <div class="section-title">✅ หัวหน้างานตรวจสอบแล้ว</div>
+      <div class="section-title"><i class="ti ti-check"></i>Leaderตรวจสอบแล้ว</div>
       <div class="partial-box">
         👔 ตรวจสอบโดย <strong>${esc(row.approved_by)}</strong><br>
         เมื่อ ${row.approved_at ? new Date(row.approved_at).toLocaleString('th-TH') : '-'}
-        ${row.supervisor_comment ? `<br><br>💬 ความเห็นหัวหน้างาน: ${esc(row.supervisor_comment)}` : ''}
+        ${row.supervisor_comment ? `<br><br>💬 ความเห็นLeader: ${esc(row.supervisor_comment)}` : ''}
       </div>
       <div class="section-title" style="margin-top:16px;">✍️ อนุมัติรายงานนี้ (Supervisor)</div>
       <label class="field-label">ชื่อผู้อนุมัติ (Supervisor)</label>
@@ -659,7 +853,7 @@
       <input type="password" id="approver-pin" placeholder="กรอก PIN เพื่อยืนยันตัวตน" inputmode="numeric" value="${_rememberedPin ? escAttr(_rememberedPin) : ''}">
       <label class="field-label">ความเห็นเพิ่มเติม (ถ้ามี)</label>
       <textarea id="approver-comment" placeholder="เช่น รับทราบ อนุมัติให้ดำเนินการต่อ"></textarea>
-      <button class="btn btn-approve" id="btn-approve">✅ อนุมัติรายงานนี้ (ขั้นสุดท้าย)</button>
+      <button class="btn btn-approve" id="btn-approve"><i class="ti ti-check"></i>อนุมัติรายงานนี้ (ขั้นสุดท้าย)</button>
       <div id="approve-msg" style="font-size:12px; color:var(--ng); margin-top:8px;"></div>
       ${(_rememberedName || _rememberedPin) ? `<div style="text-align:center; margin-top:10px;"><a href="#" id="btn-reset-approver" style="font-size:12px; color:#6b7280;">ไม่ใช่ ${_rememberedName ? esc(_rememberedName) : 'คนนี้'}? เปลี่ยนผู้ใช้</a></div>` : ''}
     `;
@@ -704,14 +898,14 @@
 
     if (error) {
       btn.disabled = false;
-      btn.textContent = '✅ อนุมัติรายงานนี้ (ขั้นสุดท้าย)';
+      btn.textContent = '<i class="ti ti-check"></i>อนุมัติรายงานนี้ (ขั้นสุดท้าย)';
       msgEl.textContent = 'บันทึกไม่สำเร็จ: ' + error.message;
       return;
     }
     if (!ok) {
       clearRememberedPin();
       btn.disabled = false;
-      btn.textContent = '✅ อนุมัติรายงานนี้ (ขั้นสุดท้าย)';
+      btn.textContent = '<i class="ti ti-check"></i>อนุมัติรายงานนี้ (ขั้นสุดท้าย)';
       msgEl.textContent = 'PIN ไม่ถูกต้อง — บันทึกไม่สำเร็จ';
       pinEl.value = '';
       pinEl.focus();
@@ -725,13 +919,13 @@
     row.manager_approved_at = new Date().toISOString();
     row.manager_comment = commentEl.value.trim() || null;
     renderApprovalCard(row);
-    document.querySelector('.status-badge').outerHTML = `<span class="status-badge status-approved">✅ อนุมัติครบแล้ว</span>`;
+    document.querySelector('.status-badge').outerHTML = `<span class="status-badge status-approved"><i class="ti ti-check"></i>อนุมัติครบแล้ว</span>`;
 
     notifyFullyApproved(row); // ยิงแจ้งเตือนไปกลุ่ม "อนุมัติครบทุกขั้นตอนแล้ว" — ไม่ต้องรอผล ไม่บล็อกหน้าจอ
     loadDashboard(); // รีเฟรชภาพรวมด้านบนให้ตัวเลขอัปเดตทันที ไม่ต้องรอ reload หน้า
   }
 
-  // ── แจ้งผลอนุมัติครบทุกขั้นตอนแล้ว (หัวหน้างาน + Supervisor) ──
+  // ── แจ้งผลอนุมัติครบทุกขั้นตอนแล้ว (Leader + Supervisor) ──
   async function notifyFullyApproved(row) {
     const items = row.items || [];
     const okCount = items.filter(i => i.status === 'ok' || i.status === 'fixed').length;
@@ -740,7 +934,7 @@
 
     const text = `
 📋 *Daily Quality Inspection Report*
-✅ สถานะ: อนุมัติครบทุกขั้นตอนแล้ว
+<i class="ti ti-check"></i>สถานะ: อนุมัติครบทุกขั้นตอนแล้ว
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 *${esc(row.jig_name)}*
 ${esc(row.jig_id || '')}
@@ -749,11 +943,11 @@ ${row.jig_doc_no ? `_${esc(row.jig_doc_no)}_` : ''}
 📅 วันที่ตรวจ: ${esc(row.insp_date)} เวลา ${esc(time)}${time ? ' น.' : ''}
 🏷 Production Order: ${esc(row.production_order || '-')}
 👤 ผู้ตรวจ: ${esc(row.inspector)}
-🔍 จุดเช็คทั้งหมด: ${items.length} จุด
-✅ ผ่าน (OK): ${okCount}${ngCount > 0 ? `  ❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
+<i class="ti ti-search"></i>จุดเช็คทั้งหมด: ${items.length} จุด
+<i class="ti ti-check"></i>ผ่าน (OK): ${okCount}${ngCount > 0 ? `  ❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 ${ngListText(items)}
-👔 หัวหน้างาน: ${esc(row.approved_by)} (${row.approved_at ? new Date(row.approved_at).toLocaleString('th-TH') : '-'})
-🏭 Supervisor: ${esc(row.manager_approved_by)} (${new Date(row.manager_approved_at).toLocaleString('th-TH')})
+👔 Leader: ${esc(row.approved_by)} (${row.approved_at ? new Date(row.approved_at).toLocaleString('th-TH') : '-'})
+<i class="ti ti-factory"></i>Supervisor: ${esc(row.manager_approved_by)} (${new Date(row.manager_approved_at).toLocaleString('th-TH')})
 ${row.manager_comment ? `💬 ความเห็น: ${esc(row.manager_comment)}` : ''}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
