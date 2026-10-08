@@ -394,6 +394,17 @@
     .card { padding: 16px; }
   }
   @media (prefers-reduced-motion: reduce) { .doc-row, .doc-arrow, .action-row .btn { transition: none; } }
+
+  /* ── สัญลักษณ์ Revision แบบสามเหลี่ยม (มาตรฐานงานเอกสาร/แบบ ISO) ── */
+  .doc-rev-tile { width: 54px; height: auto; background: none; box-shadow: none; border-radius: 0; gap: 0; color: var(--navy); }
+  .doc-rev-tile.has-rev { background: none; box-shadow: none; color: #9a7416; }
+  .doc-row.is-obsolete .doc-rev-tile { background: none; box-shadow: none; color: #9ca3af; }
+  .rev-tri { position: relative; width: 52px; height: 46px; display: block; }
+  .rev-tri svg { display: block; }
+  .doc-rev-tile .rev-tri b { position: absolute; left: 0; right: 0; bottom: 5px; text-align: center; font-size: 17px; line-height: 1; opacity: 1; }
+  .doc-rev-tile .rev-tri b.two { font-size: 13.5px; bottom: 6px; }
+  .doc-rev-tile small { margin-top: 3px; font-size: 9.5px; opacity: .65; }
+  @media (max-width: 600px) { .doc-rev-tile { width: 46px; } .rev-tri { transform: scale(.88); transform-origin: top center; margin-bottom: -5px; } }
 </style>
 </head>
 <body>
@@ -660,7 +671,13 @@
     const obsolete = d.status === 'obsolete';
     return `
       <div class="doc-row${obsolete ? ' is-obsolete' : ''}" data-id="${escAttr(d.id)}">
-        <div class="doc-rev-tile${revNo > 0 ? ' has-rev' : ''}" title="Revision ปัจจุบัน"><small>REV</small><b>${revNo}</b></div>
+        <div class="doc-rev-tile${revNo > 0 ? ' has-rev' : ''}" title="Revision ปัจจุบัน: REV ${revNo}" role="img" aria-label="Revision ${revNo}">
+          <span class="rev-tri">
+            <svg viewBox="0 0 52 46" width="52" height="46" aria-hidden="true"><polygon points="26,4 48,42 4,42" fill="currentColor" fill-opacity=".1" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>
+            <b class="${String(revNo).length > 1 ? 'two' : ''}">${revNo}</b>
+          </span>
+          <small>REV</small>
+        </div>
         <div class="doc-main">
           <div class="doc-top">
             <span class="doc-no">${esc(d.doc_no)}</span>
