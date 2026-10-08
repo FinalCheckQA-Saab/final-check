@@ -58,6 +58,38 @@ a.back{color:#fff;font-size:13px;text-decoration:none;opacity:.9}
 @keyframes hspin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.hbtn,.hbtn *{transition:none!important}#btn-refresh.spin .ico-refresh{animation-duration:2s}}
 @media (max-width:480px){.hbtn{padding-right:12px}}
+/* ── ส่วนหัวย่อ/ขยายได้ (ค่าเริ่มต้น = ย่อ) ── */
+header{transition:padding .28s ease}
+header.collapsed{padding-top:7px;padding-bottom:7px}
+.hd-top{display:block}
+header.collapsed .hd-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header.collapsed .hd-top h1{font-size:17px;line-height:1.25}
+header.collapsed a.back{padding:3px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);font-size:12px;opacity:1;white-space:nowrap}
+header.collapsed a.back:hover{border-color:rgba(236,201,114,.7)}
+.hd-more{display:grid;grid-template-rows:1fr;opacity:1;transition:grid-template-rows .3s ease,opacity .25s ease}
+.hd-more-in{overflow:hidden;min-height:0}
+header.collapsed .hd-more{grid-template-rows:0fr;opacity:0;pointer-events:none}
+header.collapsed .hd-more small{visibility:hidden}
+.hbtn-icon .ico-chev{transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+#hdr:not(.collapsed) .hbtn-icon .ico-chev{transform:rotate(180deg)}
+header.collapsed .hbtn{padding:4px 13px 4px 4px;font-size:12px}
+header.collapsed .hbtn .ico{width:26px;height:26px}
+header.collapsed .hbtn svg{width:15px;height:15px}
+header.collapsed .hactions{gap:8px}
+@media (max-width:640px){
+  .hbtn-txt{display:none}.hbtn-icon{padding-right:6px}
+  /* มือถือ: ส่วนหัวย่อให้เหลือบรรทัดเดียว — ‹ + ชื่อหน้า + ปุ่มไอคอน */
+  header.collapsed{flex-wrap:nowrap;gap:8px;padding-left:12px;padding-right:12px}
+  header.collapsed .hd-left{flex:1;min-width:0}
+  header.collapsed .hd-top{flex-wrap:nowrap;gap:9px}
+  header.collapsed .hd-top h1{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  header.collapsed .back-txt{display:none}
+  header.collapsed a.back{padding:2px 11px;font-size:16px;line-height:1.3}
+  header.collapsed .hbtn{padding:4px}
+  header.collapsed .hbtn>span:not(.ico){display:none}
+  header.collapsed .hactions{gap:6px;flex:none}
+}
+
 main{padding:14px 18px 40px;max-width:1100px;margin:0 auto}
 .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
 .filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
@@ -95,9 +127,15 @@ td.bad{color:var(--bad);font-weight:700}
 </style>
 </head>
 <body>
-<header>
-  <div><a class="back" id="back" href="index.html">‹ กลับแอปหลัก</a><h1>SPC — กราฟควบคุม UCL / LCL</h1><small>X̄–R Chart ของหัวข้อที่ตรวจเป็นตัวเลข (ชิ้น S / M / E เป็น 1 กลุ่มย่อย) แยกตาม Part Number และเดือน</small></div>
+<header id="hdr" class="collapsed">
+  <div class="hd-left">
+    <div class="hd-top"><a class="back" id="back" href="index.html">‹<span class="back-txt"> กลับแอปหลัก</span></a><h1>SPC — กราฟควบคุม UCL / LCL</h1></div>
+    <div class="hd-more" id="hd-more"><div class="hd-more-in"><small>X̄–R Chart ของหัวข้อที่ตรวจเป็นตัวเลข (ชิ้น S / M / E เป็น 1 กลุ่มย่อย) แยกตาม Part Number และเดือน</small></div></div>
+  </div>
   <div class="hactions">
+    <button class="hbtn hbtn-icon" id="btn-hdr" type="button" aria-expanded="false" aria-controls="hd-more" title="ขยายส่วนหัว (ดูรายละเอียด)" aria-label="ขยายส่วนหัว">
+      <span class="ico" aria-hidden="true"><svg class="ico-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span><span class="hbtn-txt">รายละเอียด</span>
+    </button>
     <button class="hbtn" id="btn-theme" type="button" title="สลับธีม สว่าง / มืด" aria-label="สลับธีม สว่าง / มืด">
       <span class="ico" aria-hidden="true">
         <svg class="ico-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
@@ -135,6 +173,13 @@ const fmt=v=>v==null||!isFinite(v)?'—':String(Number(v.toFixed(4)));
 const q=new URLSearchParams(location.search);
 let parts=[],rows=[],itemsMap=new Map(),cur=null,hiddenAll=false;
 
+
+// ── ส่วนหัวย่อ/ขยาย: เข้าหน้านี้ครั้งใดก็เริ่มที่ "ย่อ" เสมอ (รายละเอียดอยู่ครบ กดขยายดูได้) ──
+$('btn-hdr').onclick=()=>{const hd=$('hdr');const open=hd.classList.contains('collapsed');
+  hd.classList.toggle('collapsed',!open);const b=$('btn-hdr');
+  b.setAttribute('aria-expanded',String(open));
+  const t=open?'ย่อส่วนหัว':'ขยายส่วนหัว (ดูรายละเอียด)';b.title=t;b.setAttribute('aria-label',t);
+  b.querySelector('.hbtn-txt').textContent=open?'ย่อ':'รายละเอียด'};
 // ── ธีม: ใช้ค่าเดียวกับแอปหลัก (fc_theme) ──
 (function(){let t=null;try{t=localStorage.getItem('fc_theme')}catch(e){}
   if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
