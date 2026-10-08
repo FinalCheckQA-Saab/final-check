@@ -1745,6 +1745,7 @@
     bindPalettePanel();          // 🎨 เลือกสีธีม 10 ชุด (Admin Panel)
     bindUncheckedLinesPanel();   // 🆕 Model ที่ไม่มีการตรวจเช็คในแต่ละวัน (Admin Panel)
     bindHolidayCalendarPanel();  // 🆕 ปฏิทินวันหยุด (Admin Panel)
+    bindAlertSchedulePanel();    // 🆕 เวลาแจ้งเตือน Telegram Part ที่ยังไม่ตรวจ S/M/E (Admin Panel)
     bindActionButtons();
     bindLightbox();
     bindHistoryPanel();
@@ -7262,6 +7263,113 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     });
 
     loadHolidays();
+  }
+
+  /* ══════════════════════════════════════
+     🆕 เวลาแจ้งเตือน Telegram — Part ที่ยังไม่ตรวจ S/M/E (Admin Panel)
+     เก็บในตาราง alert_schedules (ดู add_alert_schedules.sql) — Edge Function pending-inspection-alert อ่านตารางนี้ทุกนาที
+  ══════════════════════════════════════ */
+  let alertSchedulesCache = [];
+  const ALERT_TIME_RE = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
+
+  async function loadAlertSchedules() {
+    if (!sb) return;
+    try {
+      const { data, error } = await sb.from('alert_schedules').select('id, alert_time, label, enabled').order('alert_time', { ascending: true });
+      if (error) throw error; // ตารางยังไม่มี = ยังไม่ได้รัน add_alert_schedules.sql
+      alertSchedulesCache = data || [];
+      renderAlertSchedules();
+    } catch (e) {
+      console.error('loadAlertSchedules error (ตรวจสอบว่ารัน add_alert_schedules.sql แล้วหรือยัง):', e);
+      const el = $('adm-alert-list');
+      if (el) el.innerHTML = '<div class="adm-item" style="color:var(--text-muted);font-style:italic">โหลดเวลาแจ้งเตือนไม่ได้ — ตรวจสอบว่ารัน add_alert_schedules.sql แล้วหรือยัง</div>';
+    }
+  }
+
+  function renderAlertSchedules() {
+    const el = $('adm-alert-list');
+    if (!el) return;
+    if (!alertSchedulesCache.length) {
+      el.innerHTML = '<div class="adm-item" style="color:var(--text-muted);font-style:italic">ยังไม่มีเวลาแจ้งเตือน — เพิ่มด้านบนได้เลย</div>';
+      return;
+    }
+    el.innerHTML = alertSchedulesCache.map(s => `
+      <div class="adm-item" data-id="${escHtml(s.id)}" style="gap:8px;flex-wrap:wrap">
+        <input type="time" class="alert-time-input" value="${escHtml(s.alert_time)}" title="แก้เวลาแล้วบันทึกอัตโนมัติ" style="max-width:120px">
+        <input type="text" class="alert-label-input" value="${escHtml(s.label || '')}" placeholder="ชื่อรอบ" style="flex:1;min-width:120px">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap">
+          <input type="checkbox" class="alert-enabled-input" ${s.enabled ? 'checked' : ''}> เปิดใช้
+        </label>
+        <button class="adm-item-del" title="ลบเวลานี้">${ico(ICO_TRASH_P)}</button>
+      </div>`).join('');
+    el.querySelectorAll('.adm-item').forEach(row => {
+      const id = row.dataset.id;
+      row.querySelector('.alert-time-input').addEventListener('change', e => updateAlertSchedule(id, { alert_time: e.target.value }));
+      row.querySelector('.alert-label-input').addEventListener('change', e => updateAlertSchedule(id, { label: e.target.value.trim() || null }));
+      row.querySelector('.alert-enabled-input').addEventListener('change', e => updateAlertSchedule(id, { enabled: e.target.checked }));
+      row.querySelector('.adm-item-del').addEventListener('click', () => deleteAlertSchedule(id));
+    });
+  }
+
+  async function addAlertSchedule() {
+    const t = $('adm-alert-time')?.value;
+    const label = $('adm-alert-label')?.value.trim();
+    if (!t || !ALERT_TIME_RE.test(t)) { toast('กรุณาเลือกเวลา', 'ng'); return; }
+    if (alertSchedulesCache.some(s => s.alert_time === t)) { toast(`มีเวลา ${t} น. อยู่แล้ว`, 'ng'); return; }
+    if (!sb) { toast('ไม่ได้เชื่อมต่อ Supabase', 'ng'); return; }
+    try {
+      const { error } = await sb.from('alert_schedules').insert({
+        id: 'a' + Date.now().toString(36), alert_time: t, label: label || null, enabled: true,
+      });
+      if (error) throw error;
+      $('adm-alert-label').value = '';
+      toast(`เพิ่มเวลาแจ้งเตือน ${t} น. แล้ว`, 'ok');
+      loadAlertSchedules();
+    } catch (e) {
+      console.error('addAlertSchedule error:', e);
+      toast('เพิ่มเวลาไม่สำเร็จ — ตรวจสอบว่ารัน add_alert_schedules.sql แล้วหรือยัง', 'ng');
+    }
+  }
+
+  async function updateAlertSchedule(id, patch) {
+    if (patch.alert_time !== undefined) {
+      if (!ALERT_TIME_RE.test(patch.alert_time)) { toast('เวลาไม่ถูกต้อง', 'ng'); loadAlertSchedules(); return; }
+      if (alertSchedulesCache.some(s => s.id !== id && s.alert_time === patch.alert_time)) {
+        toast(`มีเวลา ${patch.alert_time} น. อยู่แล้ว`, 'ng'); loadAlertSchedules(); return;
+      }
+      patch.last_sent_date = null; // เปลี่ยนเวลา = ให้ส่งได้ใหม่ถ้าเวลาใหม่ยังมาไม่ถึงวันนี้
+    }
+    try {
+      const { error } = await sb.from('alert_schedules').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id);
+      if (error) throw error;
+      toast('บันทึกเวลาแจ้งเตือนแล้ว', 'ok');
+      loadAlertSchedules();
+    } catch (e) {
+      console.error('updateAlertSchedule error:', e);
+      toast('บันทึกไม่สำเร็จ', 'ng');
+      loadAlertSchedules();
+    }
+  }
+
+  async function deleteAlertSchedule(id) {
+    const s = alertSchedulesCache.find(x => x.id === id);
+    if (!(await showConfirmModal(`ลบเวลาแจ้งเตือน ${s ? s.alert_time + ' น.' : ''} หรือไม่?`, { confirmLabel: 'ลบเวลา', danger: true }))) return;
+    try {
+      const { error } = await sb.from('alert_schedules').delete().eq('id', id);
+      if (error) throw error;
+      toast('ลบเวลาแจ้งเตือนแล้ว', 'ok');
+      loadAlertSchedules();
+    } catch (e) {
+      console.error('deleteAlertSchedule error:', e);
+      toast('ลบไม่สำเร็จ', 'ng');
+    }
+  }
+
+  function bindAlertSchedulePanel() {
+    const btn = $('btn-adm-alert-add');
+    if (!btn) return;
+    btn.addEventListener('click', addAlertSchedule);
+    loadAlertSchedules();
   }
 
   /* ══════════════════════════════════════

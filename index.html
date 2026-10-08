@@ -800,6 +800,22 @@
       <div class="admin-list admin-list-scroll" id="adm-holiday-list"></div>
     </div>
 
+    <!-- 🆕 เวลาแจ้งเตือน Telegram "สรุป Part ที่ยังไม่ได้ตรวจ S/M/E" — เพิ่ม/ลบ/แก้ไขได้ (ดู add_alert_schedules.sql)
+         ไม่แจ้งวันอาทิตย์ และวันที่ตั้งเป็นวันหยุดในปฏิทินด้านบน | ไม่นับ Part ที่มาร์ค "ไม่ได้ผลิตวันนี้" -->
+    <div class="admin-section">
+      <div class="admin-section-title">⏰ เวลาแจ้งเตือน Telegram (Part ที่ยังไม่ตรวจ S/M/E)</div>
+      <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px; line-height:1.5;">
+        ระบบจะส่งข้อความสรุปเข้ากลุ่ม Telegram ตามเวลาที่ตั้งไว้ — ไม่ส่งวันอาทิตย์ / วันหยุดในปฏิทินด้านบน และไม่นับ Part ที่มาร์ค "ไม่ได้ผลิตวันนี้"
+        (เปลี่ยนเวลาแล้วมีผลทันที ไม่ต้อง deploy ใหม่)
+      </div>
+      <div class="admin-input-row">
+        <input type="time" id="adm-alert-time" value="09:00" title="เวลาแจ้งเตือน">
+        <input type="text" id="adm-alert-label" placeholder="ชื่อรอบ (ไม่บังคับ) เช่น รอบเช้า">
+        <button class="btn-adm-add" id="btn-adm-alert-add">+ เพิ่มเวลา</button>
+      </div>
+      <div class="admin-list" id="adm-alert-list"></div>
+    </div>
+
     <!-- Document Settings (ค่ากลางทั้งระบบ ตาม ISO — Doc No. เดียวทั้งบริษัท) -->
     <div class="admin-section">
       <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> ควบคุมเอกสาร (Document Control)</div>
