@@ -485,6 +485,53 @@
     .tl-badge .rev-tri { transform: scale(.88); transform-origin: top center; margin-bottom: -5px; }
     .tl-item:not(:last-child)::before { left: 22px; }
   }
+
+  /* ═══════════ Redesign: ฟอร์มทั้งหมดในหน้านี้ (ระบบเดียวกัน) ═══════════ */
+  input[type=number] { width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: inherit; font-size: 14px; color: var(--text); background: #fafafa; }
+  input[type=number]:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(47,111,209,.14); }
+
+  .form-card { position: relative; overflow: hidden; padding: 20px 22px 18px; }
+  .form-card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(90deg, var(--navy), var(--navy-light) 55%, var(--gold)); }
+  .form-card.form-inline { margin: 8px 0 14px; background: #fbfdff; border-color: #cfdcf0; box-shadow: none; }
+  .form-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .form-ico { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; color: var(--navy); background: #e8eef9; box-shadow: inset 0 0 0 1px rgba(30,58,95,.12); }
+  .form-title { font-size: 15px; font-weight: 700; color: #0f2137; line-height: 1.3; }
+  .form-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  .fgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 14px; }
+  .fld { min-width: 0; }
+  .fld.full { grid-column: 1 / -1; }
+  .form-card .field-label { display: flex; align-items: center; gap: 5px; margin: 0 0 6px; font-size: 12px; font-weight: 600; color: #4b5563; }
+  .form-card .field-label .di { color: #94a3b8; }
+  .form-card input[type=text], .form-card input[type=number], .form-card input[type=date], .form-card input[type=password], .form-card select, .form-card textarea { background-color: #f8fafc; border-color: var(--line); padding: 11px 13px; }
+  .form-card textarea { min-height: 84px; line-height: 1.55; }
+  .form-card select { padding-right: 32px; }
+  .form-card input:hover, .form-card textarea:hover, .form-card select:hover { border-color: #c9d3e2; }
+  .fld-hint { display: flex; align-items: flex-start; gap: 6px; margin-top: 7px; font-size: 11.5px; line-height: 1.6; color: var(--muted); }
+  .fld-hint .di { margin-top: 3px; color: #94a3b8; }
+
+  .form-foot { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px 16px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #edf0f5; }
+  .pin-fld { flex: 0 1 230px; }
+  .form-actions { margin-left: auto; display: flex; gap: 8px; }
+  .btn-save { border: none; border-radius: 12px; padding: 11px 22px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; color: #fff; background: var(--navy); box-shadow: 0 8px 18px -10px rgba(15,33,55,.7); transition: background .15s ease, transform .1s ease; }
+  .btn-save:hover { background: var(--navy-light); }
+  .btn-save:active { transform: scale(.985); }
+  .btn-save:disabled { background: #9ca3af; box-shadow: none; cursor: default; }
+  .form-actions .btn-cancel { padding: 11px 18px; border-radius: 12px; border-color: #cfd8e6; color: var(--navy); background: #fff; }
+  .form-actions .btn-cancel:hover { background: #f3f6fb; }
+  .btn-save:focus-visible, .btn-cancel:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .form-card .form-msg { margin-top: 12px; font-size: 12.5px; }
+  .form-card .form-msg:empty { display: none; }
+  .form-card .form-msg.err { padding: 9px 12px; border-radius: 10px; background: #fef2f2; color: var(--ng); }
+  .form-card .form-msg.ok { padding: 9px 12px; border-radius: 10px; background: var(--ok-bg); color: #15803d; }
+
+  @media (max-width: 600px) {
+    .form-card { padding: 18px 16px 16px; }
+    .fgrid { grid-template-columns: 1fr; }
+    .pin-fld { flex: 1 1 100%; }
+    .form-actions { margin-left: 0; width: 100%; }
+    .form-actions .btn-save { flex: 1; }
+  }
 </style>
 </head>
 <body>
@@ -753,6 +800,8 @@
     box:     '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
     cal:     '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
     ban:     '<circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>',
+    lock:    '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    info:    '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
     undo:    '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>',
   };
   // สามเหลี่ยมแสดง Revision (ใช้ซ้ำทั้งหน้ารายการ/รายละเอียด/ไทม์ไลน์)
@@ -969,28 +1018,46 @@
   }
 
   // ── ฟอร์มแก้ไขข้อมูล Rev ที่มีอยู่แล้ว (ใช้ทั้งในหน้ารายการ แก้ Rev ล่าสุด และหน้ารายละเอียด แก้ Rev ไหนก็ได้) ──
+  // ── ชิ้นส่วนฟอร์มที่ใช้ร่วมกันทุกฟอร์มในหน้านี้ (หัวฟอร์ม / ช่องกรอก / ช่อง PIN / ปุ่มท้ายฟอร์ม) ──
+  const formHead = (icon, title, sub) => `
+    <div class="form-head">
+      <span class="form-ico">${dIco(icon, 18)}</span>
+      <div><div class="form-title">${title}</div>${sub ? `<div class="form-sub">${sub}</div>` : ''}</div>
+    </div>`;
+  const fld = (label, control, { full = false, hint = '' } = {}) => `
+    <div class="fld${full ? ' full' : ''}">
+      <label class="field-label">${label}</label>
+      ${control}
+      ${hint ? `<div class="fld-hint">${dIco('info', 13)}<span>${hint}</span></div>` : ''}
+    </div>`;
+  const pinFld = (id, label = 'PIN ยืนยันตัวตน') => `
+    <div class="fld pin-fld">
+      <label class="field-label">${dIco('lock', 12)}${label}</label>
+      <input type="password" id="${id}" inputmode="numeric" placeholder="กรอก PIN" autocomplete="off" value="${_rememberedPin ? escAttr(_rememberedPin) : ''}">
+    </div>`;
+  const formFoot = (pin, submitId, submitLabel, cancelId, msgId, submitAttrs = '') => `
+    <div class="form-foot">
+      ${pin}
+      <div class="form-actions">
+        ${cancelId ? `<button class="btn-ghost btn-cancel" id="${cancelId}" type="button">ยกเลิก</button>` : ''}
+        <button class="btn-save" id="${submitId}" type="button" ${submitAttrs}>${submitLabel}</button>
+      </div>
+    </div>
+    <div class="form-msg" id="${msgId}"></div>`;
+
   function renderEditRevForm(doc, rev) {
     const revDateVal = rev.rev_date ? String(rev.rev_date).slice(0, 10) : '';
     return `
-      <div class="card" id="edit-rev-card" style="border:1px solid var(--accent); margin-top:-6px; margin-bottom:14px;">
-        <div class="section-title"><span>✏️ แก้ไขข้อมูลการแก้ไข — ${esc(doc.doc_no)} (Rev ${rev.rev_no})</span></div>
-        <label class="field-label">Rev No.</label>
-        <input type="number" id="er-revno" min="0" value="${rev.rev_no}">
-        <label class="field-label">วันที่ปรับปรุง</label>
-        <input type="date" id="er-date" value="${revDateVal}">
-        <label class="field-label">รายละเอียดการแก้ไข</label>
-        <textarea id="er-detail">${esc(rev.amendment_detail || '')}</textarea>
-        <label class="field-label">ผู้แก้ไข</label>
-        <input type="text" id="er-prepared" value="${escAttr(rev.prepared_by || '')}">
-        <label class="field-label">ผู้อนุมัติ</label>
-        <input type="text" id="er-approver" value="${escAttr(rev.approved_by || '')}">
-        <label class="field-label">PIN ยืนยันตัวตน</label>
-        <input type="password" id="er-pin" inputmode="numeric" placeholder="กรอก PIN" value="${_rememberedPin ? escAttr(_rememberedPin) : ''}">
-        <div style="display:flex; gap:8px; margin-top:10px;">
-          <button class="btn btn-approve" id="er-submit" type="button" data-rev-id="${escAttr(rev.id)}" style="flex:1;">บันทึกการแก้ไข</button>
-          <button class="btn-ghost" id="er-cancel" type="button" style="flex:0 0 auto;">ยกเลิก</button>
+      <div class="card form-card form-inline" id="edit-rev-card">
+        ${formHead('pen', 'แก้ไขข้อมูลการแก้ไข', `${esc(doc.doc_no)} · REV ${rev.rev_no}`)}
+        <div class="fgrid">
+          ${fld('Rev No.', `<input type="number" id="er-revno" min="0" value="${rev.rev_no}">`)}
+          ${fld('วันที่ปรับปรุง', `<input type="date" id="er-date" value="${revDateVal}">`)}
+          ${fld('รายละเอียดการแก้ไข', `<textarea id="er-detail">${esc(rev.amendment_detail || '')}</textarea>`, { full: true })}
+          ${fld('ผู้แก้ไข', `<input type="text" id="er-prepared" value="${escAttr(rev.prepared_by || '')}">`)}
+          ${fld('ผู้อนุมัติ', `<input type="text" id="er-approver" value="${escAttr(rev.approved_by || '')}">`)}
         </div>
-        <div class="form-msg" id="er-msg"></div>
+        ${formFoot(pinFld('er-pin'), 'er-submit', 'บันทึกการแก้ไข', 'er-cancel', 'er-msg', `data-rev-id="${escAttr(rev.id)}"`)}
       </div>
     `;
   }
@@ -1056,26 +1123,17 @@
 
   function renderAddDocForm() {
     return `
-      <div class="card">
-        <div class="section-title"><span>➕ เพิ่มเอกสารใหม่เข้า Master List</span></div>
-        <label class="field-label">สังกัดบริษัท</label>
-        <select id="nd-company">
-          ${COMPANIES.map(c => `<option value="${escAttr(c)}">${esc(c)}</option>`).join('')}
-        </select>
-        <label class="field-label">ฝ่ายที่ครอบครอง</label>
-        <input type="text" id="nd-department" placeholder="เช่น BODY & SASH">
-        <label class="field-label">ประเภทเอกสาร</label>
-        <input type="text" id="nd-category" placeholder="เช่น WI">
-        <label class="field-label">เลขที่เอกสาร (Doc No.)</label>
-        <input type="text" id="nd-docno" placeholder="เช่น PRD1-T00A-005">
-        <label class="field-label">ชื่อเอกสาร</label>
-        <textarea id="nd-docname" placeholder="ชื่อเอกสารและรายละเอียด"></textarea>
-        <label class="field-label">วันที่เริ่มใช้เอกสารครั้งแรก</label>
-        <input type="date" id="nd-firstdate">
-        <label class="field-label">PIN ยืนยันตัวตน</label>
-        <input type="password" id="nd-pin" inputmode="numeric" placeholder="กรอก PIN" value="${_rememberedPin ? escAttr(_rememberedPin) : ''}">
-        <button class="btn btn-approve" id="nd-submit" type="button">บันทึกเอกสารใหม่</button>
-        <div class="form-msg" id="nd-msg"></div>
+      <div class="card form-card">
+        ${formHead('plus', 'เพิ่มเอกสารใหม่', 'ลงทะเบียนเอกสารเข้า Master List')}
+        <div class="fgrid">
+          ${fld('สังกัดบริษัท', `<select id="nd-company">${COMPANIES.map(c => `<option value="${escAttr(c)}">${esc(c)}</option>`).join('')}</select>`, { full: true })}
+          ${fld('ฝ่ายที่ครอบครอง', `<input type="text" id="nd-department" placeholder="เช่น BODY & SASH">`)}
+          ${fld('ประเภทเอกสาร', `<input type="text" id="nd-category" placeholder="เช่น WI">`)}
+          ${fld('เลขที่เอกสาร (Doc No.)', `<input type="text" id="nd-docno" placeholder="เช่น PRD1-T00A-005">`)}
+          ${fld('วันที่เริ่มใช้เอกสารครั้งแรก', `<input type="date" id="nd-firstdate">`)}
+          ${fld('ชื่อเอกสาร', `<textarea id="nd-docname" placeholder="ชื่อเอกสารและรายละเอียด"></textarea>`, { full: true })}
+        </div>
+        ${formFoot(pinFld('nd-pin'), 'nd-submit', 'บันทึกเอกสารใหม่', '', 'nd-msg')}
       </div>
     `;
   }
@@ -1325,22 +1383,19 @@
     }
 
     box.innerHTML = `
-      <div class="card">
-        <div class="section-title"><span>📥 ${importSourceLabel} — พบ ${rows.length} รายการใหม่</span></div>
+      <div class="card form-card">
+        ${formHead('refresh', `${importSourceLabel}`, `พบ ${rows.length} รายการใหม่`)}
         <div style="font-size:11px; color:var(--muted); margin-bottom:10px; line-height:1.6;">
           ทั้งหมด ${stats.totalInFile} รายการ · มีอยู่แล้วในระบบแล้ว ${stats.alreadyExists} รายการ (ข้าม)
           ${stats.dupInFile ? ` · ซ้ำกันเองในไฟล์ ${stats.dupInFile} รายการ (ใช้แถวแรก)` : ''}
           ${stats.note ? `<br>⚠️ ${esc(stats.note)}` : ''}
         </div>
 
-        <label class="field-label">นำเข้าเป็นเอกสารของบริษัท</label>
-        <select id="imp-company">
-          ${COMPANIES.map(c => `<option value="${escAttr(c)}">${esc(c)}</option>`).join('')}
-        </select>
-        <label class="field-label">ประเภทเอกสาร</label>
-        <input type="text" id="imp-category" value="WI">
-        <label class="field-label">PIN ยืนยันตัวตน</label>
-        <input type="password" id="imp-pin" inputmode="numeric" placeholder="กรอก PIN" value="${_rememberedPin ? escAttr(_rememberedPin) : ''}">
+        <div class="fgrid">
+          ${fld('นำเข้าเป็นเอกสารของบริษัท', `<select id="imp-company">${COMPANIES.map(c => `<option value="${escAttr(c)}">${esc(c)}</option>`).join('')}</select>`, { full: true })}
+          ${fld('ประเภทเอกสาร', `<input type="text" id="imp-category" value="WI">`)}
+          ${pinFld('imp-pin')}
+        </div>
 
         <div class="imp-bar">
           <span id="imp-count">เลือก <b>${rows.length}</b> จาก ${rows.length} รายการ</span>
@@ -1366,8 +1421,12 @@
           </table>
         </div>
 
-        <button class="btn btn-approve" id="btn-import-confirm" type="button" style="margin-top:12px;">📥 นำเข้า ${rows.length} รายการ</button>
-        <button class="btn-ghost" id="btn-import-cancel" type="button" style="width:100%; margin-top:8px; box-sizing:border-box;">ยกเลิก</button>
+        <div class="form-foot">
+          <div class="form-actions" style="margin-left:auto;">
+            <button class="btn-ghost btn-cancel" id="btn-import-cancel" type="button">ยกเลิก</button>
+            <button class="btn-save" id="btn-import-confirm" type="button">📥 นำเข้า ${rows.length} รายการ</button>
+          </div>
+        </div>
         <div class="form-msg" id="imp-msg"></div>
       </div>
     `;
@@ -1618,29 +1677,19 @@
   function renderEditDocForm(doc) {
     const companies = COMPANIES.includes(doc.company) ? COMPANIES : [doc.company, ...COMPANIES].filter(Boolean);
     return `
-      <div class="card">
-        <div class="section-title"><span>📝 แก้ไขข้อมูลเอกสาร</span></div>
-        <label class="field-label">บริษัท</label>
-        <select id="ed-company">
-          ${companies.map(c => `<option value="${escAttr(c)}" ${c === doc.company ? 'selected' : ''}>${esc(c)}</option>`).join('')}
-        </select>
-        <label class="field-label">ประเภทเอกสาร</label>
-        <input type="text" id="ed-category" value="${escAttr(doc.doc_category || '')}" placeholder="เช่น WI">
-        <label class="field-label">เลขที่เอกสาร (Doc No.)</label>
-        <input type="text" id="ed-docno" value="${escAttr(doc.doc_no || '')}">
-        <label class="field-label">ชื่อเอกสาร</label>
-        <textarea id="ed-docname">${esc(doc.doc_name || '')}</textarea>
-        <label class="field-label">Line (ใช้เมื่อเอกสารนี้ไม่ได้ผูกกับ Part ในระบบ)</label>
-        <input type="text" id="ed-department" value="${escAttr(doc.department || '')}">
-        <div style="font-size:11px; color:var(--muted); margin-top:6px; line-height:1.6;">
-          💡 แผนก / Line / Model ที่แสดงมาจาก Part ในระบบ ระบบจับคู่ด้วยชื่อเอกสาร (หรือรหัส Part ใน Doc No.)
-          ถ้าแก้ทั้งสองอย่างให้ต่างจาก Part อาจจับคู่ไม่เจอ และเอกสารจะไปอยู่ "ไม่ระบุ"
+      <div class="card form-card">
+        ${formHead('pen', 'แก้ไขข้อมูลเอกสาร', esc(doc.doc_no))}
+        <div class="fgrid">
+          ${fld('บริษัท', `<select id="ed-company">${companies.map(c => `<option value="${escAttr(c)}" ${c === doc.company ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>`, { full: true })}
+          ${fld('ประเภทเอกสาร', `<input type="text" id="ed-category" value="${escAttr(doc.doc_category || '')}" placeholder="เช่น WI">`)}
+          ${fld('เลขที่เอกสาร (Doc No.)', `<input type="text" id="ed-docno" value="${escAttr(doc.doc_no || '')}">`)}
+          ${fld('ชื่อเอกสาร', `<textarea id="ed-docname">${esc(doc.doc_name || '')}</textarea>`, { full: true })}
+          ${fld('Line (ใช้เมื่อเอกสารนี้ไม่ได้ผูกกับ Part ในระบบ)', `<input type="text" id="ed-department" value="${escAttr(doc.department || '')}">`, {
+            full: true,
+            hint: 'แผนก / Line / Model ที่แสดงมาจาก Part ในระบบ ระบบจับคู่ด้วยชื่อเอกสาร (หรือรหัส Part ใน Doc No.) ถ้าแก้ทั้งสองอย่างให้ต่างจาก Part อาจจับคู่ไม่เจอ และเอกสารจะไปอยู่ "ไม่ระบุ"',
+          })}
         </div>
-        <label class="field-label">PIN ยืนยันตัวตน</label>
-        <input type="password" id="ed-pin" inputmode="numeric" placeholder="กรอก PIN" value="${_rememberedPin ? escAttr(_rememberedPin) : ''}">
-        <button class="btn btn-approve" id="ed-submit" type="button" style="margin-top:12px;">💾 บันทึกการแก้ไข</button>
-        <button class="btn-ghost" id="ed-cancel" type="button" style="width:100%; margin-top:8px; box-sizing:border-box;">ยกเลิก</button>
-        <div class="form-msg" id="ed-msg"></div>
+        ${formFoot(pinFld('ed-pin'), 'ed-submit', 'บันทึกการแก้ไข', 'ed-cancel', 'ed-msg')}
       </div>`;
   }
 
@@ -1682,20 +1731,15 @@
   function renderAddRevForm(doc) {
     const nextRev = (doc.current_rev_no ?? 0) + 1;
     return `
-      <div class="card">
-        <div class="section-title"><span>➕ บันทึกการแก้ไขครั้งที่ ${nextRev}</span></div>
-        <label class="field-label">วันที่ปรับปรุง</label>
-        <input type="date" id="nr-date" value="${new Date().toISOString().slice(0,10)}">
-        <label class="field-label">หน้า (Page)</label>
-        <input type="text" id="nr-page" placeholder="เช่น all หรือ เลขหน้า" value="all">
-        <label class="field-label">รายละเอียดการแก้ไข</label>
-        <textarea id="nr-detail" placeholder="อธิบายสิ่งที่แก้ไขในรอบนี้"></textarea>
-        <label class="field-label">ผู้อนุมัติ</label>
-        <input type="text" id="nr-approver" placeholder="ชื่อผู้อนุมัติ">
-        <label class="field-label">PIN ยืนยันตัวตน (ผู้แก้ไข)</label>
-        <input type="password" id="nr-pin" inputmode="numeric" placeholder="กรอก PIN" value="${_rememberedPin ? escAttr(_rememberedPin) : ''}">
-        <button class="btn btn-approve" id="nr-submit" type="button">บันทึกการแก้ไข</button>
-        <div class="form-msg" id="nr-msg"></div>
+      <div class="card form-card">
+        ${formHead('plus', `บันทึกการแก้ไขครั้งที่ ${nextRev}`, `${esc(doc.doc_no)} · จะเป็น REV ${nextRev}`)}
+        <div class="fgrid">
+          ${fld('วันที่ปรับปรุง', `<input type="date" id="nr-date" value="${new Date().toISOString().slice(0,10)}">`)}
+          ${fld('หน้า (Page)', `<input type="text" id="nr-page" placeholder="เช่น all หรือ เลขหน้า" value="all">`)}
+          ${fld('รายละเอียดการแก้ไข', `<textarea id="nr-detail" placeholder="อธิบายสิ่งที่แก้ไขในรอบนี้"></textarea>`, { full: true })}
+          ${fld('ผู้อนุมัติ', `<input type="text" id="nr-approver" placeholder="ชื่อผู้อนุมัติ">`, { full: true })}
+        </div>
+        ${formFoot(pinFld('nr-pin', 'PIN ยืนยันตัวตน (ผู้แก้ไข)'), 'nr-submit', 'บันทึกการแก้ไข', '', 'nr-msg')}
       </div>
     `;
   }
