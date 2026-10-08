@@ -5137,29 +5137,36 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         const line = catalog.lines.find(l => l.id === j.lineId);
         const groupKey = j.lineId || '__none__';
         if (groupKey !== lastLineId) {
-          html += `<div class="adm-group-header" data-group="${escHtml(groupKey)}">${ico(ICO_PIN_P)} ${escHtml(line ? line.name : 'ไม่ระบุ Model')}</div>`;
+          const grpCount = catalog.jigs.filter(x => x.lineId === j.lineId).length;
+          html += `<div class="adm-group-header" data-group="${escHtml(groupKey)}">${ico(ICO_PIN_P)}<span class="adm-group-name">${escHtml(line ? line.name : 'ไม่ระบุ Model')}</span><span class="adm-group-count">${grpCount} Part</span></div>`;
           lastLineId = groupKey;
         }
         const jigSib = catalog.jigs.filter(x => x.lineId === j.lineId);
         const jigPos = jigSib.findIndex(x => x.id === j.id);
         const searchText = `${j.name} ${j.id} ${j.docNo || ''} ${line ? line.name : ''}`.toLowerCase();
-        html += `<div class="adm-item" data-group="${escHtml(groupKey)}" data-search="${escHtml(searchText)}">
+        const hasImg = !!j.bgImage;
+        const IMG_ICO = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+        html += `<div class="adm-item adm-part-item" data-group="${escHtml(groupKey)}" data-search="${escHtml(searchText)}">
           <div class="adm-item-main">
-            <div class="adm-item-thumb">${j.bgImage
-              ? `<img src="${escHtml(j.bgImage)}" alt="${escHtml(j.name)}">`
-              : `<svg class="adm-item-thumb-empty" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>`}</div>
+            <div class="adm-part-no" aria-hidden="true">${String(jigPos + 1).padStart(2, '0')}</div>
             <div class="adm-item-info">
-              <div>${ico(ICO_WRENCH_P)} ${escHtml(j.name)}</div>
-              <div class="adm-item-code">${escHtml(j.id)}${j.docNo ? ' · ' + escHtml(j.docNo) : ''} · ${escHtml(line ? line.name : j.lineId)}</div>
+              <div class="adm-part-name" title="${escHtml(j.name)}">${escHtml(j.name)}</div>
+              <div class="adm-item-meta">
+                <span class="adm-pn" title="Part No.">${escHtml(j.id)}</span>
+                ${j.docNo ? `<span class="adm-doc" title="เลขเอกสาร">${escHtml(j.docNo)}</span>` : ''}
+                <span class="adm-img-st ${hasImg ? 'on' : ''}" title="${hasImg ? 'ตั้งรูปพื้นหลังของ Part นี้แล้ว' : 'ยังไม่ได้ตั้งรูปพื้นหลัง'}">${IMG_ICO}${hasImg ? 'มีรูป' : 'ไม่มีรูป'}</span>
+              </div>
             </div>
           </div>
           <div class="adm-order-col">
-            <button class="adm-item-order" data-otype="jig" data-id="${escHtml(j.id)}" data-dir="-1" title="เลื่อนขึ้น" ${jigPos === 0 ? 'disabled' : ''}>▲</button>
-            <button class="adm-item-order" data-otype="jig" data-id="${escHtml(j.id)}" data-dir="1" title="เลื่อนลง" ${jigPos === jigSib.length - 1 ? 'disabled' : ''}>▼</button>
+            <button class="adm-item-order" data-otype="jig" data-id="${escHtml(j.id)}" data-dir="-1" title="เลื่อนขึ้น" aria-label="เลื่อนขึ้น" ${jigPos === 0 ? 'disabled' : ''}>▲</button>
+            <button class="adm-item-order" data-otype="jig" data-id="${escHtml(j.id)}" data-dir="1" title="เลื่อนลง" aria-label="เลื่อนลง" ${jigPos === jigSib.length - 1 ? 'disabled' : ''}>▼</button>
           </div>
-          <button class="adm-item-runno" data-dtype="jig" data-id="${escHtml(j.id)}" title="แก้ไข Run No. อย่างเดียว (ไม่ต้องผ่านรหัส/ชื่อ)">${ico(ICO_TAG_P)}</button>
-          <button class="adm-item-edit" data-etype="jig" data-id="${escHtml(j.id)}" title="แก้ไข">${ico(ICO_EDIT_P)}</button>
-          <button class="adm-item-del" data-dtype="jig" data-id="${escHtml(j.id)}" title="ลบ">${ico(ICO_TRASH_P)}</button>
+          <div class="adm-item-actions">
+            <button class="adm-item-runno" data-dtype="jig" data-id="${escHtml(j.id)}" title="แก้ไข Run No. อย่างเดียว (ไม่ต้องผ่านรหัส/ชื่อ)" aria-label="แก้ไข Run No.">${ico(ICO_TAG_P)}</button>
+            <button class="adm-item-edit" data-etype="jig" data-id="${escHtml(j.id)}" title="แก้ไข" aria-label="แก้ไข">${ico(ICO_EDIT_P)}</button>
+            <button class="adm-item-del" data-dtype="jig" data-id="${escHtml(j.id)}" title="ลบ" aria-label="ลบ">${ico(ICO_TRASH_P)}</button>
+          </div>
         </div>`;
       });
       $('adm-jig-list').innerHTML = html;
