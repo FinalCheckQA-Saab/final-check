@@ -1877,30 +1877,6 @@
     });
   }
 
-  // ป้ายตัวย่อแทนรูปย่อ Part — รูปพื้นหลัง (bgImage) เป็นภาพเส้นตำแหน่งตรวจ พอย่อเหลือ 40px กลายเป็นสีดำอ่านไม่ออก
-  // เลยสร้างป้ายจากชื่อ Part: ข้าง (L/R) + ตำแหน่ง (FR/RR) แล้วให้สีคงที่ตามกลุ่ม ช่วยให้จำ Part ได้เร็วกว่าเดิม
-  function getPartBadge(j) {
-    const name = String(j.name || '').toUpperCase();
-    const tokens = name.split(/[\s\-_/]+/).filter(Boolean);
-    const side = tokens.find(t => t === 'L' || t === 'R' || t === 'LH' || t === 'RH');
-    const pos = tokens.find(t => ['FR', 'RR', 'FRT', 'RER', 'CTR', 'MID'].includes(t));
-    let top, bottom;
-    if (side && pos) { top = side[0]; bottom = pos; }
-    else if (side) { top = side[0]; bottom = ''; }
-    else {
-      const words = tokens.filter(t => /[A-Z0-9ก-๙]/.test(t));
-      top = words.slice(0, 2).map(w => w[0]).join('') || '#';
-      bottom = '';
-    }
-    // hue ตามฝั่ง: R = น้ำเงิน, L = เขียวอมฟ้า, อื่น ๆ = hash จากรหัส
-    let hue;
-    if (side && side[0] === 'R') hue = 212;
-    else if (side && side[0] === 'L') hue = 168;
-    else { let h = 0; for (const c of String(j.id)) h = (h * 31 + c.charCodeAt(0)) % 360; hue = h; }
-    if (pos === 'RR' || pos === 'RER') hue += 24; // แยกหน้า/หลังด้วยเฉดต่าง
-    return { top, bottom, hue };
-  }
-
   function renderJigChips() {
     const levelEl = $('level-jig');
     const container = $('chips-jig');
@@ -1932,7 +1908,7 @@
       const sel = selection.jigId === j.id ? 'selected' : '';
       const skipped = isJigSkippedToday(j.id);
       const checkedInfo = getJigCheckedTodayInfo(j.id);
-      const badge = getPartBadge(j);
+      const partNo = String(allJigs.findIndex(x => x.id === j.id) + 1).padStart(2, '0'); // เลขลำดับคงที่ตามลำดับใน Model (ไม่เปลี่ยนตอนค้นหา) ตรงกับหน้า admin
       let checkedBadge = '';
       if (checkedInfo && checkedInfo.inProgress) {
         checkedBadge = `<span class="jig-checked-badge jig-checked-badge-prog">⏳ กำลังตรวจ ${escHtml(checkedInfo.progress)}</span>`;
@@ -1945,10 +1921,7 @@
       return `
         <div class="chip jig-chip ${sel} ${skipped ? 'jig-skipped' : ''} ${checkedInfo && !checkedInfo.inProgress ? 'jig-checked-today' : ''}" data-jig="${escHtml(j.id)}">
           <span class="jig-chip-main" data-jig="${escHtml(j.id)}">
-            <span class="part-badge" style="--ph:${badge.hue}" aria-hidden="true">
-              <span class="part-badge-top">${escHtml(badge.top)}</span>
-              ${badge.bottom ? `<span class="part-badge-bot">${escHtml(badge.bottom)}</span>` : ''}
-            </span>
+            <span class="part-no" aria-hidden="true">${partNo}</span>
             <span class="jig-chip-text">
               <span class="jig-chip-name">${escHtml(j.name)}</span>
               <span class="chip-code">${escHtml(j.id)}</span>
