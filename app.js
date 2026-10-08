@@ -7034,15 +7034,21 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     if (!from || !to) return;
     if (from > to) { listEl.innerHTML = '<span class="chip-empty">วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด</span>'; if (summaryEl) summaryEl.textContent = ''; if (topEl) topEl.innerHTML = ''; return; }
 
-    listEl.innerHTML = '<span class="chip-empty">🔄 กำลังโหลด...</span>';
-    if (summaryEl) summaryEl.textContent = '';
+    listEl.innerHTML = '<div class="uncl-skel" aria-busy="true"><i></i><i></i><i></i><i></i></div>';
+    if (summaryEl) summaryEl.innerHTML = '';
     if (topEl) topEl.innerHTML = '';
+
+    const ICO_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+    const ICO_ALERT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    const ICO_PARTY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
 
     const STATE_TXT = { none: 'ยังไม่ตรวจ', partial: 'ตรวจไม่ครบ', ok: 'ครบ' };
     const smeChips = r => ['S', 'M', 'E'].map(k => {
       const st = r[k.toLowerCase() + '_state'] || 'ok';
-      return `<span class="sme-chip ${st}" title="${k} — ${STATE_TXT[st] || st}">${k}</span>`;
+      const label = `${k} — ${STATE_TXT[st] || st}`;
+      return `<span class="sme-chip ${st}" title="${label}" aria-label="${label}">${st === 'ok' ? ICO_CHECK : k}</span>`;
     }).join('');
+    const missCount = r => ['s', 'm', 'e'].filter(k => (r[k + '_state'] || 'ok') !== 'ok').length;
 
     try {
       const { data, error } = await sb.rpc('get_unchecked_parts_sme', { p_from: from, p_to: to });
@@ -7050,7 +7056,11 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
 
       const rows = data || [];
       if (!rows.length) {
-        listEl.innerHTML = '<span class="chip-empty">✅ ทุก Part ตรวจครบ S / M / E ในช่วงที่เลือก (นับถึงเมื่อวาน)</span>';
+        listEl.innerHTML = `<div class="uncl-empty">
+            <span class="uncl-empty-ico">${ICO_PARTY}</span>
+            <strong>ทุก Part ตรวจครบ S / M / E</strong>
+            <small>ไม่พบรายการขาดตรวจในช่วงที่เลือก (นับถึงเมื่อวาน)</small>
+          </div>`;
         return;
       }
 
@@ -7061,12 +7071,17 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         p.days++;
       });
       const ranked = Object.values(byPart).sort((a, b) => b.days - a.days).slice(0, 5);
+      const totalDays = new Set(rows.map(r => r.check_date)).size || 1;
       if (topEl && ranked.length) {
-        topEl.innerHTML = '<div class="adm-uncl-top-title">⚠️ Part ที่ขาดตรวจบ่อยสุด</div>' + ranked.map((p, i) => `
-            <div class="uncl-top-item rank-${i + 1}">
+        topEl.innerHTML = `<div class="adm-uncl-top-title">${ICO_ALERT}<span>Part ที่ขาดตรวจบ่อยสุด</span><em>${ranked.length} อันดับแรก</em></div>` + ranked.map((p, i) => `
+            <div class="uncl-top-item rank-${Math.min(i + 1, 4)}" style="--w:${Math.round((p.days / totalDays) * 100)}%">
               <span class="uncl-top-rank">${i + 1}</span>
-              <span class="uncl-top-name">${escHtml(p.r.jig_name || p.r.jig_id)} <span class="uncl-dept">(${escHtml(p.r.dept_name)} / ${escHtml(p.r.model_name)})</span></span>
-              <span class="uncl-top-count">ขาด ${p.days} วัน</span>
+              <span class="uncl-top-body">
+                <span class="uncl-top-name">${escHtml(p.r.jig_name || p.r.jig_id)}</span>
+                <span class="uncl-dept">${escHtml(p.r.dept_name)} · ${escHtml(p.r.model_name)}</span>
+                <span class="uncl-top-meter" aria-hidden="true"><u></u></span>
+              </span>
+              <span class="uncl-top-count"><b>${p.days}</b><small>จาก ${totalDays} วัน</small></span>
             </div>`).join('');
       }
 
@@ -7077,23 +7092,53 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
 
       const miss = { s: 0, m: 0, e: 0 };
       rows.forEach(r => { ['s', 'm', 'e'].forEach(k => { if (r[k + '_state'] !== 'ok') miss[k]++; }); });
-      if (summaryEl) summaryEl.textContent = `พบ Part ที่ขาดตรวจ ${rows.length} รายการ ใน ${dates.length} วัน — ขาด S ${miss.s} ครั้ง, M ${miss.m} ครั้ง, E ${miss.e} ครั้ง`;
+      if (summaryEl) {
+        const pct = n => Math.round((n / rows.length) * 100);
+        summaryEl.innerHTML = `
+          <div class="uncl-kpis">
+            <div class="uncl-kpi kpi-total">
+              <b>${rows.length}</b>
+              <span>รายการขาดตรวจ</span>
+              <small>ใน ${dates.length} วัน</small>
+            </div>
+            ${['s', 'm', 'e'].map(k => `
+            <div class="uncl-kpi kpi-${k}" style="--w:${pct(miss[k])}%" title="ขาดช่วง ${k.toUpperCase()} ${miss[k]} จาก ${rows.length} รายการ">
+              <i class="kpi-k">${k.toUpperCase()}</i>
+              <b>${miss[k]}</b>
+              <span>ครั้ง</span>
+              <span class="kpi-bar" aria-hidden="true"><u></u></span>
+            </div>`).join('')}
+          </div>
+          <div class="uncl-legend" aria-label="คำอธิบายสัญลักษณ์">
+            <span><i class="sme-chip none">S</i>ยังไม่ตรวจ</span>
+            <span><i class="sme-chip partial">M</i>ตรวจไม่ครบ</span>
+            <span><i class="sme-chip ok">${ICO_CHECK}</i>ครบแล้ว</span>
+          </div>`;
+      }
 
       listEl.innerHTML = dates.map((d, idx) => {
         const dt = new Date(d + 'T00:00:00');
         const dateLabel = dt.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric', weekday: 'short' });
+        const dayNum = dt.toLocaleDateString('th-TH', { day: '2-digit' });
+        const monShort = dt.toLocaleDateString('th-TH', { month: 'short' });
+        const dayMiss = { s: 0, m: 0, e: 0 };
+        byDate[d].forEach(r => ['s', 'm', 'e'].forEach(k => { if ((r[k + '_state'] || 'ok') !== 'ok') dayMiss[k]++; }));
         let lastDept = null;
         const partRows = byDate[d].map(r => {
           const head = r.dept_id !== lastDept ? `<div class="uncl-grp">${escHtml(r.dept_name)}</div>` : '';
           lastDept = r.dept_id;
-          return `${head}<div class="uncl-part">
+          return `${head}<div class="uncl-part sev-${missCount(r)}">
               <div class="uncl-part-info"><span class="uncl-part-name">${escHtml(r.jig_name || r.jig_id)}</span><span class="uncl-part-sub">Part No.: ${escHtml(r.jig_id)} · ${escHtml(r.model_name)}</span></div>
               <div class="uncl-sme">${smeChips(r)}</div>
             </div>`;
         }).join('');
         return `
           <details class="adm-uncl-item"${idx === 0 ? ' open' : ''}>
-            <summary class="uncl-date"><span>${escHtml(dateLabel)}</span> <span class="uncl-count">${byDate[d].length} Part</span></summary>
+            <summary class="uncl-date">
+              <span class="uncl-cal"><b>${escHtml(dayNum)}</b><em>${escHtml(monShort)}</em></span>
+              <span class="uncl-date-txt"><strong>${escHtml(dateLabel)}</strong><small>ขาด S ${dayMiss.s} · M ${dayMiss.m} · E ${dayMiss.e}</small></span>
+              <span class="uncl-count">${byDate[d].length} Part</span>
+            </summary>
             <div class="uncl-parts">${partRows}</div>
           </details>`;
       }).join('');
@@ -7116,6 +7161,32 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     fromEl.value = localDateStr(weekAgo);
 
     $('btn-adm-uncl-search').addEventListener('click', renderUncheckedLinesReport);
+
+    // ปุ่มลัดช่วงวันที่ (7 / 14 / 30 วัน) — แทรกเหนือช่องเลือกวันที่เดิม ไม่กระทบ id/logic เดิม
+    const row = fromEl.closest('.admin-input-row');
+    if (row && !row.parentNode.querySelector('.uncl-presets')) {
+      row.classList.add('uncl-toolbar');
+      const bar = document.createElement('div');
+      bar.className = 'uncl-presets';
+      bar.setAttribute('role', 'group');
+      bar.setAttribute('aria-label', 'ช่วงเวลาลัด');
+      bar.innerHTML = [7, 14, 30].map((n, i) => `<button type="button" data-days="${n}"${i === 0 ? ' class="on"' : ''}>${n} วันล่าสุด</button>`).join('');
+      row.parentNode.insertBefore(bar, row);
+      const clearOn = () => bar.querySelectorAll('button').forEach(b => b.classList.remove('on'));
+      bar.addEventListener('click', ev => {
+        const b = ev.target.closest('button[data-days]');
+        if (!b) return;
+        const n = parseInt(b.dataset.days, 10);
+        const t = new Date(), f = new Date();
+        f.setDate(t.getDate() - (n - 1));
+        toEl.value = localDateStr(t);
+        fromEl.value = localDateStr(f);
+        clearOn(); b.classList.add('on');
+        renderUncheckedLinesReport();
+      });
+      fromEl.addEventListener('change', clearOn);
+      toEl.addEventListener('change', clearOn);
+    }
   }
 
   /* ══════════════════════════════════════

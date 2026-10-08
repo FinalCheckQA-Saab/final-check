@@ -3505,3 +3505,230 @@ html[data-palette="coffee"][data-theme="dark"] {
 
 /* Part ขาดตรวจ SME — แถวสูงกว่ารายการเดิม ขยายกรอบเลื่อนให้เห็นได้หลายวัน */
 #adm-uncl-list.admin-list-scroll { max-height: 480px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   🎨 Part ขาดตรวจ SME — Redesign (v2)
+   ใช้ตัวแปรสีเดิมทั้งหมด → เปลี่ยนชุดสี/โหมดสว่าง-มืดแล้วเปลี่ยนตามอัตโนมัติ
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── โครงรวม: ให้ modal เลื่อนทีเดียว ไม่ต้องมี scroll ซ้อนในลิสต์ ── */
+.adm-modal-body #adm-uncl-list.admin-list-scroll { max-height: none; overflow: visible; padding-right: 0; gap: 10px; }
+
+/* ── แถบเลือกช่วงเวลา ── */
+.uncl-presets {
+  display: inline-flex; gap: 2px; padding: 3px; margin-bottom: 10px;
+  background: var(--bg-input); border: 1px solid var(--border-input); border-radius: 999px;
+}
+.uncl-presets button {
+  border: 0; background: transparent; cursor: pointer; font: 600 12px var(--font-thai);
+  color: var(--text-muted); padding: 6px 14px; border-radius: 999px;
+  transition: background .15s, color .15s, box-shadow .15s;
+}
+.uncl-presets button:hover { color: var(--text-heading); }
+.uncl-presets button.on {
+  background: var(--bg-card-solid); color: var(--accent);
+  box-shadow: 0 1px 3px hsla(220,40%,20%,.18), inset 0 0 0 1px var(--border-card);
+}
+.uncl-presets button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.uncl-toolbar { gap: 8px; margin-bottom: 14px; }
+.uncl-toolbar input[type="date"] {
+  flex: 1; min-width: 0; height: 38px; padding: 0 10px; border-radius: 10px;
+  background: var(--bg-input); border: 1px solid var(--border-input);
+  color: var(--text-main); font: 12.5px var(--font-thai);
+}
+.uncl-toolbar input[type="date"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.uncl-toolbar .btn-adm-add { height: 38px; padding: 0 18px; border-radius: 10px; font-size: 12.5px; box-shadow: 0 4px 12px -4px var(--accent); }
+
+/* ── KPI สรุป ── */
+.adm-uncl-summary { margin-bottom: 14px; font-size: inherit; color: inherit; }
+.uncl-kpis { display: grid; grid-template-columns: 1.35fr repeat(3, 1fr); gap: 8px; }
+.uncl-kpi {
+  position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: 1px;
+  min-height: 92px; padding: 12px 13px 12px; border-radius: 16px; overflow: hidden;
+  background: var(--bg-card-solid); border: 1px solid var(--border-card);
+}
+.uncl-kpi b { font: 700 28px/1 var(--font-en); letter-spacing: -.02em; color: var(--text-heading); font-variant-numeric: tabular-nums; }
+.uncl-kpi span, .uncl-kpi small { font-size: 11px; color: var(--text-muted); line-height: 1.35; }
+.uncl-kpi.kpi-total {
+  background: linear-gradient(145deg, var(--brand-navy-700), var(--brand-navy-900));
+  border-color: transparent; box-shadow: 0 10px 24px -12px var(--brand-navy-900);
+}
+.uncl-kpi.kpi-total::after {
+  content: ""; position: absolute; right: -26px; top: -26px; width: 92px; height: 92px; border-radius: 50%;
+  background: radial-gradient(circle, var(--brand-gold-dim), transparent 70%);
+}
+.uncl-kpi.kpi-total b { color: #fff; font-size: 34px; }
+.uncl-kpi.kpi-total span { color: hsla(0,0%,100%,.92); font-weight: 600; font-size: 12px; }
+.uncl-kpi.kpi-total small { color: hsla(0,0%,100%,.6); }
+.kpi-k {
+  position: static; align-self: flex-start; margin-bottom: auto; width: 24px; height: 24px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; font: 700 12px var(--font-en); font-style: normal;
+  background: var(--accent-dim); color: var(--accent);
+}
+.kpi-bar { display: block; height: 5px; margin-top: 8px; border-radius: 99px; background: var(--bg-input); overflow: hidden; }
+.kpi-bar u {
+  display: block; height: 100%; width: var(--w, 0%); border-radius: inherit; text-decoration: none;
+  background: linear-gradient(90deg, var(--fixed), var(--ng)); transform-origin: left;
+  animation: uncl-grow .7s cubic-bezier(.2,.8,.2,1) both;
+}
+
+/* ── คำอธิบายสัญลักษณ์ ── */
+.uncl-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 11px; color: var(--text-muted); }
+.uncl-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.uncl-legend .sme-chip { width: 18px; height: 18px; border-radius: 6px; font-size: 9.5px; }
+.uncl-legend .sme-chip svg { width: 10px; height: 10px; }
+
+/* ── Top offenders ── */
+.adm-uncl-top {
+  margin-bottom: 14px; padding: 12px; border-radius: 18px;
+  background: var(--bg-card-solid); border: 1px solid var(--border-card);
+}
+.adm-uncl-top:empty { display: none; }
+.adm-uncl-top-title {
+  display: flex; align-items: center; gap: 8px; margin: 0 2px 10px;
+  font-size: 13px; font-weight: 700; color: var(--text-heading); text-transform: none; letter-spacing: 0;
+}
+.adm-uncl-top-title svg {
+  width: 26px; height: 26px; padding: 5px; border-radius: 9px; flex-shrink: 0;
+  background: var(--ng-bg); color: var(--ng);
+}
+.adm-uncl-top-title em { margin-left: auto; font: 500 11px var(--font-thai); font-style: normal; color: var(--text-muted); }
+.uncl-top-item {
+  --rc: var(--pending);
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 6px;
+  border-radius: 14px; background: var(--bg-input); border: 1px solid transparent;
+  transition: border-color .15s, background .15s;
+}
+.uncl-top-item:last-child { margin-bottom: 0; }
+.uncl-top-item:hover { border-color: var(--border-input); background: var(--bg-card-solid); }
+.uncl-top-item.rank-1 { --rc: var(--ng); background: var(--ng-bg); border-color: var(--ng-border); }
+.uncl-top-item.rank-2 { --rc: var(--fixed); }
+.uncl-top-item.rank-3 { --rc: var(--accent); }
+.uncl-top-rank {
+  flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font: 700 12.5px var(--font-en); color: #fff; background: var(--rc);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--rc) 18%, transparent);
+}
+.uncl-top-item.rank-1 .uncl-top-rank, .uncl-top-item.rank-2 .uncl-top-rank, .uncl-top-item.rank-3 .uncl-top-rank { background: var(--rc); }
+.uncl-top-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.uncl-top-name { font-size: 12.5px; font-weight: 700; color: var(--text-heading); line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uncl-top-name .uncl-dept { display: none; }
+.uncl-top-body > .uncl-dept { font-size: 11px; color: var(--text-muted); font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uncl-top-meter { display: block; height: 4px; margin-top: 6px; border-radius: 99px; background: color-mix(in srgb, var(--rc) 14%, transparent); overflow: hidden; }
+.uncl-top-meter u {
+  display: block; height: 100%; width: var(--w, 0%); border-radius: inherit; text-decoration: none; background: var(--rc);
+  transform-origin: left; animation: uncl-grow .8s cubic-bezier(.2,.8,.2,1) .1s both;
+}
+.uncl-top-count {
+  flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 0;
+  padding: 0; background: none; border-radius: 0; color: var(--rc);
+}
+.uncl-top-count b { font: 700 20px/1 var(--font-en); font-variant-numeric: tabular-nums; }
+.uncl-top-count small { font-size: 10.5px; color: var(--text-muted); white-space: nowrap; }
+
+/* ── กลุ่มรายวัน ── */
+.adm-uncl-item { padding: 0; margin: 0; border-radius: 18px; background: var(--bg-card-solid); border: 1px solid var(--border-card); overflow: hidden; transition: box-shadow .2s, border-color .2s; }
+.adm-uncl-item[open] { border-color: var(--border-input); box-shadow: 0 8px 22px -14px hsla(220,40%,20%,.35); }
+.adm-uncl-item > summary.uncl-date {
+  display: flex; align-items: center; gap: 12px; padding: 11px 14px; margin: 0; cursor: pointer;
+  font-size: inherit; list-style: none; transition: background .15s;
+}
+.adm-uncl-item > summary.uncl-date:hover { background: var(--bg-input); }
+.adm-uncl-item > summary.uncl-date:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.adm-uncl-item > summary.uncl-date::before { display: none; }
+.adm-uncl-item > summary.uncl-date::after {
+  content: ""; flex-shrink: 0; width: 8px; height: 8px; margin: 0 4px 0 2px;
+  border-right: 2px solid var(--text-muted); border-bottom: 2px solid var(--text-muted);
+  transform: rotate(-45deg); transition: transform .2s ease;
+}
+.adm-uncl-item[open] > summary.uncl-date::after { transform: rotate(45deg); }
+.adm-uncl-item[open] > summary.uncl-date { margin-bottom: 0; border-bottom: 1px solid var(--border-card); }
+.adm-uncl-item > summary.uncl-date > span:first-child { flex: 0 0 auto; }
+.uncl-cal {
+  flex-shrink: 0; width: 44px; height: 46px; border-radius: 12px; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: var(--bg-input); border: 1px solid var(--border-input);
+}
+.uncl-cal b { font: 700 17px/1 var(--font-en); color: var(--text-heading); }
+.uncl-cal em { font: 600 10px/1 var(--font-thai); font-style: normal; color: var(--ng); margin-top: 3px; }
+.uncl-date-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.uncl-date-txt strong { font-size: 13px; font-weight: 700; color: var(--text-heading); }
+.uncl-date-txt small { font-size: 11px; color: var(--text-muted); }
+.adm-uncl-item .uncl-count {
+  font-size: 11.5px; font-weight: 700; padding: 3px 11px; border-radius: 999px;
+  color: var(--ng); background: var(--ng-bg); border: 1px solid var(--ng-border);
+}
+
+/* ── แถว Part ── */
+.uncl-parts { display: flex; flex-direction: column; gap: 6px; padding: 10px; }
+.uncl-grp {
+  display: flex; align-items: center; gap: 8px; margin: 8px 2px 2px;
+  font-size: 11.5px; font-weight: 700; color: var(--accent);
+}
+.uncl-grp:first-child { margin-top: 0; }
+.uncl-grp::after { content: ""; flex: 1; height: 1px; background: var(--border-card); }
+.uncl-part {
+  --sv: var(--accent);
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 12px 10px 16px; border-radius: 12px;
+  background: var(--bg-input); border: 1px solid transparent;
+  transition: background .15s, border-color .15s, transform .15s;
+}
+.uncl-part::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 4px; border-radius: 0 4px 4px 0; background: var(--sv); }
+.uncl-part.sev-3 { --sv: var(--ng); }
+.uncl-part.sev-2 { --sv: var(--fixed); }
+.uncl-part:hover { background: var(--bg-card-solid); border-color: var(--border-input); }
+.uncl-part-info { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.uncl-part-name { font-size: 12.5px; font-weight: 700; color: var(--text-heading); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uncl-part-sub { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uncl-sme { display: flex; gap: 5px; flex-shrink: 0; }
+
+/* ── ชิป S / M / E: แดง=ยังไม่ตรวจ, ครึ่งส้ม=ตรวจไม่ครบ, เขียว=ครบ ── */
+.sme-chip {
+  width: 30px; height: 30px; border-radius: 9px; font: 700 12px var(--font-en); font-style: normal;
+  display: flex; align-items: center; justify-content: center; border: 1px solid transparent;
+}
+.sme-chip svg { width: 14px; height: 14px; }
+.sme-chip.none    { color: #fff; background: linear-gradient(160deg, color-mix(in srgb, var(--ng) 82%, #fff), var(--ng)); box-shadow: 0 3px 8px -3px var(--ng); }
+.sme-chip.partial {
+  color: #5c2d00; background: linear-gradient(135deg, #fbb02d 0 50%, color-mix(in srgb, #fbb02d 24%, var(--bg-card-solid)) 50% 100%);
+  border-color: color-mix(in srgb, #d97706 55%, transparent); box-shadow: 0 3px 8px -4px #d97706;
+}
+.sme-chip.ok { color: var(--ok); background: var(--ok-bg); border-color: var(--ok-border); opacity: 1; }
+
+/* ── Loading / Empty ── */
+.uncl-skel { display: flex; flex-direction: column; gap: 10px; }
+.uncl-skel i {
+  display: block; height: 62px; border-radius: 18px; border: 1px solid var(--border-card);
+  background: linear-gradient(100deg, var(--bg-input) 30%, var(--bg-card-solid) 50%, var(--bg-input) 70%) 0 0 / 220% 100%;
+  animation: uncl-shimmer 1.3s linear infinite;
+}
+.uncl-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+  padding: 36px 20px; border-radius: 18px; border: 1px dashed var(--ok-border); background: var(--ok-bg);
+}
+.uncl-empty-ico { width: 54px; height: 54px; border-radius: 50%; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; background: var(--bg-card-solid); color: var(--ok); box-shadow: 0 8px 20px -10px var(--ok); }
+.uncl-empty-ico svg { width: 28px; height: 28px; }
+.uncl-empty strong { font-size: 14px; color: var(--text-heading); }
+.uncl-empty small { font-size: 12px; color: var(--text-muted); }
+#adm-uncl-list > .chip-empty { display: block; padding: 22px 16px; text-align: center; border-radius: 16px; background: var(--bg-input); border: 1px dashed var(--border-input); font-size: 12.5px; color: var(--text-muted); }
+
+@keyframes uncl-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes uncl-shimmer { to { background-position: -120% 0; } }
+
+@media (max-width: 640px) {
+  .uncl-kpis { grid-template-columns: repeat(3, 1fr); }
+  .uncl-kpi.kpi-total { grid-column: 1 / -1; min-height: 78px; }
+  .uncl-presets { display: flex; }
+  .uncl-presets button { flex: 1; padding: 7px 4px; }
+  .uncl-toolbar { flex-wrap: wrap; }
+  .uncl-toolbar input[type="date"] { flex: 1 1 40%; }
+  .uncl-toolbar .btn-adm-add { flex: 1 1 100%; }
+  .uncl-count { display: none; }
+  .uncl-top-name, .uncl-part-name { white-space: normal; overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kpi-bar u, .uncl-top-meter u, .uncl-skel i { animation: none; }
+  .adm-uncl-item > summary.uncl-date::after { transition: none; }
+}
