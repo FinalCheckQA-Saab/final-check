@@ -3217,3 +3217,8 @@ html[data-palette="coffee"][data-theme="dark"] {
 .adm-sys-err[hidden] { display:none; }
 .adm-sys-act { display:flex; gap:8px; justify-content:flex-end; }
 .adm-sys-ok { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:700; }
+
+.adm-sysbar { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin:0 0 10px; padding:8px 12px; border-radius:12px; font-size:12px; color:var(--text-main); background:var(--ok-bg, rgba(0,160,90,.1)); border:1px solid var(--ok-border, rgba(0,160,90,.35)); }
+.adm-sysbar[hidden] { display:none; }
+.adm-sysbar b { color:var(--text-heading); }
+.adm-sysbar-out { padding:5px 12px; font-size:12px; }

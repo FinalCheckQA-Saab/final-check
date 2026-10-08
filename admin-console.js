@@ -74,6 +74,15 @@
   function refreshLocks() {
     var ok = canSecure();
     tilesSecure.forEach(function (t) { t.classList.toggle('is-locked', !ok); });
+    refreshSysBar();
+  }
+  /* แถบสถานะผู้ดูแลระบบ (อยู่ใต้หัวข้อกลุ่ม) — แสดงชื่อ + ปุ่มออกจากระบบ เมื่อล็อกอินแล้วเท่านั้น */
+  var sysBar = null;
+  function refreshSysBar() {
+    if (!sysBar) return;
+    var nm = typeof window.fcSysAdminName === 'function' ? window.fcSysAdminName() : null;
+    sysBar.hidden = !nm;
+    if (nm) sysBar.querySelector('.adm-sysbar-name').textContent = nm;
   }
   function askSysAdmin() {
     return new Promise(function (resolve) {
@@ -135,6 +144,14 @@
     var box = document.createElement('section');
     box.className = 'adm-group';
     var h = document.createElement('h3'); h.textContent = g; box.appendChild(h);
+    if (g === SECURE_GRP) {
+      sysBar = document.createElement('div'); sysBar.className = 'adm-sysbar'; sysBar.hidden = true;
+      sysBar.innerHTML = '<span>🔓 ผู้ดูแลระบบ: <b class="adm-sysbar-name"></b></span><button type="button" class="btn-sec adm-sysbar-out">ออกจากระบบผู้ดูแลระบบ</button>';
+      sysBar.querySelector('.adm-sysbar-out').addEventListener('click', function () {
+        Promise.resolve(window.fcSysAdminLogout && window.fcSysAdminLogout()).then(function () { refreshLocks(); });
+      });
+      box.appendChild(sysBar);
+    }
     var grid = document.createElement('div'); grid.className = 'adm-grid'; box.appendChild(grid);
     list.forEach(function (it) {
       var el = document.createElement(it.href ? 'a' : 'button');
@@ -267,9 +284,9 @@
   new MutationObserver(function () {
     if (!panel.classList.contains('open')) {
       closeModal(true); search.value = ''; search.dispatchEvent(new Event('input'));
-      if (window.fcSysAdminLock) window.fcSysAdminLock(); /* 🔒 ปิดแผง = ล็อกผู้ดูแลระบบใหม่ ต้องล็อกอินอีกครั้งเมื่อเปิดกลุ่มนี้ */
+      /* ปิดแผงไม่ล็อกผู้ดูแลระบบ — ล็อกเฉพาะเมื่อกดออกจากระบบผู้ดูแลระบบ หรือออกจาก Admin (app.js จัดการ) */
     } else if (current && current.grp === SECURE_GRP && !canSecure()) closeModal(true);
-    refreshLocks();
+    refreshLocks(); refreshSysBar();
   }).observe(panel, { attributes: true, attributeFilter: ['class'] });
 
   /* เปิดครั้งแรกให้ panel กว้างพอสำหรับ grid (ถ้าผู้ใช้ไม่เคยปรับขนาดเอง) */

@@ -3471,8 +3471,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   let admLoggedIn = false;
   // 🔒 กลุ่ม "ผู้ใช้และความปลอดภัย" (รหัสผ่าน Admin / บัญชีผู้ใช้ / Login Log) ใช้ได้เฉพาะ "ผู้ดูแลระบบ" (System Admin)
   // ผู้ดูแลระบบ = บัญชีแยกต่างหาก (ตาราง system_admins) ไม่ผูกกับ username ของ Admin Panel
-  // ต้องล็อกอินผู้ดูแลระบบอีกชั้นทุกครั้งที่เปิดกลุ่มนี้ — เก็บสถานะใน memory เท่านั้น (รีเฟรช/ปิดแผง/ออกจาก Admin = ล็อกใหม่)
-  let _sysAdminOk = false;
+  // ล็อกอินครั้งเดียวใช้ได้ต่อเนื่อง (ปิด/เปิดแผงไม่ต้องกรอกซ้ำ) จนกว่าจะกดออกจากระบบผู้ดูแลระบบ, ออกจาก Admin หรือรีเฟรชหน้า — เก็บสถานะใน memory เท่านั้น
+  let _sysAdminOk = false, _sysAdminName = null;
   function fcIsSystemAdmin() {
     if (!admLoggedIn) return false;
     if (!sb) return true; // โหมด local/dev (ไม่มี Supabase) — ไม่มีบัญชีให้แยกสิทธิ์
@@ -3486,10 +3486,24 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     const { data: ok, error } = await sb.rpc('verify_system_admin', { p_username: username, p_password: password });
     if (error) { console.error('verify_system_admin error:', error); throw error; }
     _sysAdminOk = ok === true;
+    _sysAdminName = _sysAdminOk ? String(username || '').trim() : null;
     if (_sysAdminOk) { renderStaffAccountList(); renderLoginLogList(); } // โหลดข้อมูลที่ถูกกั้นไว้ก่อนหน้า
     return _sysAdminOk;
   };
-  window.fcSysAdminLock = function () { _sysAdminOk = false; };
+  function sysAdminClear() {
+    _sysAdminOk = false; _sysAdminName = null;
+    ['adm-user-list', 'adm-login-log-list'].forEach(id => { const el = $(id); if (el) el.innerHTML = ''; }); // เคลียร์ข้อมูลที่ค้างในหน้าจอ
+  }
+  window.fcSysAdminLock = sysAdminClear;
+  window.fcSysAdminName = () => (sb && _sysAdminOk) ? _sysAdminName : null; // null = ยังไม่ได้ล็อกอิน (หรือโหมด local)
+  // ออกจากระบบผู้ดูแลระบบ (ยังอยู่ใน Admin Panel ต่อได้) • คืน true ถ้าออกจริง
+  window.fcSysAdminLogout = async function () {
+    if (!_sysAdminOk) return false;
+    if (!(await showConfirmModal('ต้องการออกจากระบบผู้ดูแลระบบใช่หรือไม่?\n\nเมนูกลุ่ม "ผู้ใช้และความปลอดภัย" จะถูกล็อก ต้องล็อกอินใหม่ถึงจะเปิดได้', { confirmLabel: 'ออกจากระบบ' }))) return false;
+    sysAdminClear();
+    toast('ออกจากระบบผู้ดูแลระบบเรียบร้อยแล้ว', 'ok');
+    return true;
+  };
   // ✅ SECURITY: เก็บรหัสผ่าน admin ไว้ใน memory (ไม่ localStorage) หลัง login
   // สำเร็จ เพื่อแนบไปกับทุก RPC call ที่ต้องเช็คสิทธิ์ฝั่ง DB (sync_catalog,
   // delete_catalog_item, save_app_settings, admin_delete_history ฯลฯ)
@@ -3618,7 +3632,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       if (!(await showConfirmModal('ต้องการออกจากระบบ Admin ใช่หรือไม่?', { confirmLabel: 'ออกจากระบบ' }))) return;
       admLoggedIn = false; updateApprovalNav();
       _adminSessionPass = null;
-      _sysAdminOk = false; // 🔒 ล็อกผู้ดูแลระบบด้วยเมื่อออกจาก Admin
+      sysAdminClear(); // 🔒 ล็อกผู้ดูแลระบบด้วยเมื่อออกจาก Admin
       localStorage.removeItem('fc_admin_user');
       closePanel('admin-panel');
       toast('ออกจากระบบเรียบร้อยแล้ว', 'ok');
