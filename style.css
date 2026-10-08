@@ -3298,3 +3298,35 @@ html[data-palette="coffee"][data-theme="dark"] {
   .dash-filter-row{ padding:12px; }.dash-filter-row select{ min-width:0; flex:1; }.dash-live-clock{ order:3; }
 }
 @media (prefers-reduced-motion:reduce){ .line-status-card-dot{ animation:none!important; } }
+
+/* ── DASHBOARD v2 · ส่วนล่าง (กราฟ / อันดับ NG / AI) ── */
+.dashboard-sortable{ align-items:stretch; }
+.chart-wrap{ height:250px; }
+.dash-block[data-block-id="chart-trend"] .chart-wrap{ height:270px; }
+.dash-block[data-block-id="chart-byline"] .chart-wrap{ height:288px; }
+.chart-card .card-header-flex{ margin-bottom:10px; }
+.chart-legend{ display:flex; gap:8px; }
+.chart-legend span,.chart-legend>*{ display:inline-flex; align-items:center; gap:7px; padding:4px 12px; border-radius:999px; font-size:12px; font-weight:600; color:var(--text-main); background:var(--bg-input); border:1px solid var(--border-card); }
+.cl-dot{ width:9px; height:9px; border-radius:50%; }
+.cl-dot.ok{ background:var(--ok); box-shadow:0 0 8px var(--ok); }.cl-dot.ng{ background:var(--ng); box-shadow:0 0 8px var(--ng); }
+.donut-legend{ gap:10px; margin-top:12px; }
+.donut-legend-item{ padding:4px 12px; border-radius:999px; font-size:12px; font-weight:600; color:var(--text-main); background:var(--bg-input); border:1px solid var(--border-card); }
+.donut-legend-dot{ width:9px; height:9px; }
+.ng-rank-item{ gap:14px; margin-bottom:14px; padding:10px 12px; border-radius:14px; transition:background .15s; }
+.ng-rank-item:hover{ background:var(--ng-bg); }
+.ng-rank-num{ width:30px; height:30px; font-family:var(--font-en); font-size:13px; box-shadow:0 4px 10px -4px var(--ng); }
+.ng-rank-item:nth-child(1) .ng-rank-num{ background:var(--ng); color:#fff; border-color:transparent; }
+.ng-rank-label{ font-size:13.5px; font-weight:600; margin-bottom:6px; color:var(--text-main); }
+.ng-rank-bar-bg{ height:12px; border-radius:8px; }
+.ng-rank-bar-bg>*{ border-radius:8px; background:linear-gradient(90deg,var(--ng),color-mix(in srgb,var(--ng) 55%,#fff))!important; box-shadow:0 0 14px color-mix(in srgb,var(--ng) 45%,transparent); }
+.ng-rank-count{ font-size:14px; min-width:54px; padding:3px 10px; border-radius:999px; background:var(--ng-bg); border:1px solid var(--ng-border); text-align:center; }
+.ai-card-head{ align-items:center; margin-bottom:16px; }
+.ai-subtitle{ font-size:12.5px; margin-top:2px; }
+.ai-period-select{ height:40px; padding:0 12px; border-radius:12px; border:1.5px solid var(--border-input); font-weight:600; background-color:var(--bg-input); transition:border-color .18s, box-shadow .18s; }
+.ai-period-select:focus{ outline:0; border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-dim); }
+.btn-ai{ height:40px; padding:0 20px; border-radius:12px; font-weight:700; box-shadow:0 12px 24px -10px hsla(260,70%,50%,.7); }
+.btn-ai:hover{ box-shadow:0 16px 28px -10px hsla(260,70%,50%,.85); }
+.ai-btn-group>button:not(.btn-ai){ height:40px; border-radius:12px; font-weight:600; }
+.ai-result{ min-height:150px; border-radius:16px; border:1.5px dashed color-mix(in srgb,var(--accent) 35%,var(--border-card)); background:radial-gradient(260px 120px at 50% 0,var(--accent-dim),transparent 75%),var(--bg-input); }
+.ai-placeholder{ min-height:120px; gap:12px; color:var(--text-muted); line-height:1.7; font-size:13.5px; }
+.ai-placeholder svg{ width:44px; height:44px; padding:10px; border-radius:14px; color:hsl(260,70%,60%); background:hsla(260,70%,60%,.12); box-shadow:inset 0 0 0 1px hsla(260,70%,60%,.28); }

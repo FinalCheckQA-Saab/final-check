@@ -7661,6 +7661,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     const ng  = style.getPropertyValue('--ng').trim();
     const muted = style.getPropertyValue('--text-muted').trim();
 
+    Object.assign(Chart.defaults.plugins.tooltip,{padding:12,cornerRadius:12,boxPadding:5,usePointStyle:true,backgroundColor:'rgba(15,33,55,.94)',titleFont:{weight:'700'}});
     if (charts.trend) charts.trend.destroy();
     charts.trend = new Chart($('chart-trend'), {
       type: 'line',
@@ -7669,10 +7670,10 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         datasets: [
           { label: 'ผ่าน', data: passData, borderColor: ok, borderWidth: 2.5,
             backgroundColor: (c) => verticalGradient(c.chart.ctx, c.chart.chartArea, ok),
-            fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: ok, pointHitRadius: 8 },
+            fill: true, tension: 0.4, cubicInterpolationMode: 'monotone', pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: ok, pointHitRadius: 8 },
           { label: 'NG',   data: ngData,   borderColor: ng, borderWidth: 2.5,
             backgroundColor: (c) => verticalGradient(c.chart.ctx, c.chart.chartArea, ng),
-            fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: ng, pointHitRadius: 8 },
+            fill: true, tension: 0.4, cubicInterpolationMode: 'monotone', pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: ng, pointHitRadius: 8 },
         ]
       },
       options: {
@@ -7681,8 +7682,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         interaction: { mode: 'index', intersect: false },
         plugins: { legend: { display: false } },
         scales: {
-          x: { ticks: { color: muted, font: { size: 10 } }, grid: { color: 'rgba(128,128,128,0.08)' } },
-          y: { ticks: { color: muted, font: { size: 10 }, stepSize: 1 }, grid: { color: 'rgba(128,128,128,0.08)' }, beginAtZero: true }
+          x: { ticks: { color: muted, font: { size: 10 } }, grid: { display: false }, border: { display: false } },
+          y: { ticks: { color: muted, font: { size: 10 }, stepSize: 1 }, grid: { color: 'rgba(128,128,128,0.16)', borderDash: [4, 5] }, border: { display: false }, beginAtZero: true }
         }
       }
     });
@@ -7712,7 +7713,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         datasets: [{
           label: 'NG', data: sorted.map(([,v]) => v),
           backgroundColor: withAlpha(ng, 0.67), hoverBackgroundColor: ng,
-          borderColor: ng, borderWidth: 1, borderRadius: 5, maxBarThickness: 34
+          borderColor: ng, borderWidth: 1, borderRadius: { topLeft: 9, topRight: 9 }, maxBarThickness: 46
         }]
       },
       options: {
@@ -7721,7 +7722,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { color: muted, font: { size: 10 } }, grid: { display: false } },
-          y: { ticks: { color: muted, font: { size: 10 }, stepSize: 1 }, grid: { color: 'rgba(128,128,128,0.08)' }, beginAtZero: true }
+          y: { ticks: { color: muted, font: { size: 10 }, stepSize: 1 }, grid: { color: 'rgba(128,128,128,0.16)', borderDash: [4, 5] }, border: { display: false }, beginAtZero: true }
         }
       }
     });
@@ -7756,7 +7757,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       type: 'doughnut',
       data: { labels, datasets: [{ data, backgroundColor: bgs, borderWidth: 2, borderColor: style.getPropertyValue('--bg-card').trim(), hoverOffset: 8 }] },
       options: {
-        responsive: true, maintainAspectRatio: false, cutout: '68%',
+        responsive: true, maintainAspectRatio: false, cutout: '74%',
         animation: { duration: 800, easing: 'easeOutQuart' },
         plugins: { legend: { display: false }, tooltip: {
           callbacks: { label: ctx => {
