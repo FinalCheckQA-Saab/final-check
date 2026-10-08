@@ -1365,19 +1365,39 @@
     // ค่าที่ผู้ใช้ปรับได้ (ค่าเริ่มต้น contrast 50 / brightness 50 / cut 8 = พฤติกรรมเดิม)
     //  contrast (0–100) ยิ่งสูง เส้นยิ่งเต็มขาวเร็ว (เส้นจางชัดขึ้น) • brightness (0–100) ยิ่งสูง เส้นกลางๆ ยิ่งสว่าง
     //  cut (0–40 %) ยิ่งสูง ยิ่งตัดจุดรบกวน/เงาจางๆ ให้เป็นดำสนิท
-    const P = Object.assign({ contrast: 50, brightness: 50, cut: 8 }, prm || {});
+    //  thickness (0–4) ทำเส้นขาวหนาขึ้น (ขยายเส้นออกด้านละ ~1 พิกเซลต่อ 1 ระดับ ที่ความกว้าง 1600px; รูปเล็กกว่าจะลดสัดส่วนให้เอง)
+    const P = Object.assign({ contrast: 50, brightness: 50, cut: 8, thickness: 0 }, prm || {});
     const LO = Math.max(0, Math.min(0.4, P.cut / 100));
     const HI = Math.max(LO + 0.05, 0.95 - (P.contrast / 100) * 0.8);
     const GAMMA = 1.4 - (P.brightness / 100) * 1.2; // 50 → 0.8 (ค่าเดิม)
+    const keep = new Uint8Array(w * h); // 1 = พิกเซลสีสด (ลูกศร) ไม่ขยายเส้นทับ
     for (let i = 0; i < d.length; i += 4) {
       const r = d[i], g = d[i + 1], b = d[i + 2];
       const sat = Math.max(r, g, b) - Math.min(r, g, b);
-      if (sat > 90) continue; // สีสด (ลูกศร/หมายเลขสี) คงเดิม
+      if (sat > 90) { keep[i >> 2] = 1; continue; } // สีสด (ลูกศร/หมายเลขสี) คงเดิม
       const L = 0.299 * r + 0.587 * g + 0.114 * b;
       let ink = dark ? (L - bgL) / Math.max(1, 255 - bgL) : (bgL - L) / Math.max(1, bgL);
       ink = Math.max(0, Math.min(1, (ink - LO) / (HI - LO)));
       const v = Math.round(255 * Math.pow(ink, GAMMA));
       d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
+    }
+    // ทำเส้นหนาขึ้น: max-filter (ขยายค่าสว่างที่สุดในรัศมี r) แยกแนวนอน/แนวตั้ง
+    const T = Math.max(0, Math.min(4, +P.thickness || 0));
+    const rad = T > 0 ? Math.max(1, Math.round(T * Math.max(w, h) / 1600)) : 0;
+    if (rad > 0) {
+      const g0 = new Uint8Array(w * h), g1 = new Uint8Array(w * h);
+      for (let p = 0; p < g0.length; p++) g0[p] = keep[p] ? 0 : d[p * 4];
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        let m = 0; const x0 = Math.max(0, x - rad), x1 = Math.min(w - 1, x + rad), row = y * w;
+        for (let k = x0; k <= x1; k++) { const v = g0[row + k]; if (v > m) m = v; }
+        g1[row + x] = m;
+      }
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        let m = 0; const y0 = Math.max(0, y - rad), y1 = Math.min(h - 1, y + rad);
+        for (let k = y0; k <= y1; k++) { const v = g1[k * w + x]; if (v > m) m = v; }
+        const p = y * w + x;
+        if (!keep[p]) { const o = p * 4; d[o] = d[o + 1] = d[o + 2] = m; }
+      }
     }
     ctx.putImageData(im, 0, 0);
   }
@@ -3885,11 +3905,11 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       toast('ย้อนกลับเป็นรูปเดิมแล้ว', 'ok');
     });
     // 🆕 ปรับ Contrast เอง: ลากสไลเดอร์ดูตัวอย่างบนแผนผังทันที → กด "ใช้ค่านี้" ถึงจะบันทึก (คำนวณจากรูปต้นฉบับเสมอ ลากกี่รอบรูปไม่เสื่อม)
-    const ADJ_DEF = { contrast: 50, brightness: 50, cut: 8 };
+    const ADJ_DEF = { contrast: 50, brightness: 50, cut: 8, thickness: 0 };
     let cpAdjSeq = 0, cpAdjTimer = null, cpAdjPending = null;
     const adjEl = (k) => $('adm-cp-adj-' + k);
-    const adjParams = () => ({ contrast: +adjEl('contrast').value, brightness: +adjEl('brightness').value, cut: +adjEl('cut').value });
-    const adjShowVals = () => { ['contrast', 'brightness', 'cut'].forEach(k => { const v = $('adm-cp-adj-' + k + '-val'); if (v) v.textContent = adjEl(k).value + (k === 'cut' ? '%' : ''); }); };
+    const adjParams = () => ({ contrast: +adjEl('contrast').value, brightness: +adjEl('brightness').value, cut: +adjEl('cut').value, thickness: +adjEl('thickness').value });
+    const adjShowVals = () => { ['contrast', 'brightness', 'cut', 'thickness'].forEach(k => { const v = $('adm-cp-adj-' + k + '-val'); if (v) v.textContent = (k === 'thickness' && +adjEl(k).value > 0 ? '+' : '') + adjEl(k).value + (k === 'cut' ? '%' : ''); }); };
     const adjSetDefaults = () => { Object.keys(ADJ_DEF).forEach(k => { adjEl(k).value = ADJ_DEF[k]; }); adjShowVals(); };
     const adjSource = (jig) => (cpBgBackup && cpBgBackup.jid === jig.id) ? cpBgBackup.data : jig.bgImage;
     const adjClose = () => {
@@ -3918,7 +3938,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         const p = $('cp-bg-adjust'); if (!p) return;
         if (p.classList.contains('hidden')) { adjSetDefaults(); p.classList.remove('hidden'); } else adjClose();
       });
-      ['contrast', 'brightness', 'cut'].forEach(k => adjEl(k).addEventListener('input', () => { adjShowVals(); adjPreview(); }));
+      ['contrast', 'brightness', 'cut', 'thickness'].forEach(k => adjEl(k).addEventListener('input', () => { adjShowVals(); adjPreview(); }));
       $('btn-cp-adj-reset').addEventListener('click', () => { adjSetDefaults(); adjPreview(); });
       $('btn-cp-adj-cancel').addEventListener('click', adjClose);
       $('btn-cp-adj-apply').addEventListener('click', () => {
