@@ -302,6 +302,98 @@
   .doc-confirm-cancel:hover { background: #e2e8f0; }
   .doc-confirm-ok { background: var(--navy); color: #fff; }
   .doc-confirm-ok:hover { filter: brightness(1.1); }
+
+  /* ═══════════ Redesign: หน้ารายการเอกสาร (override ต่อท้ายกฎเดิม) ═══════════ */
+  :root { --bg: #eef1f6; --line: #e3e8f0; --navy-900: #0f2137; }
+  body { background: var(--bg); }
+  .di { flex: 0 0 auto; vertical-align: -2px; }
+
+  header { background: linear-gradient(120deg, var(--navy-900), var(--navy) 55%, var(--navy-light)); padding: 16px 16px 20px; text-align: left; }
+  .header-brand { max-width: 860px; justify-content: flex-start; flex-wrap: wrap; gap: 14px; }
+  .header-actions-row { position: static; margin-left: auto; }
+  .header-logo { width: 46px; height: 46px; border: none; background: linear-gradient(145deg, #d2ab50, var(--gold)); box-shadow: 0 6px 14px -6px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.35); }
+  header h1 { font-size: 19px; letter-spacing: -.1px; }
+  header p { font-size: 12px; opacity: .72; }
+  .header-back-link { transition: background .15s ease; }
+
+  .wrap { max-width: 860px; padding: 18px 16px; }
+  .card { border-radius: 16px; border-color: var(--line); padding: 18px 20px; box-shadow: 0 1px 2px rgba(15,33,55,.04), 0 10px 28px -16px rgba(15,33,55,.18); }
+
+  .stat-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .stat { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; box-shadow: 0 1px 2px rgba(15,33,55,.04); }
+  .stat b { display: block; font-size: 24px; line-height: 1.1; font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 11.5px; color: var(--muted); }
+  .stat.warn b { color: #b45309; }
+  .stat.mute b { color: var(--obsolete); }
+
+  .filter-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  select {
+    width: 100%; appearance: none; -webkit-appearance: none;
+    border: 1px solid var(--line); border-radius: 10px; background-color: #f8fafc;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 11px center;
+    padding: 10px 30px 10px 12px; font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer;
+  }
+  select:hover { border-color: #c9d3e2; }
+  select:focus, input[type=text]:focus, textarea:focus, input[type=date]:focus, input[type=password]:focus {
+    outline: none; border-color: var(--accent); background-color: #fff; box-shadow: 0 0 0 3px rgba(47,111,209,.14);
+  }
+  .search-wrap { position: relative; margin-top: 8px; }
+  .search-wrap .di { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+  .search-wrap input[type=text] { padding: 11px 14px 11px 38px; background: #f8fafc; border-color: var(--line); }
+  .action-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .action-row .btn { flex: 1 1 220px; width: auto; margin: 0; padding: 12px 16px; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; box-shadow: 0 8px 18px -10px rgba(15,33,55,.7); transition: background .15s ease, transform .1s ease; }
+  .action-row .btn:hover { background: var(--navy-light); }
+  .action-row .btn:active { transform: scale(.985); }
+  .action-row .btn-import { flex: 1 1 200px; width: auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; border-radius: 12px; color: var(--navy); background: #fff; border-color: #cfd8e6; transition: background .15s ease; }
+  .action-row .btn-import:hover { background: #f3f6fb; }
+
+  .section-title { font-size: 14px; color: var(--text); gap: 8px; justify-content: flex-start; margin-bottom: 14px; }
+  .count-pill { font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: #e8eef9; color: var(--navy); font-variant-numeric: tabular-nums; }
+
+  .line-group { margin-top: 22px; }
+  .line-group-header { background: none; color: var(--navy); padding: 2px 2px 9px; margin: 0 0 4px; border-radius: 0; border-bottom: 2px solid var(--line); position: relative; font-size: 12.5px; }
+  .line-group-header::after { content: ""; position: absolute; left: 0; bottom: -2px; width: 48px; height: 2px; background: var(--gold); }
+  .lg-name { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; }
+  .line-group-count { background: #eef2f8; color: var(--navy); }
+
+  .doc-row { align-items: center; gap: 14px; padding: 14px 10px; margin: 0 -10px; border-bottom: 1px solid #edf0f5; border-radius: 12px; transition: background .15s ease; }
+  .doc-row:hover { background: #f5f8fd; }
+  .doc-row:last-child { border-bottom: 1px solid #edf0f5; }
+  .doc-rev-tile { flex: 0 0 auto; width: 48px; height: 52px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; background: #e8eef9; color: var(--navy); box-shadow: inset 0 0 0 1px rgba(30,58,95,.1); }
+  .doc-rev-tile small { font-size: 9.5px; font-weight: 700; letter-spacing: .08em; opacity: .7; line-height: 1; }
+  .doc-rev-tile b { font-size: 20px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .doc-rev-tile.has-rev { background: #fbf2dc; color: #7a5a12; box-shadow: inset 0 0 0 1px rgba(184,144,58,.35); }
+  .doc-row.is-obsolete .doc-rev-tile { background: var(--obsolete-bg); color: var(--obsolete); box-shadow: inset 0 0 0 1px #e5e7eb; }
+  .doc-row.is-obsolete .doc-name { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .doc-main { flex: 1; min-width: 0; }
+  .doc-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .doc-no { font-size: 11.5px; font-weight: 700; color: var(--accent); background: #edf3fc; padding: 3px 9px; border-radius: 7px; }
+  .doc-name { font-size: 14.5px; font-weight: 700; color: #111827; margin-top: 7px; line-height: 1.35; }
+  .doc-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .doc-rev-info { margin-top: 9px; gap: 4px 16px; align-items: center; }
+  .doc-rev-info > span { display: inline-flex; align-items: center; gap: 5px; }
+  .doc-rev-info .di, .doc-rev-detail .di { color: #94a3b8; }
+  .doc-rev-detail { display: flex; align-items: center; gap: 5px; margin-top: 5px; }
+  .doc-rev-detail span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .doc-row .btn-edit-doc { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-color: #dbe3ef; color: var(--navy); background: #fff; transition: background .15s ease, color .15s ease, border-color .15s ease; }
+  .doc-row .btn-edit-doc:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .doc-row .btn-edit-rev { color: var(--accent); background: #edf3fc; border-radius: 999px; padding: 2px 10px; }
+  .doc-row .btn-edit-rev:hover { text-decoration: none; background: #dce8fa; }
+  .doc-status-obsolete { margin-left: 0; }
+  .doc-arrow { display: flex; color: #b6c0d0; transition: transform .15s ease, color .15s ease; }
+  .doc-row:hover .doc-arrow { transform: translateX(3px); color: var(--accent); }
+  .btn-edit-doc:focus-visible, .btn-edit-rev:focus-visible, .doc-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media (max-width: 600px) {
+    .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .doc-rev-tile { width: 42px; height: 46px; }
+    .doc-rev-tile b { font-size: 17px; }
+    .header-actions-row { margin-left: 0; width: 100%; }
+    .card { padding: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .doc-row, .doc-arrow, .action-row .btn { transition: none; } }
 </style>
 </head>
 <body>
@@ -344,8 +436,8 @@
     <div class="header-brand">
       <div class="header-logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
       <div>
-        <h1><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:5px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>ควบคุมเอกสาร — Master List / Amendment Record</h1>
-        <p>ทะเบียนเอกสารแม่บทและประวัติการแก้ไข</p>
+        <h1>ควบคุมเอกสาร</h1>
+        <p>Master List / Amendment Record · ทะเบียนเอกสารแม่บทและประวัติการแก้ไข</p>
       </div>
       <div class="header-actions-row">
         <a href="index.html" class="header-back-link" title="กลับไปหน้าตรวจสอบหลัก">
@@ -546,31 +638,48 @@
     return sortLabels([...set], { section: NO_SECTION_LABEL, line: NO_LINE_LABEL, model: NO_MODEL_LABEL }[level]);
   }
 
+  // ไอคอนเส้น (SVG) แทนอีโมจิ — สไตล์เดียวกันทั้งหน้า สีตามตัวอักษร
+  const DI = {
+    search:  '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+    plus:    '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+    refresh: '<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+    clock:   '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    pen:     '<path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>',
+    check:   '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+    file:    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+    layers:  '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+    next:    '<polyline points="9 18 15 12 9 6"/>',
+  };
+  const dIco = (n, size = 14) => `<svg class="di" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DI[n]}</svg>`;
+
   // ── markup ของแถวเอกสาร 1 รายการ (แยกเป็นฟังก์ชันเพื่อใช้ซ้ำได้ทั้งตอนจัดกลุ่มตาม Model) ──
   function renderDocRow(d) {
     const rev = latestRevByDoc[d.id];
     const isEditing = rev && editingRevDocId === d.id;
+    const revNo = d.current_rev_no ?? 0;
+    const obsolete = d.status === 'obsolete';
     return `
-      <div class="doc-row" data-id="${escAttr(d.id)}">
-        <div style="flex:1; min-width:0;">
-          <div class="doc-no">${esc(d.doc_no)}<button class="btn-edit-doc" type="button" data-edit-doc="${escAttr(d.id)}" title="แก้ไขข้อมูลเอกสาร">📝 แก้ไขเอกสาร</button></div>
+      <div class="doc-row${obsolete ? ' is-obsolete' : ''}" data-id="${escAttr(d.id)}">
+        <div class="doc-rev-tile${revNo > 0 ? ' has-rev' : ''}" title="Revision ปัจจุบัน"><small>REV</small><b>${revNo}</b></div>
+        <div class="doc-main">
+          <div class="doc-top">
+            <span class="doc-no">${esc(d.doc_no)}</span>
+            ${obsolete ? `<span class="doc-status-obsolete">ยกเลิกใช้</span>` : ''}
+            <button class="btn-edit-doc" type="button" data-edit-doc="${escAttr(d.id)}" title="แก้ไขข้อมูลเอกสาร">${dIco('pen', 12)}แก้ไขเอกสาร</button>
+          </div>
           <div class="doc-name">${esc(d.doc_name)}</div>
-          <div class="doc-meta">Model: ${esc(infoFor(d).model)} · ${esc(d.company)}</div>
+          <div class="doc-meta">Model ${esc(infoFor(d).model)} · ${esc(d.company)}</div>
           ${rev ? `
             <div class="doc-rev-info">
-              <span>🕐 <b>${fmtDate(rev.rev_date)}</b></span>
-              <span>✏️ ผู้แก้ไข: <b>${esc(rev.prepared_by || '-')}</b></span>
-              <span>✅ ผู้อนุมัติ: <b>${esc(rev.approved_by || '-')}</b></span>
-              <button class="btn-edit-rev" type="button" data-edit-id="${escAttr(d.id)}" title="แก้ไขข้อมูล Rev ล่าสุด">✏️ แก้ไข</button>
+              <span>${dIco('clock', 13)}<b>${fmtDate(rev.rev_date)}</b></span>
+              <span>${dIco('pen', 13)}ผู้แก้ไข <b>${esc(rev.prepared_by || '-')}</b></span>
+              <span>${dIco('check', 13)}ผู้อนุมัติ <b>${esc(rev.approved_by || '-')}</b></span>
+              <button class="btn-edit-rev" type="button" data-edit-id="${escAttr(d.id)}" title="แก้ไขข้อมูล Rev ล่าสุด">แก้ไข Rev</button>
             </div>
-            <div class="doc-rev-detail" title="${escAttr(rev.amendment_detail || '')}">📝 ${esc(rev.amendment_detail || '-')}</div>
+            <div class="doc-rev-detail" title="${escAttr(rev.amendment_detail || '')}">${dIco('file', 13)}<span>${esc(rev.amendment_detail || '-')}</span></div>
           ` : `<div class="doc-rev-empty">ยังไม่มีประวัติการแก้ไข</div>`}
         </div>
-        <div style="display:flex; align-items:center;">
-          <span class="doc-rev-badge">REV ${d.current_rev_no ?? 0}</span>
-          ${d.status === 'obsolete' ? `<span class="doc-status-obsolete">ยกเลิกใช้</span>` : ''}
-        </div>
-        <div class="doc-arrow">›</div>
+        <div class="doc-arrow">${dIco('next', 18)}</div>
       </div>
       ${isEditing ? renderEditRevForm(d, rev) : ''}
     `;
@@ -604,38 +713,50 @@
     });
     const grouped = groupByLine(filtered);
 
+    const stat = {
+      total: filtered.length,
+      lines: grouped.length,
+      noHist: filtered.filter(d => !latestRevByDoc[d.id]).length,
+      obsolete: filtered.filter(d => d.status === 'obsolete').length,
+    };
+
     app.innerHTML = `
+      <div class="stat-row">
+        <div class="stat"><b>${stat.total}</b><span>เอกสารที่แสดง</span></div>
+        <div class="stat"><b>${stat.lines}</b><span>Line</span></div>
+        <div class="stat${stat.noHist ? ' warn' : ''}"><b>${stat.noHist}</b><span>ยังไม่มีประวัติแก้ไข</span></div>
+        <div class="stat${stat.obsolete ? ' mute' : ''}"><b>${stat.obsolete}</b><span>ยกเลิกใช้</span></div>
+      </div>
+
       <div class="card">
-        <div class="section-title">
-          <span>🔍 ค้นหา / กรองเอกสาร</span>
-        </div>
-        <div class="filter-row">
-          <select id="f-company">
+        <div class="filter-grid">
+          <select id="f-company" aria-label="บริษัท">
             <option value="">ทุกบริษัท</option>
             ${COMPANIES.map(c => `<option value="${escAttr(c)}" ${filters.company === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
           </select>
-          <select id="f-section">
+          <select id="f-section" aria-label="แผนก">
             <option value="">ทุกแผนก</option>
             ${sectionOptions.map(x => `<option value="${escAttr(x)}" ${filters.section === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}
           </select>
-        </div>
-        <div class="filter-row">
-          <select id="f-line">
-            <option value="">🏭 ทุก Line</option>
+          <select id="f-line" aria-label="Line">
+            <option value="">ทุก Line</option>
             ${lineOptions.map(x => `<option value="${escAttr(x)}" ${filters.line === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}
           </select>
-          <select id="f-model">
+          <select id="f-model" aria-label="Model">
             <option value="">ทุก Model</option>
             ${modelOptions.map(x => `<option value="${escAttr(x)}" ${filters.model === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}
           </select>
         </div>
-        <div class="filter-row">
-          <input type="text" id="f-search" placeholder="ค้นหาเลขที่เอกสาร หรือ ชื่อเอกสาร..." value="${escAttr(filters.q)}">
+        <div class="search-wrap">
+          ${dIco('search', 16)}
+          <input type="text" id="f-search" placeholder="ค้นหาเลขที่เอกสาร หรือ ชื่อเอกสาร" value="${escAttr(filters.q)}" autocomplete="off">
         </div>
-        <button class="btn btn-primary" id="btn-add-doc" type="button">➕ เพิ่มเอกสารใหม่</button>
-        <button class="btn-ghost" id="btn-import-parts" type="button" style="width:100%; margin-top:8px; box-sizing:border-box;">🔄 ดึงจาก Part ที่สร้างไว้ในระบบ</button>
+        <div class="action-row">
+          <button class="btn btn-primary" id="btn-add-doc" type="button">${dIco('plus', 16)}เพิ่มเอกสารใหม่</button>
+          <button class="btn-ghost btn-import" id="btn-import-parts" type="button">${dIco('refresh', 15)}ดึงจาก Part ที่สร้างไว้ในระบบ</button>
+        </div>
         <!-- 🚫 ซ่อนไว้: นำเข้าจาก Excel (ใช้ปุ่ม "ดึงจาก Part" ด้านบนแทน) -->
-        <button class="btn-ghost" id="btn-import-excel" type="button" style="width:100%; margin-top:8px; box-sizing:border-box; display:none;">📥 นำเข้าจาก Excel (Master List Part)</button>
+        <button class="btn-ghost" id="btn-import-excel" type="button" style="width:100%; margin-top:8px; box-sizing:border-box; display:none;">นำเข้าจาก Excel (Master List Part)</button>
         <input type="file" id="import-file-input" accept=".xlsx,.xls" style="display:none">
       </div>
 
@@ -643,11 +764,11 @@
       <div id="import-preview"></div>
 
       <div class="card">
-        <div class="section-title"><span>📋 รายการเอกสาร (${filtered.length})</span></div>
+        <div class="section-title"><span>รายการเอกสาร</span><span class="count-pill">${filtered.length}</span></div>
         ${grouped.length ? grouped.map(g => `
           <div class="line-group">
             <div class="line-group-header">
-              <span>🏭 LINE: ${esc(g.line)}</span>
+              <span class="lg-name">${dIco('layers', 14)}LINE: ${esc(g.line)}</span>
               <span class="line-group-count">${g.docs.length}</span>
             </div>
             ${g.docs.map(d => renderDocRow(d)).join('')}
@@ -677,8 +798,12 @@
       render();
     });
     document.getElementById('f-search').addEventListener('input', e => {
+      const pos = e.target.selectionStart;
       filters.q = e.target.value;
       render();
+      // render() สร้างหน้าใหม่ทั้งหมด → คืนโฟกัสและตำแหน่งเคอร์เซอร์ให้ช่องค้นหา ไม่งั้นพิมพ์ได้ทีละตัวอักษร
+      const el = document.getElementById('f-search');
+      if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (_) {} }
     });
     document.querySelectorAll('.doc-row').forEach(row => {
       row.addEventListener('click', () => {
