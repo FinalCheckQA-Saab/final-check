@@ -3190,3 +3190,16 @@ html[data-palette="coffee"][data-theme="dark"] {
 .adm-fld { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 100px; }
 .adm-fld > span { font-size: 11px; font-weight: 600; color: var(--text-muted); }
 .adm-fld > input, .adm-fld > select { width: 100%; box-sizing: border-box; }
+
+/* 🎚️ แผงปรับ Contrast รูปพื้นดำ/เส้นขาว */
+.cp-bg-adjust { background:var(--bg-card, rgba(0,0,0,.04)); border:1px solid var(--border-input); border-radius:10px; padding:10px 12px; margin:0 0 10px; }
+.cp-bg-adjust.hidden { display:none; }
+.cp-adj-title { font-size:13px; font-weight:700; margin-bottom:8px; }
+.cp-adj-title span { font-weight:400; font-size:11px; color:var(--text-muted); }
+.cp-adj-row { display:grid; grid-template-columns:minmax(110px,150px) 1fr 38px; align-items:center; gap:8px; font-size:12px; margin-bottom:6px; }
+.cp-adj-row small { display:block; font-size:10px; color:var(--text-muted); }
+.cp-adj-row input[type=range] { width:100%; min-height:28px; }
+.cp-adj-row b { text-align:right; font-variant-numeric:tabular-nums; }
+.cp-adj-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; flex-wrap:wrap; }
+.cp-adj-apply { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:700; }
+.cp-adj-apply:hover { background:var(--accent-hover, var(--accent)); color:#fff; filter:brightness(1.08); }

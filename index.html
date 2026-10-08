@@ -895,12 +895,24 @@
           </label>
           <button id="btn-cp-bg-fit" class="btn-sec hidden" type="button" title="ตัดขอบว่าง + จัดภาพให้พอดีกรอบอัตโนมัติ">🪄 ปรับภาพอัตโนมัติ</button>
           <button id="btn-cp-bg-dark" class="btn-sec hidden" type="button" title="แปลงรูปเป็นพื้นหลังสีดำ ลายเส้นสีขาว (ไม่ตัดขอบ ตำแหน่งจุดตรวจไม่เลื่อน)">🖤 พื้นดำ/เส้นขาว</button>
+          <button id="btn-cp-bg-adjust" class="btn-sec hidden" type="button" title="ปรับ Contrast / ความสว่าง / ตัดจุดรบกวนของรูปพื้นดำเส้นขาวด้วยตัวเอง">🎚️ ปรับ Contrast</button>
           <button id="btn-cp-bg-undo" class="btn-sec hidden" type="button" title="ย้อนกลับเป็นรูปก่อนแปลง">↩︎ ย้อนกลับ</button>
           <label class="cp-bg-trim" style="font-size:12px;display:inline-flex;align-items:center;gap:4px;color:var(--text-muted)"><input type="checkbox" id="adm-cp-bg-trim" checked> ตัดขอบว่างอัตโนมัติ</label>
           <label class="cp-bg-trim" style="font-size:12px;display:inline-flex;align-items:center;gap:4px;color:var(--text-muted)"><input type="checkbox" id="adm-cp-bg-dark"> แปลงเป็นพื้นดำ/เส้นขาวตอนอัปโหลด</label>
           <button id="btn-cp-bg-remove" class="btn-danger-sm hidden"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> ลบรูปพื้นหลัง</button>
         </div>
         <div class="cp-bg-status" id="cp-bg-status"></div>
+        <div class="cp-bg-adjust hidden" id="cp-bg-adjust">
+          <div class="cp-adj-title">🎚️ ปรับภาพพื้นดำ/เส้นขาว <span>(ดูตัวอย่างบนแผนผังด้านล่างทันที)</span></div>
+          <label class="cp-adj-row"><span>Contrast <small>เส้นจางให้ชัดขึ้น</small></span><input type="range" id="adm-cp-adj-contrast" min="0" max="100" step="1" value="50"><b id="adm-cp-adj-contrast-val">50</b></label>
+          <label class="cp-adj-row"><span>ความสว่างเส้น <small>เส้นกลางๆ ให้ขาวขึ้น</small></span><input type="range" id="adm-cp-adj-brightness" min="0" max="100" step="1" value="50"><b id="adm-cp-adj-brightness-val">50</b></label>
+          <label class="cp-adj-row"><span>ตัดจุดรบกวน <small>เงา/รอยจางให้ดำสนิท</small></span><input type="range" id="adm-cp-adj-cut" min="0" max="40" step="1" value="8"><b id="adm-cp-adj-cut-val">8%</b></label>
+          <div class="cp-adj-actions">
+            <button type="button" class="btn-sec" id="btn-cp-adj-reset">รีเซ็ต</button>
+            <button type="button" class="btn-sec" id="btn-cp-adj-cancel">ยกเลิก</button>
+            <button type="button" class="btn-sec cp-adj-apply" id="btn-cp-adj-apply">✔ ใช้ค่านี้</button>
+          </div>
+        </div>
 
         <!-- 🆕 เครื่องมือลูกศรบนแผนผัง -->
         <div class="arrow-toolbar" id="adm-arrow-toolbar">

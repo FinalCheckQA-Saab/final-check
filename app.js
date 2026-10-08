@@ -1353,7 +1353,7 @@
      - ตรวจสีพื้นจากขอบรูป: พื้นสว่าง (แบบเส้นดำบนกระดาษขาว) → กลับค่า / พื้นมืดอยู่แล้ว → ทำพื้นให้ดำสนิท เส้นขาวคมขึ้น
      - พิกเซลที่มีสีสด (เช่น ลูกศรแดงที่ฝังอยู่ในรูป) คงสีเดิมไว้ ไม่กลายเป็นเทา
      - ทำซ้ำได้ปลอดภัย (รูปที่เป็นพื้นดำอยู่แล้วจะไม่ถูกกลับค่าซ้ำ) */
-  function applyWhiteOnBlack(ctx, w, h) {
+  function applyWhiteOnBlack(ctx, w, h, prm) {
     const im = ctx.getImageData(0, 0, w, h), d = im.data;
     const lum = (i) => 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
     let sum = 0, n = 0;
@@ -1362,7 +1362,13 @@
     for (let y = 1; y < h - 1; y++) { samp(0, y); samp(w - 1, y); }
     const bgL = sum / Math.max(1, n);
     const dark = bgL < 110;
-    const LO = 0.08, HI = 0.55; // ต่ำกว่า LO = พื้นดำสนิท / สูงกว่า HI = เส้นขาวเต็ม (ดึงเส้นบาง/จางให้ชัด)
+    // ค่าที่ผู้ใช้ปรับได้ (ค่าเริ่มต้น contrast 50 / brightness 50 / cut 8 = พฤติกรรมเดิม)
+    //  contrast (0–100) ยิ่งสูง เส้นยิ่งเต็มขาวเร็ว (เส้นจางชัดขึ้น) • brightness (0–100) ยิ่งสูง เส้นกลางๆ ยิ่งสว่าง
+    //  cut (0–40 %) ยิ่งสูง ยิ่งตัดจุดรบกวน/เงาจางๆ ให้เป็นดำสนิท
+    const P = Object.assign({ contrast: 50, brightness: 50, cut: 8 }, prm || {});
+    const LO = Math.max(0, Math.min(0.4, P.cut / 100));
+    const HI = Math.max(LO + 0.05, 0.95 - (P.contrast / 100) * 0.8);
+    const GAMMA = 1.4 - (P.brightness / 100) * 1.2; // 50 → 0.8 (ค่าเดิม)
     for (let i = 0; i < d.length; i += 4) {
       const r = d[i], g = d[i + 1], b = d[i + 2];
       const sat = Math.max(r, g, b) - Math.min(r, g, b);
@@ -1370,7 +1376,7 @@
       const L = 0.299 * r + 0.587 * g + 0.114 * b;
       let ink = dark ? (L - bgL) / Math.max(1, 255 - bgL) : (bgL - L) / Math.max(1, bgL);
       ink = Math.max(0, Math.min(1, (ink - LO) / (HI - LO)));
-      const v = Math.round(255 * Math.pow(ink, 0.8));
+      const v = Math.round(255 * Math.pow(ink, GAMMA));
       d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
     }
     ctx.putImageData(im, 0, 0);
@@ -1429,7 +1435,7 @@
       }
       let enc = null;
       if (wob) {
-        try { applyWhiteOnBlack(ctx, canvas.width, canvas.height); } catch (e) { console.warn('แปลงพื้นดำไม่สำเร็จ', e); }
+        try { applyWhiteOnBlack(ctx, canvas.width, canvas.height, opts.wobParams); } catch (e) { console.warn('แปลงพื้นดำไม่สำเร็จ', e); }
         enc = canvas.toDataURL('image/png'); // ลายเส้นบนพื้นดำเป็นสีเรียบ PNG คมกว่า/เล็กกว่า JPEG
         if (enc.length > BG_IMAGE_MAX_CHARS) enc = null;
       }
@@ -3878,6 +3884,56 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       renderSvgMap();
       toast('ย้อนกลับเป็นรูปเดิมแล้ว', 'ok');
     });
+    // 🆕 ปรับ Contrast เอง: ลากสไลเดอร์ดูตัวอย่างบนแผนผังทันที → กด "ใช้ค่านี้" ถึงจะบันทึก (คำนวณจากรูปต้นฉบับเสมอ ลากกี่รอบรูปไม่เสื่อม)
+    const ADJ_DEF = { contrast: 50, brightness: 50, cut: 8 };
+    let cpAdjSeq = 0, cpAdjTimer = null, cpAdjPending = null;
+    const adjEl = (k) => $('adm-cp-adj-' + k);
+    const adjParams = () => ({ contrast: +adjEl('contrast').value, brightness: +adjEl('brightness').value, cut: +adjEl('cut').value });
+    const adjShowVals = () => { ['contrast', 'brightness', 'cut'].forEach(k => { const v = $('adm-cp-adj-' + k + '-val'); if (v) v.textContent = adjEl(k).value + (k === 'cut' ? '%' : ''); }); };
+    const adjSetDefaults = () => { Object.keys(ADJ_DEF).forEach(k => { adjEl(k).value = ADJ_DEF[k]; }); adjShowVals(); };
+    const adjSource = (jig) => (cpBgBackup && cpBgBackup.jid === jig.id) ? cpBgBackup.data : jig.bgImage;
+    const adjClose = () => {
+      clearTimeout(cpAdjTimer); cpAdjSeq++; cpAdjPending = null;
+      const p = $('cp-bg-adjust'); if (p) p.classList.add('hidden');
+      if (cpEditJigId) renderAdmCpMap(cpEditJigId); // คืนรูปที่บันทึกไว้จริง
+    };
+    window.__cpAdjClose = () => { clearTimeout(cpAdjTimer); cpAdjSeq++; cpAdjPending = null; const p = $('cp-bg-adjust'); if (p) p.classList.add('hidden'); };
+    const adjPreview = () => {
+      clearTimeout(cpAdjTimer);
+      cpAdjTimer = setTimeout(async () => {
+        const jig = catalog.jigs.find(j => j.id === cpEditJigId);
+        if (!jig || !jig.bgImage) return;
+        const seq = ++cpAdjSeq;
+        try {
+          const out = await resizeBgImageAdaptive(adjSource(jig), { fit: false, whiteOnBlack: true, wobParams: adjParams() });
+          if (seq !== cpAdjSeq) return; // มีการลากใหม่แล้ว ทิ้งผลเก่า
+          cpAdjPending = out;
+          const bgImg = $('adm-cp-bg-image');
+          if (bgImg) { bgImg.setAttribute('href', out); bgImg.style.display = ''; }
+        } catch (err) { console.error(err); }
+      }, 180);
+    };
+    if ($('btn-cp-bg-adjust')) {
+      $('btn-cp-bg-adjust').addEventListener('click', () => {
+        const p = $('cp-bg-adjust'); if (!p) return;
+        if (p.classList.contains('hidden')) { adjSetDefaults(); p.classList.remove('hidden'); } else adjClose();
+      });
+      ['contrast', 'brightness', 'cut'].forEach(k => adjEl(k).addEventListener('input', () => { adjShowVals(); adjPreview(); }));
+      $('btn-cp-adj-reset').addEventListener('click', () => { adjSetDefaults(); adjPreview(); });
+      $('btn-cp-adj-cancel').addEventListener('click', adjClose);
+      $('btn-cp-adj-apply').addEventListener('click', () => {
+        if (!cpEditJigId) return;
+        const jig = catalog.jigs.find(j => j.id === cpEditJigId);
+        if (!jig || !cpAdjPending) { toast('ลากสไลเดอร์ปรับค่าก่อน แล้วค่อยกด "ใช้ค่านี้"', 'ng'); return; }
+        if (!(cpBgBackup && cpBgBackup.jid === cpEditJigId)) cpBgBackup = { jid: cpEditJigId, data: jig.bgImage };
+        jig.bgImage = cpAdjPending; cpAdjPending = null;
+        saveCatalog();
+        renderCpBgControls(cpEditJigId); // ปิดแผงปรับค่าให้เอง
+        renderAdmCpMap(cpEditJigId);
+        renderSvgMap();
+        toast('บันทึกค่า Contrast แล้ว (กด ↩︎ ย้อนกลับ เพื่อกลับไปรูปต้นฉบับได้)', 'ok');
+      });
+    }
     $('btn-cp-bg-remove').addEventListener('click', () => {
       if (!cpEditJigId) return;
       const jig = catalog.jigs.find(j => j.id === cpEditJigId);
@@ -4526,6 +4582,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     $('btn-cp-bg-remove').classList.toggle('hidden', !hasImg);
     if ($('btn-cp-bg-fit')) $('btn-cp-bg-fit').classList.toggle('hidden', !hasImg);
     if ($('btn-cp-bg-dark')) $('btn-cp-bg-dark').classList.toggle('hidden', !hasImg);
+    if ($('btn-cp-bg-adjust')) $('btn-cp-bg-adjust').classList.toggle('hidden', !hasImg);
+    if (window.__cpAdjClose) window.__cpAdjClose();
     if ($('btn-cp-bg-undo')) $('btn-cp-bg-undo').classList.toggle('hidden', !(hasImg && cpBgBackup && cpBgBackup.jid === jid));
     $('cp-bg-status').innerHTML = hasImg
       ? `${ico(ICO_CHECK_P)} มีรูปพื้นหลังกำหนดเองแล้ว — ใช้แสดงในหน้าตรวจสอบของ Part นี้`
