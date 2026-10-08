@@ -4,11 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#16324f">
+<script>(function(){try{var t=localStorage.getItem('fc_theme'),p=localStorage.getItem('fc_palette'),d=document.documentElement;if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.setAttribute('data-theme',t);if(p&&/^[a-z]+$/.test(p)&&p!=='default')d.setAttribute('data-palette',p)}catch(e){}})()</script>
 <title>SPC | Daily Quality Inspection</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="manifest" href="manifest.json">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -124,12 +125,196 @@ th:first-child,td:first-child,th:nth-child(2),td:nth-child(2),th:nth-child(3),td
 td.bad{color:var(--bad);font-weight:700}
 .note{font-size:12px;color:var(--muted);line-height:1.6}
 .note code{background:var(--bg);padding:1px 5px;border-radius:4px}
+
+/* ═════ v2 — World-class refresh (สีตามธีมของแอปหลัก: fc_theme / fc_palette) ═════ */
+:root{--brand-navy-900:#0f2137;--brand-navy-800:#16324f;--brand-navy-700:#1e3a5f;--brand-navy-600:#2d5586;--brand-gold:#b8903a;--accent:#2f6fd1;--accent-dim:hsla(213,62%,48%,.1);--amber:#d9930d;--on-bad:#fff;--num:'Outfit','Noto Sans Thai',sans-serif;--sh:0 1px 2px rgba(15,33,55,.06),0 10px 28px -10px rgba(15,33,55,.16)}
+:root[data-theme=light]{--bg:#eef1f6;color-scheme:light}
+:root[data-theme=dark]{--accent:#4b84d6;--accent-dim:hsla(213,62%,58%,.15);--amber:#fbbf24;--on-bad:#2a0a0a;--sh:0 1px 2px rgba(0,0,0,.4),0 12px 30px -10px rgba(0,0,0,.65);color-scheme:dark}
+:root[data-theme]{--series:var(--accent);--limit:var(--brand-gold)}
+html[data-palette="ocean"] {
+  --brand-navy-900: #0f2433; --brand-navy-800: #19374d; --brand-navy-700: #244760; --brand-navy-600: #3a6788;
+  --brand-gold: #e0a030; --brand-gold-dim: hsla(38, 74%, 53%, 0.16);
+}
+html[data-palette="ocean"][data-theme="light"] {
+  --accent: #1f72ad; --accent-hover: #185886; --accent-dim: hsla(205, 70%, 40%, 0.1);
+  --chip-active-bg: hsla(205, 70%, 46%, 0.1); --chip-active-bdr: #1f72ad;
+  --text-heading: #244760;
+}
+html[data-palette="ocean"][data-theme="dark"] {
+  --accent: #5aa9e2; --accent-hover: #86c0ea; --accent-dim: hsla(205, 70%, 62%, 0.16);
+  --chip-active-bg: hsla(205, 70%, 55%, 0.2); --chip-active-bdr: #49a0df;
+}
+html[data-palette="emerald"] {
+  --brand-navy-900: #103226; --brand-navy-800: #1b4b39; --brand-navy-700: #265f4a; --brand-navy-600: #3c866b;
+  --brand-gold: #d4af4a; --brand-gold-dim: hsla(44, 62%, 56%, 0.16);
+}
+html[data-palette="emerald"][data-theme="light"] {
+  --accent: #27a577; --accent-hover: #1e805c; --accent-dim: hsla(158, 62%, 40%, 0.1);
+  --chip-active-bg: hsla(158, 62%, 46%, 0.1); --chip-active-bdr: #27a577;
+  --text-heading: #265f4a;
+}
+html[data-palette="emerald"][data-theme="dark"] {
+  --accent: #62daae; --accent-hover: #8be4c3; --accent-dim: hsla(158, 62%, 62%, 0.16);
+  --chip-active-bg: hsla(158, 62%, 55%, 0.2); --chip-active-bdr: #51d6a6;
+}
+html[data-palette="teal"] {
+  --brand-navy-900: #103032; --brand-navy-800: #1b484b; --brand-navy-700: #265b5f; --brand-navy-600: #3c8186;
+  --brand-gold: #f08a5d; --brand-gold-dim: hsla(18, 83%, 65%, 0.16);
+}
+html[data-palette="teal"][data-theme="light"] {
+  --accent: #21a2ab; --accent-hover: #197e85; --accent-dim: hsla(184, 68%, 40%, 0.1);
+  --chip-active-bg: hsla(184, 68%, 46%, 0.1); --chip-active-bdr: #21a2ab;
+  --text-heading: #265b5f;
+}
+html[data-palette="teal"][data-theme="dark"] {
+  --accent: #5cd7e0; --accent-hover: #87e2e8; --accent-dim: hsla(184, 68%, 62%, 0.16);
+  --chip-active-bg: hsla(184, 68%, 55%, 0.2); --chip-active-bdr: #4bd3dd;
+}
+html[data-palette="purple"] {
+  --brand-navy-900: #1f1132; --brand-navy-800: #301c4a; --brand-navy-700: #3f275d; --brand-navy-600: #5c3e84;
+  --brand-gold: #e0b04a; --brand-gold-dim: hsla(41, 71%, 58%, 0.16);
+}
+html[data-palette="purple"][data-theme="light"] {
+  --accent: #5f2e9e; --accent-hover: #49247b; --accent-dim: hsla(266, 55%, 40%, 0.1);
+  --chip-active-bg: hsla(266, 55%, 46%, 0.1); --chip-active-bdr: #5f2e9e;
+  --text-heading: #3f275d;
+}
+html[data-palette="purple"][data-theme="dark"] {
+  --accent: #9769d3; --accent-hover: #b290df; --accent-dim: hsla(266, 55%, 62%, 0.16);
+  --chip-active-bg: hsla(266, 55%, 55%, 0.2); --chip-active-bdr: #8c59cf;
+}
+html[data-palette="crimson"] {
+  --brand-navy-900: #321016; --brand-navy-800: #4b1b23; --brand-navy-700: #5f262f; --brand-navy-600: #863c48;
+  --brand-gold: #e0b04a; --brand-gold-dim: hsla(41, 71%, 58%, 0.16);
+}
+html[data-palette="crimson"][data-theme="light"] {
+  --accent: #a5273c; --accent-hover: #801e2e; --accent-dim: hsla(350, 62%, 40%, 0.1);
+  --chip-active-bg: hsla(350, 62%, 46%, 0.1); --chip-active-bdr: #a5273c;
+  --text-heading: #5f262f;
+}
+html[data-palette="crimson"][data-theme="dark"] {
+  --accent: #da6276; --accent-hover: #e48b9a; --accent-dim: hsla(350, 62%, 62%, 0.16);
+  --chip-active-bg: hsla(350, 62%, 55%, 0.2); --chip-active-bdr: #d65168;
+}
+html[data-palette="orange"] {
+  --brand-navy-900: #331c0f; --brand-navy-800: #4d2c19; --brand-navy-700: #603a24; --brand-navy-600: #88573a;
+  --brand-gold: #f4c04e; --brand-gold-dim: hsla(41, 88%, 63%, 0.16);
+}
+html[data-palette="orange"][data-theme="light"] {
+  --accent: #b65116; --accent-hover: #8d3f11; --accent-dim: hsla(22, 78%, 40%, 0.1);
+  --chip-active-bg: hsla(22, 78%, 46%, 0.1); --chip-active-bdr: #b65116;
+  --text-heading: #603a24;
+}
+html[data-palette="orange"][data-theme="dark"] {
+  --accent: #ea8a53; --accent-hover: #efa980; --accent-dim: hsla(22, 78%, 62%, 0.16);
+  --chip-active-bg: hsla(22, 78%, 55%, 0.2); --chip-active-bdr: #e77e40;
+}
+html[data-palette="rose"] {
+  --brand-navy-900: #311220; --brand-navy-800: #491d32; --brand-navy-700: #5c2941; --brand-navy-600: #82405f;
+  --brand-gold: #e8b27a; --brand-gold-dim: hsla(31, 71%, 69%, 0.16);
+}
+html[data-palette="rose"][data-theme="light"] {
+  --accent: #a32962; --accent-hover: #7e204c; --accent-dim: hsla(332, 60%, 40%, 0.1);
+  --chip-active-bg: hsla(332, 60%, 46%, 0.1); --chip-active-bdr: #a32962;
+  --text-heading: #5c2941;
+}
+html[data-palette="rose"][data-theme="dark"] {
+  --accent: #d8649a; --accent-hover: #e28db5; --accent-dim: hsla(332, 60%, 62%, 0.16);
+  --chip-active-bg: hsla(332, 60%, 55%, 0.2); --chip-active-bdr: #d45490;
+}
+html[data-palette="graphite"] {
+  --brand-navy-900: #1d2025; --brand-navy-800: #2d3239; --brand-navy-700: #3c4149; --brand-navy-600: #585f69;
+  --brand-gold: #d4af5a; --brand-gold-dim: hsla(42, 59%, 59%, 0.16);
+}
+html[data-palette="graphite"][data-theme="light"] {
+  --accent: #456487; --accent-hover: #364d68; --accent-dim: hsla(212, 32%, 40%, 0.1);
+  --chip-active-bg: hsla(212, 32%, 46%, 0.1); --chip-active-bdr: #456487;
+  --text-heading: #3c4149;
+}
+html[data-palette="graphite"][data-theme="dark"] {
+  --accent: #7f9cbd; --accent-hover: #a1b6ce; --accent-dim: hsla(212, 32%, 62%, 0.16);
+  --chip-active-bg: hsla(212, 32%, 55%, 0.2); --chip-active-bdr: #7292b6;
+}
+html[data-palette="coffee"] {
+  --brand-navy-900: #2c2016; --brand-navy-800: #423224; --brand-navy-700: #544130; --brand-navy-600: #785f4a;
+  --brand-gold: #e0b060; --brand-gold-dim: hsla(38, 67%, 63%, 0.16);
+}
+html[data-palette="coffee"][data-theme="light"] {
+  --accent: #a1622b; --accent-hover: #7d4c21; --accent-dim: hsla(28, 58%, 40%, 0.1);
+  --chip-active-bg: hsla(28, 58%, 46%, 0.1); --chip-active-bdr: #a1622b;
+  --text-heading: #544130;
+}
+html[data-palette="coffee"][data-theme="dark"] {
+  --accent: #d69a66; --accent-hover: #e1b58e; --accent-dim: hsla(28, 58%, 62%, 0.16);
+  --chip-active-bg: hsla(28, 58%, 55%, 0.2); --chip-active-bdr: #d29056;
+}
+
+body{min-height:100vh;background:radial-gradient(900px 360px at 88% -60px,var(--accent-dim),transparent 70%),var(--bg)}
+header{position:sticky;top:0;z-index:30;border-bottom:0;background:radial-gradient(560px 150px at 92% -30px,color-mix(in srgb,var(--accent) 40%,transparent),transparent 70%),linear-gradient(120deg,var(--brand-navy-900),var(--brand-navy-800) 55%,var(--brand-navy-700));box-shadow:0 8px 24px -10px rgba(0,0,0,.55)}
+header::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,var(--brand-gold),transparent 75%)}
+.hd-top{display:flex!important;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:20px;font-weight:700}
+.logo{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:none;background:linear-gradient(135deg,#f0d283,var(--brand-gold));color:var(--brand-navy-900);box-shadow:0 4px 12px -2px rgba(0,0,0,.4)}
+.logo svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+header.collapsed .logo{width:28px;height:28px;border-radius:9px}
+@media (max-width:640px){header.collapsed .logo{display:none}}
+main{max-width:1180px;padding:20px 20px 56px}
+.card{border-radius:18px;padding:18px 22px;margin-bottom:16px;box-shadow:var(--sh)}
+.filters{display:grid;grid-template-columns:minmax(220px,1.3fr) 190px minmax(240px,1.6fr);gap:14px}
+.filters .grow{min-width:0}.filters label{font-size:12.5px;gap:7px}
+.filters select,.filters input{width:100%;min-width:0;height:46px;padding:0 14px;border-radius:12px;font-size:14.5px;font-weight:500;background:var(--bg);border:1.5px solid var(--border);transition:border-color .18s,box-shadow .18s}
+.filters select{appearance:none;padding-right:38px;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 20px) 20px,calc(100% - 15px) 20px;background-size:5px 5px;background-repeat:no-repeat}
+.filters select:hover,.filters input:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--border))}
+.filters select:focus,.filters input:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-dim)}
+@media (max-width:820px){.filters{grid-template-columns:1fr}}
+.hero{position:relative;overflow:hidden;display:grid;grid-template-columns:1fr 270px;gap:8px 28px;align-items:center;padding:24px 28px 24px 32px;border-radius:20px;margin-bottom:16px;border:1px solid color-mix(in srgb,var(--hc) 45%,var(--border));background:linear-gradient(115deg,var(--hb),var(--card) 72%);box-shadow:var(--sh)}
+.hero::before{content:"";position:absolute;inset:0 auto 0 0;width:6px;background:var(--hc)}
+.s-good{--hc:var(--good);--hb:var(--good-bg)}.s-warn{--hc:var(--amber);--hb:var(--warn-bg)}.s-bad{--hc:var(--bad);--hb:var(--bad-bg)}.s-info{--hc:var(--accent);--hb:var(--accent-dim)}
+.vd{display:flex;gap:18px;align-items:flex-start}
+.vi{width:54px;height:54px;border-radius:17px;display:grid;place-items:center;flex:none;background:var(--hc);color:var(--on-bad);box-shadow:0 10px 22px -8px var(--hc)}
+.vi svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.hero h2{font-size:23px;line-height:1.3;margin:2px 0 6px}
+.hero p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.7;max-width:58ch}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{display:inline-flex;align-items:center;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;background:var(--card);border:1px solid var(--border);color:var(--ink)}
+.gg{max-width:290px;width:100%;justify-self:center}.gg svg{display:block;width:100%}
+.gg text{font-family:var(--num)}.gv{font-size:34px;font-weight:700;fill:var(--ink)}.gl{font-size:11px;fill:var(--muted)}.gt{font-size:10px;fill:var(--muted)}
+.gg path{fill:none;stroke-width:13}.nd{transform-origin:100px 108px}.nd-a{animation:nd 1.2s cubic-bezier(.2,.8,.2,1) both}
+@keyframes nd{from{transform:rotate(0deg)}}
+@media (max-width:760px){.hero{grid-template-columns:1fr;padding:20px 18px 20px 24px}.hero h2{font-size:19px}}
+.warn,.notice{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 18px;border-radius:14px;margin-bottom:16px;background:var(--warn-bg);border:1px solid color-mix(in srgb,var(--amber) 40%,transparent);color:var(--ink);font-size:13px}
+.notice>div{display:flex;flex-direction:column;gap:2px;flex:1;min-width:220px}.notice b{font-size:14px}.notice span{color:var(--muted)}
+.bar{flex:0 0 180px;height:8px;border-radius:8px;background:color-mix(in srgb,var(--amber) 22%,transparent);overflow:hidden}.bar u{display:block;height:100%;border-radius:8px;background:var(--amber)}
+.tiles{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.tile{position:relative;overflow:hidden;padding:14px 16px 14px 20px;border-radius:14px;box-shadow:var(--sh)}
+.tile::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:4px;border-radius:0 4px 4px 0;background:var(--tk,var(--accent))}
+.tile.k-lim{--tk:var(--brand-gold)}.tile.k-spec{--tk:var(--bad)}.tile.k-ok{--tk:var(--good)}
+.tile span{font-size:12.5px;font-weight:500}
+.tile b{font-family:var(--num);font-size:28px;font-weight:600;letter-spacing:-.5px;margin:2px 0}
+.tile.bad b{color:var(--bad)}.tile.good b{color:var(--good)}
+.ch{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+h2{font-size:18px}.sub{font-size:13px}
+.legend{gap:8px;margin:12px 0 8px}.legend span{padding:4px 11px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-size:12px}
+.chartbox text{font-family:var(--num)}
+.ln{stroke-dasharray:1;stroke-dashoffset:0;filter:drop-shadow(0 4px 6px color-mix(in srgb,var(--series) 40%,transparent))}
+.anim .ln{stroke-dashoffset:1;animation:dr 1.1s .1s cubic-bezier(.4,0,.2,1) forwards}
+.anim .ar,.anim .pt{opacity:0;animation:fi .5s .9s forwards}
+@keyframes dr{to{stroke-dashoffset:0}}@keyframes fi{to{opacity:1}}
+.pulse{transform-box:fill-box;transform-origin:center;animation:pl 2.2s ease-out infinite}
+@keyframes pl{from{transform:scale(.7);opacity:.9}to{transform:scale(1.9);opacity:0}}
+@media (prefers-reduced-motion:reduce){.anim .ln,.anim .ar,.anim .pt,.nd-a,.pulse{animation:none!important}.anim .ln{stroke-dashoffset:0}.anim .ar,.anim .pt{opacity:1}}
+.tip{border-radius:12px;padding:10px 13px;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(10px);box-shadow:0 14px 34px -8px rgba(0,0,0,.4)}
+.tip .st{display:inline-block;padding:3px 10px;border-radius:999px;background:var(--good-bg)}.tip .st.bad{background:var(--bad-bg)}
+.msg{padding:56px 20px;border-style:dashed;font-size:14.5px;line-height:1.7}
+.msg::before{content:"";display:block;width:64px;height:64px;margin:0 auto 14px;border-radius:20px;background:var(--accent-dim) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232f6fd1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 3v18h18'/%3E%3Cpath d='m7 15 4-5 3 3 5-7'/%3E%3C/svg%3E") center/32px no-repeat}
+details summary{list-style:none}details summary::before{content:"▸";display:inline-block;margin-right:8px;color:var(--accent);transition:transform .2s}details[open] summary::before{transform:rotate(90deg)}
+tbody tr:hover{background:var(--accent-dim)}th{font-weight:600}
 </style>
 </head>
 <body>
 <header id="hdr" class="collapsed">
   <div class="hd-left">
-    <div class="hd-top"><a class="back" id="back" href="index.html">‹<span class="back-txt"> กลับแอปหลัก</span></a><h1>SPC — กราฟควบคุม UCL / LCL</h1></div>
+    <div class="hd-top"><a class="back" id="back" href="index.html">‹<span class="back-txt"> กลับแอปหลัก</span></a><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 18h18"/><path d="m4 14 4-4 4 3 5-6 3 2"/></svg></span><h1>SPC — กราฟควบคุม UCL / LCL</h1></div>
     <div class="hd-more" id="hd-more"><div class="hd-more-in"><small>X̄–R Chart ของหัวข้อที่ตรวจเป็นตัวเลข (ชิ้น S / M / E เป็น 1 กลุ่มย่อย) แยกตาม Part Number และเดือน</small></div></div>
   </div>
   <div class="hactions">
@@ -171,7 +356,7 @@ const STAGES=['S','M','E'];
 const K={2:{A2:1.880,D3:0,D4:3.267,d2:1.128},3:{A2:1.023,D3:0,D4:2.574,d2:1.693},4:{A2:0.729,D3:0,D4:2.282,d2:2.059},5:{A2:0.577,D3:0,D4:2.114,d2:2.326}};
 const fmt=v=>v==null||!isFinite(v)?'—':String(Number(v.toFixed(4)));
 const q=new URLSearchParams(location.search);
-let parts=[],rows=[],itemsMap=new Map(),cur=null,hiddenAll=false;
+let parts=[],rows=[],itemsMap=new Map(),cur=null,hiddenAll=false,animateNext=true;
 
 
 // ── ส่วนหัวย่อ/ขยาย: เข้าหน้านี้ครั้งใดก็เริ่มที่ "ย่อ" เสมอ (รายละเอียดอยู่ครบ กดขยายดูได้) ──
@@ -230,7 +415,7 @@ async function loadData(){
   const prev=cur;
   $('f-item').innerHTML=keys.length?keys.map(k=>'<option value="'+esc(k)+'">'+esc(itemLabel(itemsMap.get(k)))+'</option>').join(''):'<option value="">— ไม่มีหัวข้อตัวเลข —</option>';
   if(q.get('item')&&itemsMap.has(q.get('item')))$('f-item').value=q.get('item');
-  draw();
+  animateNext=true;draw();
 }
 
 // ข้อความในรายการเลือก: ชื่อหัวข้อ (หน่วย) · เกณฑ์ min – max
@@ -293,54 +478,66 @@ function niceTicks(lo,hi,cnt){
   return t;
 }
 function chart(host,o){
-  // o: sg, val(g), lines:[{v,label,cls}], extraDots(g)->[vals], ooc(g), dataLabel, oos(g)
   host.innerHTML='';
-  const W=Math.max(320,host.clientWidth),H=W<520?260:300,m={l:52,r:W<520?58:82,t:12,b:34};
-  const svg=el('svg',{viewBox:'0 0 '+W+' '+H,role:'img','aria-label':o.title},host);
-  svg.style.height='auto';
-  const pts=o.sg.map(o.val);
-  let vals=pts.slice();o.lines.forEach(l=>l.v!=null&&vals.push(l.v));
-  if(o.dots)o.sg.forEach(g=>o.dots(g).forEach(v=>vals.push(v)));
+  const W=Math.max(320,host.clientWidth),sm=W<520,H=sm?280:340,m={l:sm?46:56,r:sm?84:98,t:16,b:36},uid='g'+Math.random().toString(36).slice(2,7);
+  const svg=el('svg',{viewBox:'0 0 '+W+' '+H,role:'img','aria-label':o.title},host);if(o.anim)svg.classList.add('anim');
+  const pts=o.sg.map(o.val);let vals=pts.slice();o.lines.forEach(l=>l.v!=null&&vals.push(l.v));
+  if(o.dots)o.sg.forEach(g=>o.dots(g).forEach(d=>vals.push(d.v)));
   let lo=Math.min(...vals),hi=Math.max(...vals);if(o.floor0)lo=Math.min(lo,0);
   const pad=(hi-lo||Math.abs(hi)||1)*.1;lo-=pad;hi+=pad;if(o.floor0&&lo<0&&Math.min(...vals)>=0)lo=0;
-  const iw=W-m.l-m.r,ih=H-m.t-m.b,N=pts.length;
-  const X=i=>m.l+(N===1?iw/2:i/(N-1)*iw),Y=v=>m.t+(hi-v)/(hi-lo)*ih;
-  // grid + แกน Y
-  niceTicks(lo,hi,5).forEach(t=>{const y=Y(t);
-    el('line',{x1:m.l,x2:W-m.r,y1:y,y2:y,stroke:'var(--grid)','stroke-width':1},svg);
-    const tx=el('text',{x:m.l-8,y:y+4,'text-anchor':'end','font-size':11,fill:'var(--muted)'},svg);tx.textContent=fmt(t)});
-  // แกน X: วันที่ (เว้นระยะ ไม่ให้ซ้อน)
-  const step=Math.max(1,Math.ceil(N/Math.floor(iw/46)));let last='';
-  o.sg.forEach((g,i)=>{if(i%step)return;const d=g.t.getDate()+'/'+(g.t.getMonth()+1);if(d===last&&step===1&&false)return;last=d;
-    const tx=el('text',{x:X(i),y:H-12,'text-anchor':'middle','font-size':11,fill:'var(--muted)'},svg);tx.textContent=d});
-  // เส้นเกณฑ์ (UCL/LCL/CL/USL/LSL) + ป้ายตรงเส้น
-  const styles={ucl:['var(--limit)','6 4',1.5],lcl:['var(--limit)','6 4',1.5],cl:['var(--cl)','',1.2],spec:['var(--spec)','2 3',1.5]};
-  const labs=[];
-  o.lines.forEach(l=>{if(l.v==null)return;const s=styles[l.cls];
-    el('line',{x1:m.l,x2:W-m.r,y1:Y(l.v),y2:Y(l.v),stroke:s[0],'stroke-dasharray':s[1],'stroke-width':s[2]},svg);labs.push({y:Y(l.v),t:l.label+' '+fmt(l.v),c:l.cls==='spec'?'var(--spec)':'var(--ink)'})});
-  labs.sort((a,b)=>a.y-b.y);for(let i=1;i<labs.length;i++)if(labs[i].y-labs[i-1].y<12)labs[i].y=labs[i-1].y+12; // กันป้ายทับกัน
-  labs.forEach(l=>{const tx=el('text',{x:W-m.r+6,y:l.y+4,'font-size':11,'font-weight':600,fill:l.c},svg);tx.textContent=l.t});
-  // ค่ารายชิ้น (จางๆ)
-  if(o.dots)o.sg.forEach((g,i)=>o.dots(g).forEach(v=>el('circle',{cx:X(i),cy:Y(v),r:2.5,fill:'none',stroke:'var(--piece)','stroke-width':1.2},svg)));
-  // เส้นข้อมูล 2px
-  if(N>1)el('polyline',{points:pts.map((v,i)=>X(i)+','+Y(v)).join(' '),fill:'none',stroke:'var(--series)','stroke-width':2,'stroke-linejoin':'round'},svg);
-  // จุด: ปกติ=วงกลม · นอกเส้นควบคุม=สามเหลี่ยมแดง (ไม่พึ่งสีอย่างเดียว) · ขอบ 2px สีพื้น
+  const iw=W-m.l-m.r,ih=H-m.t-m.b,N=pts.length,B=m.t+ih,X=i=>m.l+(N===1?iw/2:i/(N-1)*iw),Y=v=>m.t+(hi-v)/(hi-lo)*ih;
+  const defs=el('defs',{},svg),gr=el('linearGradient',{id:uid+'a',x1:0,y1:0,x2:0,y2:1},defs);
+  el('stop',{offset:0,'stop-color':'var(--series)','stop-opacity':.3},gr);el('stop',{offset:1,'stop-color':'var(--series)','stop-opacity':0},gr);
+  const hp=el('pattern',{id:uid+'h',width:7,height:7,patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'},defs);
+  el('rect',{width:7,height:7,fill:'var(--bad)','fill-opacity':.05},hp);el('line',{x1:0,y1:0,x2:0,y2:7,stroke:'var(--bad)','stroke-opacity':.3,'stroke-width':1.5},hp);
+  el('rect',{x:m.l,y:m.t,width:iw,height:ih},el('clipPath',{id:uid+'c'},defs));
+  const zone=(v1,v2,f)=>{const y1=Math.max(m.t,Math.min(B,Y(v1))),y2=Math.max(m.t,Math.min(B,Y(v2)));if(y2>y1)el('rect',{x:m.l,y:y1,width:iw,height:y2-y1,fill:f},svg)};
+  if(o.band)zone(o.band[1],o.band[0],'var(--accent-dim)');
+  if(o.usl!=null)zone(hi,o.usl,'url(#'+uid+'h)');if(o.lsl!=null)zone(o.lsl,lo,'url(#'+uid+'h)');
+  niceTicks(lo,hi,5).forEach(t=>{const y=Y(t);el('line',{x1:m.l,x2:W-m.r,y1:y,y2:y,stroke:'var(--grid)','stroke-width':1},svg);
+    el('text',{x:m.l-10,y:y+4,'text-anchor':'end','font-size':11,fill:'var(--muted)'},svg).textContent=fmt(t)});
+  const step=Math.max(1,Math.ceil(N/Math.floor(iw/46)));
+  o.sg.forEach((g,i)=>{if(i%step)return;el('text',{x:X(i),y:H-12,'text-anchor':'middle','font-size':11,fill:'var(--muted)'},svg).textContent=g.t.getDate()+'/'+(g.t.getMonth()+1)});
+  const sty={ucl:['var(--limit)','7 5',1.6],lcl:['var(--limit)','7 5',1.6],cl:['var(--cl)','',1.2],spec:['var(--bad)','2 4',1.6]};
+  const pill={ucl:['var(--brand-gold)','#17120a'],lcl:['var(--brand-gold)','#17120a'],cl:['var(--ink)','var(--card)'],spec:['var(--bad)','var(--on-bad)']},labs=[];
+  o.lines.forEach(l=>{if(l.v==null)return;const s=sty[l.cls];el('line',{x1:m.l,x2:W-m.r,y1:Y(l.v),y2:Y(l.v),stroke:s[0],'stroke-dasharray':s[1],'stroke-width':s[2]},svg);labs.push({y:Y(l.v),t:l.label+' '+fmt(l.v),p:pill[l.cls]})});
+  labs.sort((a,b)=>a.y-b.y);for(let i=1;i<labs.length;i++)if(labs[i].y-labs[i-1].y<20)labs[i].y=labs[i-1].y+20;
+  labs.forEach(l=>{const g=el('g',{},svg);el('rect',{x:W-m.r+6,y:l.y-9,width:l.t.length*6.4+14,height:18,rx:9,fill:l.p[0]},g);
+    el('text',{x:W-m.r+13,y:l.y+4,'font-size':11,'font-weight':600,fill:l.p[1]},g).textContent=l.t});
+  if(o.dots){const d=el('g',{class:'pt'},svg);o.sg.forEach((g,i)=>o.dots(g).forEach(p=>el('circle',{cx:X(i),cy:Y(p.v),r:3,fill:p.bad?'var(--bad)':'none',stroke:p.bad?'var(--bad)':'var(--piece)','stroke-width':1.4},d)))}
+  const cg=el('g',{'clip-path':'url(#'+uid+'c)'},svg);
+  if(N>1){const d=pts.map((v,i)=>(i?'L':'M')+X(i)+' '+Y(v)).join('');
+    el('path',{d:d+'L'+X(N-1)+' '+B+'L'+X(0)+' '+B+'Z',fill:'url(#'+uid+'a)',class:'ar'},cg);
+    el('path',{d,fill:'none',stroke:'var(--series)','stroke-width':2.6,'stroke-linejoin':'round','stroke-linecap':'round',pathLength:1,class:'ln'},cg)}
+  const pg=el('g',{class:'pt'},svg);
   o.sg.forEach((g,i)=>{const x=X(i),y=Y(pts[i]);
-    if(o.ooc(g)){const s=7;el('polygon',{points:[x+','+(y-s),(x+s)+','+(y+s*.8),(x-s)+','+(y+s*.8)].join(' '),fill:'var(--bad)',stroke:'var(--card)','stroke-width':2},svg)}
-    else el('circle',{cx:x,cy:y,r:4,fill:'var(--series)',stroke:'var(--card)','stroke-width':2},svg)});
-  // Hover: เส้นแนวตั้ง + Tooltip (พื้นที่จับกว้างกว่าจุด)
-  const cross=el('line',{y1:m.t,y2:m.t+ih,stroke:'var(--muted)','stroke-width':1,'stroke-dasharray':'3 3',visibility:'hidden'},svg);
+    if(o.oos&&o.oos(g))el('circle',{cx:x,cy:y,r:9,fill:'none',stroke:'var(--bad)','stroke-width':1.8,class:'pulse'},pg);
+    if(o.ooc(g)){const s=8;el('circle',{cx:x,cy:y,r:11,fill:'none',stroke:'var(--bad)','stroke-width':1.5,class:'pulse'},pg);
+      el('polygon',{points:[x+','+(y-s),(x+s)+','+(y+s*.8),(x-s)+','+(y+s*.8)].join(' '),fill:'var(--bad)',stroke:'var(--card)','stroke-width':2},pg)}
+    else el('circle',{cx:x,cy:y,r:5,fill:'var(--series)',stroke:'var(--card)','stroke-width':2.5},pg)});
+  const cross=el('line',{y1:m.t,y2:B,stroke:'var(--muted)','stroke-width':1,'stroke-dasharray':'3 3',visibility:'hidden'},svg);
+  const halo=el('circle',{r:10,fill:'var(--series)','fill-opacity':.2,visibility:'hidden'},svg);
   const tip=document.createElement('div');tip.className='tip';host.appendChild(tip);
   const hit=el('rect',{x:m.l,y:m.t,width:iw,height:ih,fill:'transparent'},svg);
   const move=ev=>{const r=svg.getBoundingClientRect(),sx=W/r.width,px=(ev.clientX-r.left)*sx;
-    let i=N===1?0:Math.round((px-m.l)/iw*(N-1));i=Math.max(0,Math.min(N-1,i));
-    const g=o.sg[i];cross.setAttribute('x1',X(i));cross.setAttribute('x2',X(i));cross.setAttribute('visibility','visible');
+    let i=N===1?0:Math.round((px-m.l)/iw*(N-1));i=Math.max(0,Math.min(N-1,i));const g=o.sg[i];
+    cross.setAttribute('x1',X(i));cross.setAttribute('x2',X(i));cross.setAttribute('visibility','visible');
+    halo.setAttribute('cx',X(i));halo.setAttribute('cy',Y(pts[i]));halo.setAttribute('visibility','visible');
     tip.innerHTML=o.tip(g);tip.style.display='block';
-    const tw=tip.offsetWidth,hx=X(i)/sx;let left=hx+14;if(left+tw>r.width)left=hx-tw-14;
+    const tw=tip.offsetWidth,hx=X(i)/sx;let left=hx+16;if(left+tw>r.width)left=hx-tw-16;
     tip.style.left=Math.max(0,left)+'px';tip.style.top=Math.max(0,(Y(pts[i])/sx)-20)+'px'};
   hit.addEventListener('pointermove',move);hit.addEventListener('pointerdown',move);
-  hit.addEventListener('pointerleave',()=>{cross.setAttribute('visibility','hidden');tip.style.display='none'});
+  hit.addEventListener('pointerleave',()=>{cross.setAttribute('visibility','hidden');halo.setAttribute('visibility','hidden');tip.style.display='none'});
 }
+function gauge(v,anim){
+  const ok=v!=null,P=(x,r)=>{const t=Math.PI*(1-Math.min(Math.max(x,0),2)/2);return[(100+r*Math.cos(t)).toFixed(1),(108-r*Math.sin(t)).toFixed(1)]};
+  const seg=(a,b,c,x)=>'<path d="M'+P(a,80).join(' ')+'A80 80 0 0 1 '+P(b,80).join(' ')+'" stroke="'+c+'"'+(x||'')+'/>';
+  const tk=(x,t)=>{const p=P(x,97);return '<text class="gt" x="'+p[0]+'" y="'+(+p[1]+3)+'" text-anchor="middle">'+t+'</text>'};
+  return '<svg viewBox="0 0 200 132" role="img" aria-label="Cpk '+(ok?fmt(v):'—')+'">'
+   +(ok?seg(0,1,'var(--bad)')+seg(1,1.33,'var(--amber)')+seg(1.33,2,'var(--good)'):seg(0,2,'var(--grid)',' stroke-dasharray="3 6"'))
+   +tk(1,'1.0')+tk(1.33,'1.33')+'<text class="gt" x="20" y="126" text-anchor="middle">0</text><text class="gt" x="180" y="126" text-anchor="middle">2+</text>'
+   +(ok?'<g class="nd'+(anim?' nd-a':'')+'" style="transform:rotate('+(Math.min(Math.max(v,0),2)*90)+'deg)"><circle cx="20" cy="108" r="9" fill="var(--card)" stroke="var(--ink)" stroke-width="3.5"/></g>':'')
+   +'<text class="gv" x="100" y="104" text-anchor="middle">'+(ok?fmt(Math.round(v*100)/100):'—')+'</text><text class="gl" x="100" y="124" text-anchor="middle">Cpk</text></svg>'}
 
 const dt=g=>g.t.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'})+' '+g.t.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})+' น.';
 function pieceRows(g,u){return STAGES.map((s,i)=>'<div class="r"><span>'+s+'</span><span>'+(g.vals[i]==null?'—':fmt(g.vals[i])+(u?' '+esc(u):''))+'</span></div>').join('')}
@@ -357,29 +554,39 @@ function draw(){
   if(!sg.length){body.innerHTML='<div class="card msg">หัวข้อนี้ยังไม่มีชุดที่กรอกค่าครบ S / M / E ในเดือนนี้</div>';return}
   const a=analyse(it,sg,n),u=it.unit,hasLim=a.N>=2;
   const partName=($('f-part').selectedOptions[0]||{}).textContent||'';
-  const tile=(l,v,s,c)=>'<div class="tile '+(c||'')+'"><span>'+l+'</span><b>'+v+'</b>'+(s?'<small>'+s+'</small>':'')+'</div>';
-  const cpkC=a.cpk==null?'':a.cpk>=1.33?'good':'bad';
-  let h='';
-  if(a.N<20)h+='<div class="warn">มีข้อมูลเพียง '+a.N+' ชุด — เส้น UCL/LCL เป็นค่าประมาณ (ตามหลัก SPC ควรมีอย่างน้อย 20–25 ชุดจึงจะเชื่อถือได้)</div>';
-  if(skipped)h+='<div class="warn">ไม่นำมาคิด '+skipped+' ชุด ที่กรอกค่ายังไม่ครบทุกชิ้น</div>';
-  h+='<div class="card"><div class="tiles">'
+  const anim=animateNext;animateNext=false;
+  const tile=(l,v,s,c,k)=>'<div class="tile '+(c||'')+' k-'+(k||'dat')+'"><span>'+l+'</span><b>'+v+'</b>'+(s?'<small>'+s+'</small>':'')+'</div>';
+  const cp=a.cpk,cpkC=cp==null?'':cp>=1.33?'good':'bad',IC={good:'<path d="M20 6 9 17l-5-5"/>',warn:'<path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>',info:'<circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/>'};
+  let st='info',vt,vp;
+  if(a.nOos){st='bad';vt='พบค่านอกเกณฑ์ '+a.nOos+' ชุด';vp='มีชิ้นงานที่ค่าเกินเกณฑ์ LSL / USL ควรตรวจสอบและแจ้งหัวหน้างานทันที'}
+  else if(hasLim&&a.nOoc){st='bad';vt='กระบวนการไม่นิ่ง พบ '+a.nOoc+' จุดนอกเส้นควบคุม';vp='ค่ายังอยู่ในเกณฑ์ แต่หลุดเส้น UCL / LCL แปลว่ากระบวนการเริ่มเปลี่ยน ควรหาสาเหตุก่อนเกิดของเสีย'}
+  else if(!hasLim){vt='เริ่มเก็บข้อมูลแล้ว';vp='ต้องมีอย่างน้อย 2 ชุดจึงจะคำนวณเส้นควบคุมและ Cpk ได้'+(it.max!=null&&a.xbb>it.max-(it.max-(it.min??it.max))*.1?' ค่าเฉลี่ยตอนนี้ค่อนข้างชิดขอบเกณฑ์ ควรจับตาเป็นพิเศษ':'')}
+  else if(cp!=null&&cp<1){st='bad';vt='ความสามารถกระบวนการต่ำ (Cpk '+fmt(Math.round(cp*100)/100)+')';vp='ค่ากระจายกว้างหรือเบี่ยงจากกึ่งกลางเกณฑ์ ควรปรับกระบวนการ'}
+  else if(cp!=null&&cp<1.33){st='warn';vt='ผ่านเกณฑ์ แต่ Cpk ยังต่ำกว่า 1.33';vp='กระบวนการนิ่ง แต่ยังปรับให้ค่าแคบลงและตรงกลางเกณฑ์มากขึ้นได้'}
+  else{st='good';vt='กระบวนการนิ่งและอยู่ในเกณฑ์';vp='ไม่พบจุดนอกเส้นควบคุมหรือค่านอกเกณฑ์ในเดือนนี้'+(cp==null?'':' และ Cpk ผ่าน ≥ 1.33')}
+  let h='<section class="hero s-'+st+'"><div><div class="vd"><span class="vi"><svg viewBox="0 0 24 24">'+IC[st==='bad'||st==='warn'?'warn':st==='good'?'good':'info']+'</svg></span><div><h2>'+vt+'</h2><p>'+vp+'</p></div></div>'
+    +'<div class="chips"><span class="chip">ใช้ข้อมูล '+a.N+' ชุด (กลุ่มละ '+n+' ชิ้น)</span>'+(a.N<20?'<span class="chip">ผลเบื้องต้น</span>':'')+'</div></div><div class="gg">'+gauge(cp,anim)+'</div></section>';
+  if(a.N<20)h+='<div class="notice"><div><b>ข้อมูล '+a.N+' / 20 ชุด</b><span>เส้น UCL/LCL ยังเป็นค่าประมาณ ตามหลัก SPC ควรมีอย่างน้อย 20–25 ชุดจึงเชื่อถือได้</span></div><i class="bar"><u style="width:'+Math.max(4,a.N/20*100)+'%"></u></i></div>';
+  if(skipped)h+='<div class="notice"><div><b>ไม่นำมาคิด '+skipped+' ชุด</b><span>กรอกค่ายังไม่ครบทุกชิ้น</span></div></div>';
+  h+='<div class="tiles">'
     +tile('จำนวนชุดที่ใช้',a.N,'ชุด · กลุ่มละ '+n+' ชิ้น')
     +tile('ค่าเฉลี่ย X̿',fmt(a.xbb),u)
-    +tile('UCL',hasLim?fmt(a.uclX):'—','X̄ chart')
-    +tile('LCL',hasLim?fmt(a.lclX):'—','X̄ chart')
-    +tile('เกณฑ์ LSL – USL',(it.min!=null?fmt(it.min):'—')+' – '+(it.max!=null?fmt(it.max):'—'),u)
-    +tile('Cpk',a.cpk==null?'—':fmt(Math.round(a.cpk*100)/100),a.cpk==null?'':a.cpk>=1.33?'✔ ≥ 1.33':'✖ < 1.33',cpkC)
-    +tile('จุดนอกเส้นควบคุม',hasLim?a.nOoc:'—','ชุด',a.nOoc?'bad':'')
-    +tile('ค่านอกเกณฑ์ (NG)',a.nOos,'ชุด',a.nOos?'bad':'')
-    +'</div></div>';
+    +tile('UCL',hasLim?fmt(a.uclX):'—','X̄ chart','','lim')
+    +tile('LCL',hasLim?fmt(a.lclX):'—','X̄ chart','','lim')
+    +tile('เกณฑ์ LSL – USL',(it.min!=null?fmt(it.min):'—')+' – '+(it.max!=null?fmt(it.max):'—'),u,'','spec')
+    +tile('Cpk',cp==null?'—':fmt(Math.round(cp*100)/100),cp==null?'':cp>=1.33?'✔ ≥ 1.33':'✖ < 1.33',cpkC,'ok')
+    +tile('จุดนอกเส้นควบคุม',hasLim?a.nOoc:'—','ชุด',a.nOoc?'bad':'','lim')
+    +tile('ค่านอกเกณฑ์ (NG)',a.nOos,'ชุด',a.nOos?'bad':'','spec')+'</div>';
   const lg=(s,t)=>'<span><svg viewBox="0 0 26 10">'+s+'</svg>'+t+'</span>';
   const legend='<div class="legend">'
-    +lg('<line x1="0" x2="26" y1="5" y2="5" stroke="var(--series)" stroke-width="2"/><circle cx="13" cy="5" r="4" fill="var(--series)" stroke="var(--card)" stroke-width="2"/>','ค่าเฉลี่ยของแต่ละชุด')
-    +lg('<circle cx="13" cy="5" r="2.5" fill="none" stroke="var(--piece)" stroke-width="1.2"/>','ค่ารายชิ้น (S/M/E)')
-    +lg('<line x1="0" x2="26" y1="5" y2="5" stroke="var(--limit)" stroke-width="1.5" stroke-dasharray="6 4"/>','UCL / LCL')
-    +lg('<line x1="0" x2="26" y1="5" y2="5" stroke="var(--spec)" stroke-width="1.5" stroke-dasharray="2 3"/>','USL / LSL (เกณฑ์)')
-    +lg('<polygon points="13,0 19,9 7,9" fill="var(--bad)"/>','นอกเส้นควบคุม')+'</div>';
-  h+='<div class="card"><h2>X̄ Chart — ค่าเฉลี่ยต่อชุด</h2><div class="sub">'+esc(partName)+' · '+esc(it.label)+(u?' ('+esc(u)+')':'')+' · '+esc(thMonth(month))+'</div>'+legend+'<div class="chartbox" id="c-x"></div></div>';
+    +lg('<line x1="0" x2="26" y1="5" y2="5" stroke="var(--series)" stroke-width="2.5"/><circle cx="13" cy="5" r="4" fill="var(--series)" stroke="var(--card)" stroke-width="2"/>','ค่าเฉลี่ยของแต่ละชุด')
+    +lg('<circle cx="13" cy="5" r="2.5" fill="none" stroke="var(--piece)" stroke-width="1.4"/>','ค่ารายชิ้น (S/M/E)')
+    +lg('<line x1="0" x2="26" y1="5" y2="5" stroke="var(--brand-gold)" stroke-width="1.6" stroke-dasharray="7 5"/>','UCL / LCL')
+    +lg('<line x1="0" x2="26" y1="5" y2="5" stroke="var(--bad)" stroke-width="1.6" stroke-dasharray="2 4"/>','USL / LSL (เกณฑ์)')
+    +lg('<polygon points="13,0 19,9 7,9" fill="var(--bad)"/>','นอกเส้นควบคุม')
+    +lg('<circle cx="13" cy="5" r="4.5" fill="none" stroke="var(--bad)" stroke-width="1.6"/>','มีค่านอกเกณฑ์')+'</div>';
+  const chip=t=>'<span class="chip">'+esc(t)+'</span>';
+  h+='<div class="card"><div class="ch"><div><h2>X̄ Chart — ค่าเฉลี่ยต่อชุด</h2><div class="sub">'+esc(it.label)+(u?' ('+esc(u)+')':'')+' · '+esc(thMonth(month))+'</div></div>'+chip(partName)+'</div>'+legend+'<div class="chartbox" id="c-x"></div></div>';
   h+='<div class="card"><h2>R Chart — ช่วงกว้าง (Max − Min) ต่อชุด</h2><div class="sub">ดูความผันแปรภายในชุด S / M / E · ถ้า R สูงผิดปกติ แปลว่าชิ้นงานในชุดเดียวกันต่างกันมาก</div><div class="chartbox" id="c-r"></div></div>';
   h+='<div class="card"><details><summary>ดูเป็นตาราง ('+a.N+' ชุด)</summary><div class="tblwrap"><table><thead><tr><th>วัน-เวลา</th><th>Production Order</th><th>ผู้ตรวจ</th>'+STAGES.map(s=>'<th>'+s+'</th>').join('')+'<th>X̄</th><th>R</th><th>สถานะ</th></tr></thead><tbody>'
     +sg.map(g=>'<tr><td>'+esc(dt(g))+'</td><td>'+esc(g.r.production_order||'-')+'</td><td>'+esc(g.r.inspector||'-')+'</td>'
@@ -390,10 +597,11 @@ function draw(){
   body.innerHTML=h;
   const cap=g=>'<b>'+esc(dt(g))+'</b>'+(g.r.production_order?'<div class="r"><span>Production Order</span><span>'+esc(g.r.production_order)+'</span></div>':'');
   const status=(bad,txt)=>'<div class="st '+(bad?'bad':'ok')+'">'+(bad?'▲ ':'✔ ')+txt+'</div>';
-  chart($('c-x'),{title:'X-bar chart',sg,val:g=>g.mean,dots:g=>g.got,ooc:g=>g.oocX,
+  const bad=(v)=>(it.min!=null&&v<it.min)||(it.max!=null&&v>it.max);
+  chart($('c-x'),{title:'X-bar chart',anim,sg,val:g=>g.mean,dots:g=>g.got.map(v=>({v,bad:bad(v)})),ooc:g=>g.oocX,oos:g=>g.oos,band:hasLim?[a.lclX,a.uclX]:null,usl:it.max,lsl:it.min,
     lines:[{v:hasLim?a.uclX:null,label:'UCL',cls:'ucl'},{v:a.xbb,label:'X̿',cls:'cl'},{v:hasLim?a.lclX:null,label:'LCL',cls:'lcl'},{v:it.max,label:'USL',cls:'spec'},{v:it.min,label:'LSL',cls:'spec'}],
     tip:g=>cap(g)+pieceRows(g,u)+'<div class="r"><span>X̄</span><b>'+fmt(g.mean)+'</b></div>'+status(g.oocX||g.oos,g.oos?'มีค่านอกเกณฑ์ LSL/USL':g.oocX?'นอกเส้น UCL/LCL':'อยู่ในเส้นควบคุม')});
-  chart($('c-r'),{title:'R chart',sg,val:g=>g.range,ooc:g=>g.oocR,floor0:true,
+  chart($('c-r'),{title:'R chart',anim,sg,val:g=>g.range,ooc:g=>g.oocR,floor0:true,band:hasLim?[0,a.uclR]:null,
     lines:[{v:hasLim?a.uclR:null,label:'UCL',cls:'ucl'},{v:a.rbar,label:'R̄',cls:'cl'}],
     tip:g=>cap(g)+pieceRows(g,u)+'<div class="r"><span>R</span><b>'+fmt(g.range)+'</b></div>'+status(g.oocR,g.oocR?'เกิน UCL ของ R':'อยู่ในเส้นควบคุม')});
 }
@@ -402,7 +610,7 @@ function draw(){
 function sync(){const p=new URLSearchParams();if($('f-part').value)p.set('part',$('f-part').value);if($('f-month').value)p.set('month',$('f-month').value);history.replaceState(null,'','?'+p)}
 $('f-part').onchange=()=>{sync();loadData()};
 $('f-month').onchange=()=>{sync();loadData()};
-$('f-item').onchange=draw;
+$('f-item').onchange=()=>{animateNext=true;draw()};
 $('btn-refresh').onclick=async()=>{const b=$('btn-refresh');if(b.classList.contains('spin'))return;b.classList.add('spin');const t0=Date.now();
   try{await loadData()}finally{setTimeout(()=>b.classList.remove('spin'),Math.max(0,700-(Date.now()-t0)))}};
 let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(document.querySelector('#c-x'))draw()},150)});
