@@ -3451,10 +3451,17 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       });
     }
 
-    $('btn-app-logout').addEventListener('click', async () => {
+    // ปุ่มออกจากระบบ: มี 2 จุด (Header + ล่างสุดของ Sidebar) ใช้ logic เดียวกัน
+    const doAppLogout = async () => {
       if (!(await showConfirmModal('ต้องการออกจากระบบใช่หรือไม่?', { confirmLabel: 'ออกจากระบบ' }))) return;
       sessionStorage.removeItem('fc_app_user');
       location.reload();
+    };
+    $('btn-app-logout').addEventListener('click', doAppLogout);
+    const sideLogoutBtn = $('btn-sidebar-logout');
+    if (sideLogoutBtn) sideLogoutBtn.addEventListener('click', () => {
+      document.body.classList.remove('sidebar-open'); // มือถือ: ปิด drawer ก่อนขึ้น confirm
+      doAppLogout();
     });
 
     const stored = getStoredAppUser();

@@ -2649,11 +2649,29 @@ h1, h2, h3, h4, label, button, input, select, textarea, p, span, div {
 }
 
 .sidebar-bottom {
-  padding: 10px 14px 14px;
+  padding: 8px 8px 14px;
   border-top: 1px solid hsla(0, 0%, 100%, 0.08);
   flex-shrink: 0;
 }
-.sidebar-foot-text { font-size: 10.5px; color: hsla(0, 0%, 100%, 0.4); white-space: nowrap; }
+.sidebar-foot-text { display: block; padding: 0 6px; font-size: 10.5px; color: hsla(0, 0%, 100%, 0.4); white-space: nowrap; }
+
+/* ปุ่มออกจากระบบ — ล่างสุดของ Sidebar */
+.sidebar-logout {
+  display: flex; align-items: center; justify-content: flex-start; gap: 12px; width: 100%;
+  padding: 10px 12px; margin-bottom: 8px;
+  border-radius: 9px; border: none;
+  background: transparent;
+  color: hsla(0, 0%, 100%, 0.68);
+  font-size: 13px; font-weight: 600; letter-spacing: 0.2px;
+  font-family: var(--font-thai);
+  cursor: pointer; text-align: left; white-space: nowrap;
+  box-sizing: border-box;
+  transition: background 0.15s, color 0.15s;
+}
+.sidebar-logout svg { width: 18px; height: 18px; flex-shrink: 0; }
+.sidebar-logout:hover { background: hsla(0, 85%, 60%, 0.16); color: #fca5a5; }
+.sidebar-logout:focus-visible { outline: 2px solid #fca5a5; outline-offset: -2px; }
+body.sidebar-collapsed .sidebar-logout { justify-content: center; padding: 10px 0; }
 
 .sidebar-overlay {
   position: fixed; inset: 0;
