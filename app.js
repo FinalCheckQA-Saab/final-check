@@ -7021,85 +7021,126 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
      (ดู add_unchecked_parts_sme_report.sql) ไม่ดาวน์โหลด history เต็มแถว/รูปถ่ายมาไล่เช็คฝั่ง browser
      เกณฑ์: Part ที่ตรวจ "ไม่ครบ" ในช่วง S / M / E ช่วงใดช่วงหนึ่งของวันนั้น
             (none = ยังไม่ตรวจเลย, partial = ตรวจบางจุด) — ไม่นับวันหยุด / Part ที่ไม่ผลิต / วันนี้
+     หน้าจอ: การ์ดสรุป (คลิกเพื่อกรอง S/M/E) → อันดับ Part ที่ขาดบ่อย → การ์ดรายวันแยกตาม Line
   ══════════════════════════════════════ */
+  let unclRows = [];      // ผลล่าสุดจาก RPC (ยังไม่กรอง)
+  let unclStage = 'all';  // 'all' | 's' | 'm' | 'e' — ตัวกรองจากการ์ดสรุป
+  const UNCL_STATE_TXT = { none: 'ยังไม่ตรวจ', partial: 'ไม่ครบ', ok: 'ครบ' };
+
+  function paintUncheckedReport() {
+    const kpiEl = $('adm-uncl-summary');
+    const topEl = $('adm-uncl-top');
+    const listEl = $('adm-uncl-list');
+    if (!kpiEl || !topEl || !listEl) return;
+    const rows = unclRows;
+
+    // ── การ์ดสรุป (นับจากข้อมูลทั้งหมด) — คลิกเพื่อกรองรายการด้านล่าง ──
+    const cnt = { s: { none: 0, partial: 0 }, m: { none: 0, partial: 0 }, e: { none: 0, partial: 0 } };
+    rows.forEach(r => ['s', 'm', 'e'].forEach(k => { const st = r[k + '_state']; if (st === 'none' || st === 'partial') cnt[k][st]++; }));
+    const tot = k => cnt[k].none + cnt[k].partial;
+    if (unclStage !== 'all' && tot(unclStage) === 0) unclStage = 'all';
+    const nParts = new Set(rows.map(r => r.jig_id)).size;
+    const nDays = new Set(rows.map(r => r.check_date)).size;
+    const tiles = [
+      { k: 'all', badge: '!', label: 'ขาดตรวจรวม', num: rows.length, sub: `${nParts} Part ใน ${nDays} วัน`, cls: 'k-all' },
+      ...['s', 'm', 'e'].map(k => ({ k, badge: k.toUpperCase(), label: `ขาดช่วง ${k.toUpperCase()}`, num: tot(k), sub: `ยังไม่ตรวจ ${cnt[k].none} · ไม่ครบ ${cnt[k].partial}`, cls: 'k-' + k }))
+    ];
+    kpiEl.innerHTML = tiles.map(t => `
+      <button type="button" class="uncl-kpi ${t.cls}" data-stage="${t.k}" aria-pressed="${unclStage === t.k}"${t.num === 0 ? ' disabled' : ''}>
+        <span class="uncl-kpi-top"><span class="uncl-kpi-badge">${t.badge}</span>${t.label}</span>
+        <span class="uncl-kpi-num">${t.num}</span>
+        <span class="uncl-kpi-sub">${t.sub}</span>
+      </button>`).join('');
+    kpiEl.querySelectorAll('.uncl-kpi').forEach(b => b.addEventListener('click', () => { unclStage = b.dataset.stage; paintUncheckedReport(); }));
+
+    // ── กรองตามการ์ดที่เลือก ──
+    const shown = unclStage === 'all' ? rows : rows.filter(r => r[unclStage + '_state'] !== 'ok');
+
+    // ── อันดับ Part ที่ขาดตรวจบ่อยสุด (บาร์เทียบกับอันดับ 1) ──
+    const byPart = {};
+    shown.forEach(r => { const p = (byPart[r.jig_id] = byPart[r.jig_id] || { days: 0, r }); p.days++; });
+    const ranked = Object.values(byPart).sort((a, b) => b.days - a.days).slice(0, 5);
+    if (ranked.length) {
+      const max = ranked[0].days;
+      topEl.hidden = false;
+      topEl.innerHTML = `<div class="uncl-sec-title">Part ที่ขาดตรวจบ่อยสุด</div>` + ranked.map((p, i) => `
+        <div class="uncl-rank-row r${i + 1}">
+          <span class="uncl-rank-no">${i + 1}</span>
+          <span class="uncl-rank-name">${escHtml(p.r.jig_name || p.r.jig_id)} <span class="uncl-rank-sub">${escHtml(p.r.dept_name)} / ${escHtml(p.r.model_name)}</span></span>
+          <span class="uncl-rank-days">ขาด ${p.days} วัน</span>
+          <span class="uncl-rank-bar"><i style="--w:${Math.max(6, Math.round(p.days / max * 100))}%"></i></span>
+        </div>`).join('');
+    } else { topEl.hidden = true; topEl.innerHTML = ''; }
+
+    // ── การ์ดรายวัน (ใหม่สุดก่อน) แยกกลุ่มตาม Line ──
+    const byDate = {};
+    shown.forEach(r => { (byDate[r.check_date] = byDate[r.check_date] || []).push(r); });
+    const dates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
+    listEl.innerHTML = dates.map((d, idx) => {
+      const dt = new Date(d + 'T00:00:00');
+      const wd = dt.toLocaleDateString('th-TH', { weekday: 'long' });
+      const full = dt.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+      const mon = dt.toLocaleDateString('th-TH', { month: 'short' });
+      const groups = [];
+      byDate[d].forEach(r => {
+        let g = groups[groups.length - 1];
+        if (!g || g.id !== r.dept_id) { g = { id: r.dept_id, name: r.dept_name, items: [] }; groups.push(g); }
+        g.items.push(r);
+      });
+      const body = groups.map(g => `
+        <div class="uncl-grp">${escHtml(g.name)}<small>${g.items.length} Part</small></div>
+        ${g.items.map(r => `
+          <div class="uncl-part">
+            <div class="uncl-part-info">
+              <span class="uncl-part-name">${escHtml(r.jig_name || r.jig_id)}</span>
+              <span class="uncl-part-sub">Part No.: ${escHtml(r.jig_id)}<i class="uncl-sep"></i>${escHtml(r.model_name)}</span>
+            </div>
+            <div class="sme-bar" role="group" aria-label="สถานะ S M E">${['s', 'm', 'e'].map(k => {
+              const st = r[k + '_state'] || 'ok';
+              return `<span class="sme-seg ${st}" title="${k.toUpperCase()} — ${UNCL_STATE_TXT[st] || st}"><b>${k.toUpperCase()}</b><em>${UNCL_STATE_TXT[st] || st}</em></span>`;
+            }).join('')}</div>
+          </div>`).join('')}`).join('');
+      return `
+        <details class="uncl-day"${idx === 0 ? ' open' : ''}>
+          <summary>
+            <span class="uncl-dbadge"><b>${String(dt.getDate()).padStart(2, '0')}</b><span>${escHtml(mon)}</span></span>
+            <span class="uncl-dtitle"><strong>${escHtml(wd)}</strong><small>${escHtml(full)}</small></span>
+            <span class="uncl-dcount">${byDate[d].length} Part</span>
+            <span class="uncl-chev" aria-hidden="true">›</span>
+          </summary>
+          <div class="uncl-dbody">${body}</div>
+        </details>`;
+    }).join('');
+  }
+
   async function renderUncheckedLinesReport() {
     const listEl = $('adm-uncl-list');
-    const summaryEl = $('adm-uncl-summary');
+    const kpiEl = $('adm-uncl-summary');
     const topEl = $('adm-uncl-top');
     if (!listEl) return;
-    if (!sb) { listEl.innerHTML = '<span class="chip-empty">ต้องเชื่อมต่อ Supabase ก่อน</span>'; if (topEl) topEl.innerHTML = ''; return; }
+    const clearTop = () => { if (kpiEl) kpiEl.innerHTML = ''; if (topEl) { topEl.hidden = true; topEl.innerHTML = ''; } };
+    if (!sb) { clearTop(); listEl.innerHTML = '<div class="uncl-empty"><strong>ต้องเชื่อมต่อ Supabase ก่อน</strong></div>'; return; }
 
     const from = $('adm-uncl-from')?.value;
     const to = $('adm-uncl-to')?.value;
     if (!from || !to) return;
-    if (from > to) { listEl.innerHTML = '<span class="chip-empty">วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด</span>'; if (summaryEl) summaryEl.textContent = ''; if (topEl) topEl.innerHTML = ''; return; }
+    if (from > to) { clearTop(); listEl.innerHTML = '<div class="uncl-empty"><strong>ช่วงวันที่ไม่ถูกต้อง</strong><span>วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด</span></div>'; return; }
 
-    listEl.innerHTML = '<span class="chip-empty">🔄 กำลังโหลด...</span>';
-    if (summaryEl) summaryEl.textContent = '';
-    if (topEl) topEl.innerHTML = '';
-
-    const STATE_TXT = { none: 'ยังไม่ตรวจ', partial: 'ตรวจไม่ครบ', ok: 'ครบ' };
-    const smeChips = r => ['S', 'M', 'E'].map(k => {
-      const st = r[k.toLowerCase() + '_state'] || 'ok';
-      return `<span class="sme-chip ${st}" title="${k} — ${STATE_TXT[st] || st}">${k}</span>`;
-    }).join('');
+    clearTop();
+    listEl.innerHTML = '<div class="uncl-skel"></div><div class="uncl-skel"></div><div class="uncl-skel"></div>';
 
     try {
       const { data, error } = await sb.rpc('get_unchecked_parts_sme', { p_from: from, p_to: to });
       if (error) throw error;
-
-      const rows = data || [];
-      if (!rows.length) {
-        listEl.innerHTML = '<span class="chip-empty">✅ ทุก Part ตรวจครบ S / M / E ในช่วงที่เลือก (นับถึงเมื่อวาน)</span>';
+      unclRows = data || [];
+      if (!unclRows.length) {
+        listEl.innerHTML = '<div class="uncl-empty"><span class="uncl-empty-ico">✓</span><strong>ทุก Part ตรวจครบ S / M / E</strong><span>ในช่วงที่เลือก (นับถึงเมื่อวาน)</span></div>';
         return;
       }
-
-      // ── Top offenders — นับจำนวนวันที่ขาดตรวจต่อ Part ในช่วงที่เลือก เรียงมากไปน้อย โชว์ 5 อันดับแรก ──
-      const byPart = {};
-      rows.forEach(r => {
-        const p = (byPart[r.jig_id] = byPart[r.jig_id] || { days: 0, r });
-        p.days++;
-      });
-      const ranked = Object.values(byPart).sort((a, b) => b.days - a.days).slice(0, 5);
-      if (topEl && ranked.length) {
-        topEl.innerHTML = '<div class="adm-uncl-top-title">⚠️ Part ที่ขาดตรวจบ่อยสุด</div>' + ranked.map((p, i) => `
-            <div class="uncl-top-item rank-${i + 1}">
-              <span class="uncl-top-rank">${i + 1}</span>
-              <span class="uncl-top-name">${escHtml(p.r.jig_name || p.r.jig_id)} <span class="uncl-dept">(${escHtml(p.r.dept_name)} / ${escHtml(p.r.model_name)})</span></span>
-              <span class="uncl-top-count">ขาด ${p.days} วัน</span>
-            </div>`).join('');
-      }
-
-      // จัดกลุ่มตามวันที่ (ใหม่สุดก่อน) — แต่ละวันแสดงว่า Part ไหนขาดช่วงไหนบ้าง
-      const byDate = {};
-      rows.forEach(r => { (byDate[r.check_date] = byDate[r.check_date] || []).push(r); });
-      const dates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
-
-      const miss = { s: 0, m: 0, e: 0 };
-      rows.forEach(r => { ['s', 'm', 'e'].forEach(k => { if (r[k + '_state'] !== 'ok') miss[k]++; }); });
-      if (summaryEl) summaryEl.textContent = `พบ Part ที่ขาดตรวจ ${rows.length} รายการ ใน ${dates.length} วัน — ขาด S ${miss.s} ครั้ง, M ${miss.m} ครั้ง, E ${miss.e} ครั้ง`;
-
-      listEl.innerHTML = dates.map((d, idx) => {
-        const dt = new Date(d + 'T00:00:00');
-        const dateLabel = dt.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric', weekday: 'short' });
-        let lastDept = null;
-        const partRows = byDate[d].map(r => {
-          const head = r.dept_id !== lastDept ? `<div class="uncl-grp">${escHtml(r.dept_name)}</div>` : '';
-          lastDept = r.dept_id;
-          return `${head}<div class="uncl-part">
-              <div class="uncl-part-info"><span class="uncl-part-name">${escHtml(r.jig_name || r.jig_id)}</span><span class="uncl-part-sub">Part No.: ${escHtml(r.jig_id)} · ${escHtml(r.model_name)}</span></div>
-              <div class="uncl-sme">${smeChips(r)}</div>
-            </div>`;
-        }).join('');
-        return `
-          <details class="adm-uncl-item"${idx === 0 ? ' open' : ''}>
-            <summary class="uncl-date"><span>${escHtml(dateLabel)}</span> <span class="uncl-count">${byDate[d].length} Part</span></summary>
-            <div class="uncl-parts">${partRows}</div>
-          </details>`;
-      }).join('');
+      paintUncheckedReport();
     } catch (e) {
       console.error('get_unchecked_parts_sme error (ตรวจสอบว่ารัน SQL migration add_unchecked_parts_sme_report.sql แล้วหรือยัง):', e);
-      listEl.innerHTML = '<span class="chip-empty">โหลดไม่สำเร็จ — ตรวจสอบว่ารัน SQL migration (add_unchecked_parts_sme_report.sql) แล้วหรือยัง</span>';
+      listEl.innerHTML = '<div class="uncl-empty"><strong>โหลดไม่สำเร็จ</strong><span>ตรวจสอบว่ารัน SQL migration (add_unchecked_parts_sme_report.sql) แล้วหรือยัง</span></div>';
     }
   }
 
@@ -7107,14 +7148,28 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     const fromEl = $('adm-uncl-from');
     const toEl = $('adm-uncl-to');
     if (!fromEl || !toEl) return;
+    const quick = $('adm-uncl-quick');
+    const markQuick = key => quick?.querySelectorAll('.uncl-qbtn').forEach(b => b.classList.toggle('on', b.dataset.range === key));
 
-    // ค่าเริ่มต้น: ย้อนหลัง 7 วันถึงวันนี้
+    // ปุ่มช่วงวันที่เร็ว: ย้อนหลัง N วัน (รวมวันนี้) หรือตั้งแต่ต้นเดือนนี้ แล้วค้นหาทันที
+    const setRange = key => {
+      const today = new Date();
+      const start = new Date();
+      if (key === 'month') start.setDate(1); else start.setDate(today.getDate() - (parseInt(key, 10) - 1));
+      toEl.value = localDateStr(today);
+      fromEl.value = localDateStr(start);
+      markQuick(key);
+      renderUncheckedLinesReport();
+    };
+    // ค่าเริ่มต้น: ย้อนหลัง 7 วันถึงวันนี้ (ยังไม่ค้นหาจนกว่าจะกด "ค้นหา" เหมือนเดิม)
     const today = new Date();
     const weekAgo = new Date();
     weekAgo.setDate(today.getDate() - 6);
     toEl.value = localDateStr(today);
     fromEl.value = localDateStr(weekAgo);
 
+    quick?.querySelectorAll('.uncl-qbtn').forEach(b => b.addEventListener('click', () => setRange(b.dataset.range)));
+    [fromEl, toEl].forEach(el => el.addEventListener('change', () => markQuick(null)));
     $('btn-adm-uncl-search').addEventListener('click', renderUncheckedLinesReport);
   }
 

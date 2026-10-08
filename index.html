@@ -44,7 +44,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- ⚠️ CACHE-BUST: เบราว์เซอร์/PWA มัก cache ไฟล์ .css ค้างไว้นานผิดปกติ (เหมือน app.js ด้านล่าง)
        เพิ่ม ?v= ให้บังคับโหลดไฟล์ใหม่ทุกครั้งที่แก้ style.css — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ style.css -->
-  <link rel="stylesheet" href="style.css?v=fc-sme1">
+  <link rel="stylesheet" href="style.css?v=fc-sme2">
 </head>
 <body>
 
@@ -765,8 +765,14 @@
         <input type="date" id="adm-uncl-to" title="ถึงวันที่">
         <button class="btn-adm-add" id="btn-adm-uncl-search">ค้นหา</button>
       </div>
-      <div id="adm-uncl-summary" class="adm-uncl-summary"></div>
-      <div id="adm-uncl-top" class="adm-uncl-top"></div>
+      <div class="uncl-quick" id="adm-uncl-quick" role="group" aria-label="เลือกช่วงวันที่เร็ว">
+        <button type="button" class="uncl-qbtn on" data-range="7">7 วัน</button>
+        <button type="button" class="uncl-qbtn" data-range="14">14 วัน</button>
+        <button type="button" class="uncl-qbtn" data-range="30">30 วัน</button>
+        <button type="button" class="uncl-qbtn" data-range="month">เดือนนี้</button>
+      </div>
+      <div id="adm-uncl-summary" class="uncl-kpis"></div>
+      <div id="adm-uncl-top" class="uncl-top" hidden></div>
       <div class="admin-list admin-list-scroll" id="adm-uncl-list"></div>
     </div>
 
@@ -1206,7 +1212,7 @@
 <!-- 🆕 ใส่เลขเวอร์ชันต่อท้าย ?v=... เพื่อบังคับให้เบราว์เซอร์ (โดยเฉพาะ Safari บน iPhone ซึ่งแคชไฟล์ .js
      ค้างนานผิดปกติ) โหลด app.js ก้อนใหม่ทุกครั้งที่มีการอัปเดตโค้ด — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ app.js
      แล้ว push ขึ้นใหม่ ไม่งั้นเครื่องที่เคยเข้าเว็บมาก่อนจะยังใช้ไฟล์เก่าจากแคชอยู่ -->
-<script src="app.js?v=fc-sme1"></script>
+<script src="app.js?v=fc-sme2"></script>
 <script src="admin-console.js?v=1"></script>
 <script>
 (function () {
