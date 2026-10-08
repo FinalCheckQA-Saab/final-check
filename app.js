@@ -3352,6 +3352,11 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
           user_id: data.user_id, username: data.username,
           full_name: data.full_name, role: data.role,
         };
+        // 🆕 เมนูการอนุมัติที่ Admin กำหนดรายคน (null/ดึงไม่ได้ = ใช้ตามสิทธิ์ของบัญชี) — ไม่กระทบการ login ถ้าดึงไม่สำเร็จ
+        try {
+          const { data: menu, error: menuErr } = await sb.rpc('get_app_user_menu', { p_user_id: String(data.user_id) });
+          if (!menuErr && Array.isArray(menu)) currentAppUser.menu = menu;
+        } catch (e) { console.warn('get_app_user_menu:', e); }
         sessionStorage.setItem('fc_app_user', JSON.stringify(currentAppUser));
         unlockApp();
       } else {
@@ -3968,6 +3973,15 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     }
 
     const users = data || [];
+    // 🆕 เมนูการอนุมัติรายคน (null = ตามสิทธิ์ของบัญชี) — ถ้ายังไม่ได้รัน SQL (app_users_menu_access.sql) menuSupported = false แล้วซ่อนส่วนนี้
+    const menuMap = new Map();
+    let menuSupported = false;
+    try {
+      const { data: md, error: me } = await sb.rpc('admin_get_app_user_menus', { p_admin_password: pass });
+      if (!me && Array.isArray(md)) { menuSupported = true; md.forEach(r => menuMap.set(String(r.id), Array.isArray(r.menu) ? r.menu : null)); }
+    } catch (e) { console.warn('admin_get_app_user_menus:', e); }
+    const roleDefaultMenu = r => r === 'supervisor' ? ['leader'] : r === 'manager' ? ['supervisor'] : [];
+    const menuTagText = m => m === null || m === undefined ? '' : (m.length ? 'เมนู: ' + m.map(x => x === 'leader' ? 'Leader Check' : 'Supervisor Approved').join(' · ') : 'เมนู: ไม่แสดง');
     if (!users.length) {
       box.innerHTML = '<span class="chip-empty">ยังไม่มีบัญชีผู้ใช้งาน — เพิ่มด้านบนได้เลย</span>';
       return;
@@ -3977,7 +3991,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       <div class="adm-item ${u.active ? '' : 'adm-user-inactive'}" data-uid="${escHtml(u.id)}">
         <div class="adm-item-main">
           <div class="adm-item-info">
-            <div>${escHtml(u.full_name)}<span class="adm-item-role-tag">${escHtml(roleLabelTh(u.role))}</span></div>
+            <div>${escHtml(u.full_name)}<span class="adm-item-role-tag">${escHtml(roleLabelTh(u.role))}</span>${menuTagText(menuMap.get(String(u.id))) ? `<span class="adm-item-role-tag" style="margin-left:4px">${escHtml(menuTagText(menuMap.get(String(u.id))))}</span>` : ''}</div>
             <div class="adm-item-code">@${escHtml(u.username)} ${u.active ? '' : '· ปิดใช้งานอยู่'}</div>
           </div>
         </div>
@@ -4041,8 +4055,30 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
               <button class="btn-adm-add eu-save">💾 บันทึก</button>
               <button class="adm-item-edit eu-cancel" type="button">ยกเลิก</button>
             </div>
+            ${menuSupported ? `<div class="eu-menu" style="font-size:12px; line-height:1.9; margin-top:4px;">
+              <div style="color:var(--text-muted)">เมนู "การอนุมัติ" ที่บัญชีนี้เห็น (มีผลตอนล็อกอินครั้งถัดไป)</div>
+              <label style="display:block"><input type="checkbox" class="eu-menu-default"> ตามสิทธิ์ของบัญชี (ค่าเริ่มต้น)</label>
+              <label style="margin-right:14px"><input type="checkbox" class="eu-menu-leader"> Leader Check</label>
+              <label><input type="checkbox" class="eu-menu-sup"> Supervisor Approved</label>
+            </div>` : ''}
           </div>`;
         item.querySelector('.eu-cancel').addEventListener('click', () => renderStaffAccountList());
+        if (menuSupported) {
+          const cbDef = item.querySelector('.eu-menu-default'), cbL = item.querySelector('.eu-menu-leader'), cbS = item.querySelector('.eu-menu-sup');
+          const cur = menuMap.get(String(u.id)); // null = ค่าเริ่มต้น
+          const paint = () => { // ถ้าเลือก "ตามสิทธิ์" ให้โชว์ค่าตามสิทธิ์ที่เลือกอยู่ แล้วล็อกช่องติ๊ก
+            if (cbDef.checked) {
+              const d = roleDefaultMenu(item.querySelector('.eu-role').value);
+              cbL.checked = d.includes('leader'); cbS.checked = d.includes('supervisor');
+            }
+            cbL.disabled = cbS.disabled = cbDef.checked;
+          };
+          cbDef.checked = !Array.isArray(cur);
+          if (Array.isArray(cur)) { cbL.checked = cur.includes('leader'); cbS.checked = cur.includes('supervisor'); }
+          paint();
+          cbDef.addEventListener('change', paint);
+          item.querySelector('.eu-role').addEventListener('change', paint);
+        }
         item.querySelector('.eu-save').addEventListener('click', async (ev) => {
           const username = item.querySelector('.eu-username').value.trim();
           const fullName = item.querySelector('.eu-fullname').value.trim();
@@ -4057,7 +4093,18 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
           });
           sbtn.disabled = false;
           if (e) { console.error('admin_update_app_user error:', e); toast(staffRpcErrorText(e), 'ng'); return; }
-          if (st === 'ok') { toast(`บันทึกบัญชี "${fullName}" แล้ว`, 'ok'); renderStaffAccountList(); return; }
+          if (st === 'ok') {
+            let menuMsg = '';
+            if (menuSupported) {
+              const menuArr = item.querySelector('.eu-menu-default').checked ? null
+                : [item.querySelector('.eu-menu-leader').checked ? 'leader' : null, item.querySelector('.eu-menu-sup').checked ? 'supervisor' : null].filter(Boolean);
+              const { data: ms, error: me } = await sb.rpc('admin_set_app_user_menu', { p_admin_password: p, p_user_id: String(u.id), p_menu: menuArr });
+              if (me || ms !== 'ok') { console.error('admin_set_app_user_menu:', me || ms); menuMsg = ' (แต่บันทึกเมนูไม่สำเร็จ)'; }
+            }
+            toast(`บันทึกบัญชี "${fullName}" แล้ว${menuMsg}`, menuMsg ? 'ng' : 'ok');
+            renderStaffAccountList();
+            return;
+          }
           toast(st === 'duplicate' ? 'Username นี้มีอยู่แล้ว' : st === 'not_authorized' ? 'รหัสผ่าน Admin ไม่ถูกต้อง หรือไม่พบบัญชีนี้' : 'บันทึกไม่สำเร็จ', 'ng');
           if (st === 'not_authorized') _adminSessionPass = null;
         });
@@ -5238,8 +5285,10 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   function updateApprovalNav() {
     // แสดงเมนูตามสิทธิ์: หัวหน้างาน (supervisor) → Leader Check · หัวหน้าส่วนงาน (manager) → Supervisor Approved · Admin (ล็อกอินที่ Admin Panel) → เห็นทั้งสอง
     const role = currentAppUser && currentAppUser.role;
-    const showLeader = role === 'supervisor' || admLoggedIn;
-    const showSup = role === 'manager' || admLoggedIn;
+    // ถ้า Admin กำหนดเมนูรายคนไว้ (currentAppUser.menu เป็น array) ใช้ตามนั้น · ไม่ได้กำหนด = ตามสิทธิ์ของบัญชี
+    const explicit = currentAppUser && Array.isArray(currentAppUser.menu) ? currentAppUser.menu : null;
+    const showLeader = admLoggedIn || (explicit ? explicit.includes('leader') : role === 'supervisor');
+    const showSup = admLoggedIn || (explicit ? explicit.includes('supervisor') : role === 'manager');
     const setShow = (el, on) => { if (el) el.style.display = on ? '' : 'none'; };
     setShow($('nav-leader-check'), showLeader);
     setShow($('nav-sup-approved'), showSup);
