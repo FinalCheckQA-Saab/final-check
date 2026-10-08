@@ -1308,6 +1308,7 @@
      ไม่ขยายรูปที่เล็กกว่าขีดจำกัด (ไม่ upscale) — รับได้ทั้ง File และ dataURL */
   const BG_IMAGE_STEPS = [[1600, 0.88], [1600, 0.80], [1400, 0.72], [1200, 0.65], [1000, 0.60]];
   const BG_IMAGE_MAX_CHARS = 650000; // ≈ 480 KB ต่อรูป (base64)
+  let cpBgBackup = null; // { jid, data } รูปก่อนแปลงพื้นดำ ใช้กดย้อนกลับ
   const BG_FRAME_ASPECT = 2; // กรอบแผนผังในหน้าจอคือ 560×280 = กว้าง:สูง 2:1
 
   // ประเมินสีพื้นหลังจากขอบรูป + หาพื้นที่ที่มี "เนื้อแบบ" จริง เพื่อตัดขอบว่างทิ้ง (ให้แบบใหญ่ขึ้นในกรอบ)
@@ -1348,14 +1349,42 @@
     return { bg, box };
   }
 
+  /* 🆕 แปลงรูปแบบ (ลายเส้น) ให้เป็น "พื้นดำ ลายเส้นขาว" ในแคนวาสที่วาดเสร็จแล้ว
+     - ตรวจสีพื้นจากขอบรูป: พื้นสว่าง (แบบเส้นดำบนกระดาษขาว) → กลับค่า / พื้นมืดอยู่แล้ว → ทำพื้นให้ดำสนิท เส้นขาวคมขึ้น
+     - พิกเซลที่มีสีสด (เช่น ลูกศรแดงที่ฝังอยู่ในรูป) คงสีเดิมไว้ ไม่กลายเป็นเทา
+     - ทำซ้ำได้ปลอดภัย (รูปที่เป็นพื้นดำอยู่แล้วจะไม่ถูกกลับค่าซ้ำ) */
+  function applyWhiteOnBlack(ctx, w, h) {
+    const im = ctx.getImageData(0, 0, w, h), d = im.data;
+    const lum = (i) => 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    let sum = 0, n = 0;
+    const samp = (x, y) => { sum += lum((y * w + x) * 4); n++; };
+    for (let x = 0; x < w; x++) { samp(x, 0); samp(x, h - 1); }
+    for (let y = 1; y < h - 1; y++) { samp(0, y); samp(w - 1, y); }
+    const bgL = sum / Math.max(1, n);
+    const dark = bgL < 110;
+    const LO = 0.08, HI = 0.55; // ต่ำกว่า LO = พื้นดำสนิท / สูงกว่า HI = เส้นขาวเต็ม (ดึงเส้นบาง/จางให้ชัด)
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i + 1], b = d[i + 2];
+      const sat = Math.max(r, g, b) - Math.min(r, g, b);
+      if (sat > 90) continue; // สีสด (ลูกศร/หมายเลขสี) คงเดิม
+      const L = 0.299 * r + 0.587 * g + 0.114 * b;
+      let ink = dark ? (L - bgL) / Math.max(1, 255 - bgL) : (bgL - L) / Math.max(1, bgL);
+      ink = Math.max(0, Math.min(1, (ink - LO) / (HI - LO)));
+      const v = Math.round(255 * Math.pow(ink, 0.8));
+      d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
+    }
+    ctx.putImageData(im, 0, 0);
+  }
+
   /* 🆕 ปรับภาพอัตโนมัติให้พอดีกรอบแผนผัง (2:1) ที่ขนาดเหมาะสมที่สุด
      opts.fit  = true  → (ตัดขอบว่าง) แล้วจัดภาพทั้งภาพให้อยู่ในกรอบ 2:1 พอดี ไม่โดนตัด ไม่บิดสัดส่วน ใช้พื้นที่กรอบมากสุด
                          ส่วนที่เหลือเติมด้วยสีพื้นหลังของภาพเอง (ตรวจจากขอบรูป) จึงกลืนไปกับภาพ
      opts.trim = true  → ตัดขอบว่างรอบแบบทิ้งก่อน (ปิดได้ด้วยช่อง "ตัดขอบว่างอัตโนมัติ")
+     opts.whiteOnBlack = true → แปลงเป็นพื้นดำ ลายเส้นขาว (เก็บเป็น PNG ถ้าไม่เกินเพดาน ไม่งั้นใช้ JPEG)
      opts.fit  = false → โหมดเดิม: แค่ย่อรูป ไม่ปรับกรอบ (ใช้กับปุ่มบีบอัดรูปเก่า เพื่อไม่ให้ตำแหน่งจุดตรวจเลื่อน)
      ลองคุณภาพสูงสุดก่อนแล้วลดลงทีละขั้นเฉพาะเมื่อไฟล์ใหญ่เกินเพดาน • ไม่ขยายรูปเกินความละเอียดต้นฉบับ */
   async function resizeBgImageAdaptive(src, opts = {}) {
-    const fit = !!opts.fit, trim = opts.trim !== false;
+    const fit = !!opts.fit, trim = opts.trim !== false, wob = !!opts.whiteOnBlack;
     const dataUrl = (typeof src === 'string') ? src : await new Promise((res, rej) => {
       const r = new FileReader();
       r.onload = e => res(e.target.result);
@@ -1398,7 +1427,13 @@
         canvas.height = Math.max(1, Math.round(img.height * scale));
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       }
-      out = canvas.toDataURL('image/jpeg', quality);
+      let enc = null;
+      if (wob) {
+        try { applyWhiteOnBlack(ctx, canvas.width, canvas.height); } catch (e) { console.warn('แปลงพื้นดำไม่สำเร็จ', e); }
+        enc = canvas.toDataURL('image/png'); // ลายเส้นบนพื้นดำเป็นสีเรียบ PNG คมกว่า/เล็กกว่า JPEG
+        if (enc.length > BG_IMAGE_MAX_CHARS) enc = null;
+      }
+      out = enc || canvas.toDataURL('image/jpeg', quality);
       if (out.length <= BG_IMAGE_MAX_CHARS) break;
     }
     return out;
@@ -3780,14 +3815,16 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         // 🆕 เพิ่มความคมชัด: จากเดิม 500px/55% (เบลอ อ่านตัวเลขในแบบไม่ออก) → สูงสุด 1600px/88% แบบปรับลงอัตโนมัติถ้าไฟล์ใหญ่เกินเพดาน
         // (ยังคุม Egress/พื้นที่เก็บไว้ที่ ≈480KB ต่อรูป — เส้นแบบ/ลายเส้นบีบอัดได้ดี มักไม่ถึงเพดาน)
         const trimEl = $('adm-cp-bg-trim');
-        const dataUrl = await resizeBgImageAdaptive(file, { fit: true, trim: trimEl ? trimEl.checked : true });
+        const darkEl = $('adm-cp-bg-dark');
+        const dataUrl = await resizeBgImageAdaptive(file, { fit: true, trim: trimEl ? trimEl.checked : true, whiteOnBlack: !!(darkEl && darkEl.checked) });
+        cpBgBackup = null;
         const jig = catalog.jigs.find(j => j.id === cpEditJigId);
         jig.bgImage = dataUrl;
         saveCatalog();
         renderCpBgControls(cpEditJigId);
         renderAdmCpMap(cpEditJigId);
         renderSvgMap(); // อัปเดตแผนผังในหน้าตรวจสอบด้วย ถ้ากำลังเปิด Part นี้อยู่
-        toast('อัปโหลดรูปพื้นหลังแล้ว — ปรับขนาดให้พอดีกรอบอัตโนมัติ', 'ok');
+        toast(darkEl && darkEl.checked ? 'อัปโหลดแล้ว — แปลงเป็นพื้นดำ ลายเส้นขาวเรียบร้อย' : 'อัปโหลดรูปพื้นหลังแล้ว — ปรับขนาดให้พอดีกรอบอัตโนมัติ', 'ok');
       } catch (err) {
         console.error(err);
         toast('อัปโหลดรูปไม่สำเร็จ', 'ng');
@@ -3812,6 +3849,34 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         renderSvgMap();
         toast('ปรับภาพให้พอดีกรอบแล้ว', 'ok');
       } catch (err) { console.error(err); toast('ปรับภาพไม่สำเร็จ', 'ng'); }
+    });
+    // 🆕 แปลงรูปที่อัปโหลดไว้แล้วให้เป็น "พื้นดำ ลายเส้นขาว" (ไม่ครอป/ไม่เปลี่ยนสัดส่วน → ตำแหน่งจุดตรวจและลูกศรไม่เลื่อน)
+    if ($('btn-cp-bg-dark')) $('btn-cp-bg-dark').addEventListener('click', async () => {
+      if (!cpEditJigId) return;
+      const jig = catalog.jigs.find(j => j.id === cpEditJigId);
+      if (!jig || !jig.bgImage) return;
+      try {
+        const before = jig.bgImage;
+        const out = await resizeBgImageAdaptive(before, { fit: false, whiteOnBlack: true });
+        cpBgBackup = { jid: cpEditJigId, data: before }; // เก็บไว้ในหน่วยความจำเพื่อกด "ย้อนกลับ" (หายเมื่อรีเฟรชหน้า)
+        jig.bgImage = out;
+        saveCatalog();
+        renderCpBgControls(cpEditJigId);
+        renderAdmCpMap(cpEditJigId);
+        renderSvgMap();
+        toast('แปลงเป็นพื้นดำ ลายเส้นขาวแล้ว (กด ↩︎ ย้อนกลับ ได้ถ้าไม่พอใจ)', 'ok');
+      } catch (err) { console.error(err); toast('แปลงรูปไม่สำเร็จ', 'ng'); }
+    });
+    if ($('btn-cp-bg-undo')) $('btn-cp-bg-undo').addEventListener('click', () => {
+      if (!cpEditJigId || !cpBgBackup || cpBgBackup.jid !== cpEditJigId) return;
+      const jig = catalog.jigs.find(j => j.id === cpEditJigId);
+      if (!jig) return;
+      jig.bgImage = cpBgBackup.data; cpBgBackup = null;
+      saveCatalog();
+      renderCpBgControls(cpEditJigId);
+      renderAdmCpMap(cpEditJigId);
+      renderSvgMap();
+      toast('ย้อนกลับเป็นรูปเดิมแล้ว', 'ok');
     });
     $('btn-cp-bg-remove').addEventListener('click', () => {
       if (!cpEditJigId) return;
@@ -4460,6 +4525,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     const hasImg = !!jig.bgImage;
     $('btn-cp-bg-remove').classList.toggle('hidden', !hasImg);
     if ($('btn-cp-bg-fit')) $('btn-cp-bg-fit').classList.toggle('hidden', !hasImg);
+    if ($('btn-cp-bg-dark')) $('btn-cp-bg-dark').classList.toggle('hidden', !hasImg);
+    if ($('btn-cp-bg-undo')) $('btn-cp-bg-undo').classList.toggle('hidden', !(hasImg && cpBgBackup && cpBgBackup.jid === jid));
     $('cp-bg-status').innerHTML = hasImg
       ? `${ico(ICO_CHECK_P)} มีรูปพื้นหลังกำหนดเองแล้ว — ใช้แสดงในหน้าตรวจสอบของ Part นี้`
       : `${ico(ICO_INFO_P)} ยังไม่มีรูปพื้นหลัง — ใช้แผนผังเริ่มต้น`;
