@@ -410,6 +410,19 @@
   .doc-rev-tile small { margin-top: 4px; font-size: 9.5px; font-weight: 700; letter-spacing: .08em; color: var(--muted); opacity: 1; }
   @media (max-width: 600px) { .doc-rev-tile { width: 46px; } .rev-tri { transform: scale(.88); transform-origin: top center; margin-bottom: -5px; } .doc-row:hover .rev-tri { transform: scale(.88); } }
   @media (prefers-reduced-motion: reduce) { .rev-tri { transition: none; } .doc-row:hover .rev-tri { transform: none; } }
+
+  /* ── ตารางเลือกรายการนำเข้า (ติ๊กเลือกได้) ── */
+  .imp-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; color: var(--muted); }
+  .imp-bar b { color: var(--navy); font-size: 14px; }
+  .imp-wrap { max-height: 340px; overflow: auto; margin-top: 8px; border: 1px solid var(--line); border-radius: 12px; }
+  .imp-table { font-size: 12.5px; }
+  .imp-table th { position: sticky; top: 0; z-index: 1; background: #f8fafc; padding: 10px; }
+  .imp-table td { padding: 10px; }
+  .imp-chk-cell { width: 42px; text-align: center; }
+  .imp-table .imp-chk { width: 18px; height: 18px; margin: 0; accent-color: var(--navy); cursor: pointer; vertical-align: middle; }
+  .imp-row { cursor: pointer; transition: background .12s ease; }
+  .imp-row:hover { background: #f5f8fd; }
+  .imp-row.off td:not(.imp-chk-cell) { opacity: .42; }
 </style>
 </head>
 <body>
@@ -1261,12 +1274,20 @@
         <label class="field-label">PIN ยืนยันตัวตน</label>
         <input type="password" id="imp-pin" inputmode="numeric" placeholder="กรอก PIN" value="${_rememberedPin ? escAttr(_rememberedPin) : ''}">
 
-        <div style="max-height:220px; overflow:auto; margin-top:10px; border:1px solid var(--border); border-radius:8px;">
-          <table class="rev-table" style="margin-top:0;">
-            <thead><tr><th>Doc No.</th><th>ชื่อเอกสาร</th><th>Line</th><th>Rev เดิม</th></tr></thead>
+        <div class="imp-bar">
+          <span id="imp-count">เลือก <b>${rows.length}</b> จาก ${rows.length} รายการ</span>
+          <span>คลิกที่แถวเพื่อเลือก/ยกเลิก</span>
+        </div>
+        <div class="imp-wrap">
+          <table class="rev-table imp-table" style="margin-top:0;">
+            <thead><tr>
+              <th class="imp-chk-cell"><input type="checkbox" class="imp-chk" id="imp-all" checked aria-label="เลือกทั้งหมด"></th>
+              <th>Doc No.</th><th>ชื่อเอกสาร</th><th>Line</th><th>Rev เดิม</th>
+            </tr></thead>
             <tbody>
-              ${rows.map(r => `
-                <tr>
+              ${rows.map((r, i) => `
+                <tr class="imp-row" data-i="${i}">
+                  <td class="imp-chk-cell"><input type="checkbox" class="imp-chk imp-item" data-i="${i}" checked aria-label="เลือก ${escAttr(r.docNo)}"></td>
                   <td>${esc(r.docNo)}</td>
                   <td>${esc(r.docName)}</td>
                   <td>${esc(r.department)}</td>
@@ -1284,7 +1305,37 @@
     `;
 
     document.getElementById('btn-import-cancel').addEventListener('click', () => box.innerHTML = '');
-    document.getElementById('btn-import-confirm').addEventListener('click', () => runImport(rows));
+
+    // ── ติ๊กเลือกรายการที่จะนำเข้า (ค่าเริ่มต้น: เลือกทั้งหมด) ──
+    const items = [...box.querySelectorAll('.imp-item')];
+    const allChk = document.getElementById('imp-all');
+    const confirmBtn = document.getElementById('btn-import-confirm');
+    const msgEl = document.getElementById('imp-msg');
+    const selectedRows = () => items.filter(c => c.checked).map(c => rows[+c.dataset.i]);
+    function refreshSel() {
+      const n = items.filter(c => c.checked).length;
+      items.forEach(c => c.closest('tr').classList.toggle('off', !c.checked));
+      allChk.checked = n === items.length;
+      allChk.indeterminate = n > 0 && n < items.length;
+      document.getElementById('imp-count').innerHTML = `เลือก <b>${n}</b> จาก ${items.length} รายการ`;
+      confirmBtn.textContent = n ? `📥 นำเข้า ${n} รายการ` : '📥 นำเข้า';
+      if (n) { msgEl.textContent = ''; msgEl.className = 'form-msg'; }
+    }
+    items.forEach(c => c.addEventListener('change', refreshSel));
+    allChk.addEventListener('change', () => { items.forEach(c => { c.checked = allChk.checked; }); refreshSel(); });
+    box.querySelectorAll('.imp-row').forEach(tr => tr.addEventListener('click', e => {
+      if (e.target.closest('input')) return; // คลิกที่ช่องติ๊กเอง ให้ change จัดการ
+      const c = tr.querySelector('.imp-item'); c.checked = !c.checked; refreshSel();
+    }));
+    confirmBtn.addEventListener('click', () => {
+      const chosen = selectedRows();
+      if (!chosen.length) {
+        msgEl.textContent = 'กรุณาเลือกอย่างน้อย 1 รายการ';
+        msgEl.className = 'form-msg err';
+        return;
+      }
+      runImport(chosen);
+    });
   }
 
   async function runImport(rows) {
