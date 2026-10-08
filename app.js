@@ -7133,17 +7133,22 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     const el = $('adm-holiday-list');
     if (!el) return;
     if (!holidaysCache.length) {
-      el.innerHTML = '<div class="adm-item" style="color:var(--text-muted);font-style:italic">ยังไม่มีวันหยุดที่ตั้งไว้</div>';
+      el.innerHTML = '<div class="hol-empty">ยังไม่มีวันหยุดที่ตั้งไว้ — คลิกวันที่บนปฏิทินด้านบนเพื่อเริ่มตั้ง</div>';
       return;
     }
+    const todayIso = localDateStr();
     el.innerHTML = holidaysCache.map(h => {
       const dt = new Date(h.holiday_date + 'T00:00:00');
-      const dateLabel = dt.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric', weekday: 'short' });
+      const dayNum = String(dt.getDate()).padStart(2, '0');
+      const mon = dt.toLocaleDateString('th-TH', { month: 'short' });
+      const full = dt.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      const past = h.holiday_date < todayIso;
       return `
-        <div class="adm-item">
-          <div class="adm-item-info">
-            <div>${escHtml(dateLabel)}</div>
-            ${h.name ? `<div class="adm-item-code">${escHtml(h.name)}</div>` : ''}
+        <div class="hol-item${past ? ' hol-item-past' : ''}">
+          <div class="hol-date"><b>${dayNum}</b><span>${escHtml(mon)}</span></div>
+          <div class="hol-info">
+            <div class="hol-title">${escHtml(h.name || 'วันหยุด')}</div>
+            <div class="hol-sub">${escHtml(full)}</div>
           </div>
           <button class="adm-item-del" data-id="${escHtml(h.id)}" title="ลบวันหยุดนี้">${ico(ICO_TRASH_P)}</button>
         </div>`;
@@ -7195,7 +7200,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   // 🆕 ปฏิทินคลิกเลือกวันหยุด — เดือนที่กำลังแสดงอยู่ (เริ่มที่เดือนปัจจุบัน)
   let calPickerMonth = new Date(); calPickerMonth.setDate(1);
 
-  function renderHolidayCalendarPicker() {
+  function renderHolidayCalendarPicker(animate) {
     const labelEl = $('cal-picker-label');
     const gridEl = $('cal-picker-grid');
     if (!labelEl || !gridEl) return;
@@ -7203,32 +7208,72 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     const year = calPickerMonth.getFullYear();
     const month = calPickerMonth.getMonth(); // 0-based
     const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-    labelEl.textContent = `${monthNames[month]} ${year + 543}`;
+    labelEl.innerHTML = `${monthNames[month]}<small>${year + 543}</small>`;
 
-    const holidaySet = new Set(holidaysCache.map(h => h.holiday_date));
+    const holidayMap = new Map(holidaysCache.map(h => [h.holiday_date, h]));
     const todayIso = localDateStr();
 
     const firstDow = new Date(year, month, 1).getDay(); // 0=อาทิตย์
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
     let html = '';
-    for (let i = 0; i < firstDow; i++) html += `<div class="cal-day cal-day-empty"></div>`;
+    let offCount = 0;
+    for (let i = 0; i < firstDow; i++) html += `<div class="cal-day cal-day-empty" aria-hidden="true"></div>`;
     for (let day = 1; day <= daysInMonth; day++) {
       const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const dow = new Date(year, month, day).getDay();
-      const isHoliday = holidaySet.has(iso);
+      const hol = holidayMap.get(iso);
+      const isHoliday = !!hol;
       const isToday = iso === todayIso;
+      if (isHoliday) offCount++;
       const cls = ['cal-day'];
       if (dow === 0) cls.push('cal-day-sunday');
       if (isToday) cls.push('cal-day-today');
       if (isHoliday) cls.push('cal-day-holiday');
-      html += `<div class="${cls.join(' ')}" data-date="${iso}" title="${isHoliday ? 'คลิกเพื่อยกเลิกวันหยุด' : 'คลิกเพื่อตั้งเป็นวันหยุด'}">${day}</div>`;
+      const tag = isHoliday ? (hol.name || 'หยุด') : (isToday ? 'วันนี้' : '');
+      const tip = (isHoliday ? 'คลิกเพื่อยกเลิกวันหยุด' : 'คลิกเพื่อตั้งเป็นวันหยุด') + (hol && hol.name ? ` (${hol.name})` : '');
+      html += `<button type="button" class="${cls.join(' ')}" data-date="${iso}" aria-pressed="${isHoliday}" title="${escHtml(tip)}">` +
+        `<span class="cal-day-num">${day}</span>${tag ? `<span class="cal-day-tag">${escHtml(tag)}</span>` : ''}</button>`;
     }
     gridEl.innerHTML = html;
+
+    const sumEl = $('cal-month-summary');
+    if (sumEl) sumEl.innerHTML = `<span class="cal-chip cal-chip-off">หยุด ${offCount} วัน</span><span class="cal-chip cal-chip-on">ทำงาน ${daysInMonth - offCount} วัน</span>`;
+
+    if (animate) { gridEl.classList.remove('cal-fade'); void gridEl.offsetWidth; gridEl.classList.add('cal-fade'); }
 
     gridEl.querySelectorAll('.cal-day:not(.cal-day-empty)').forEach(cell => {
       cell.addEventListener('click', () => toggleHolidayFromCalendar(cell.dataset.date));
     });
+  }
+
+  // ทางลัด: ตั้งหยุดทุกวันอาทิตย์ (หรือเสาร์–อาทิตย์) ของเดือนที่กำลังดูอยู่ — เพิ่มเฉพาะวันที่ยังไม่ได้ตั้ง ไม่ทับชื่อวันหยุดเดิม
+  async function fillMonthHolidays(weekdays) {
+    if (!sb) { toast('ไม่ได้เชื่อมต่อ Supabase', 'ng'); return; }
+    const year = calPickerMonth.getFullYear();
+    const month = calPickerMonth.getMonth();
+    const existing = new Set(holidaysCache.map(h => h.holiday_date));
+    const by = localStorage.getItem('fc_admin_user') || 'admin';
+    const rows = [];
+    for (let d = 1, n = new Date(year, month + 1, 0).getDate(); d <= n; d++) {
+      if (!weekdays.includes(new Date(year, month, d).getDay())) continue;
+      const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      if (!existing.has(iso)) rows.push({ id: iso, holiday_date: iso, name: null, marked_by: by });
+    }
+    if (!rows.length) { toast('เดือนนี้ตั้งวันหยุดครบแล้ว', 'ok'); return; }
+    const btns = document.querySelectorAll('.cal-quick');
+    btns.forEach(b => b.disabled = true);
+    try {
+      const { error } = await sb.from('holidays').upsert(rows);
+      if (error) throw error;
+      toast(`ตั้งวันหยุดเพิ่ม ${rows.length} วัน`, 'ok');
+      await loadHolidays();
+    } catch (e) {
+      console.error('fillMonthHolidays error:', e);
+      toast('ตั้งวันหยุดไม่สำเร็จ', 'ng');
+    } finally {
+      btns.forEach(b => b.disabled = false);
+    }
   }
 
   async function toggleHolidayFromCalendar(iso) {
@@ -7262,12 +7307,18 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
 
     $('cal-prev-month')?.addEventListener('click', () => {
       calPickerMonth.setMonth(calPickerMonth.getMonth() - 1);
-      renderHolidayCalendarPicker();
+      renderHolidayCalendarPicker(true);
     });
     $('cal-next-month')?.addEventListener('click', () => {
       calPickerMonth.setMonth(calPickerMonth.getMonth() + 1);
-      renderHolidayCalendarPicker();
+      renderHolidayCalendarPicker(true);
     });
+    $('cal-today-btn')?.addEventListener('click', () => {
+      calPickerMonth = new Date(); calPickerMonth.setDate(1);
+      renderHolidayCalendarPicker(true);
+    });
+    $('cal-fill-sun')?.addEventListener('click', () => fillMonthHolidays([0]));
+    $('cal-fill-weekend')?.addEventListener('click', () => fillMonthHolidays([0, 6]));
 
     loadHolidays();
   }
