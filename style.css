@@ -3203,3 +3203,17 @@ html[data-palette="coffee"][data-theme="dark"] {
 .cp-adj-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; flex-wrap:wrap; }
 .cp-adj-apply { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:700; }
 .cp-adj-apply:hover { background:var(--accent-hover, var(--accent)); color:#fff; filter:brightness(1.08); }
+
+/* 🔒 กลุ่ม "ผู้ใช้และความปลอดภัย" — ไอคอนล็อก + หน้าล็อกอินผู้ดูแลระบบ */
+.adm-tile-lock { position:absolute; top:10px; right:12px; font-size:13px; opacity:0; transition:opacity .15s ease; pointer-events:none; }
+.adm-tile.is-locked .adm-tile-lock { opacity:.85; }
+.adm-sys-back { position:fixed; inset:0; z-index:1400; display:flex; align-items:center; justify-content:center; padding:24px; background:var(--overlay, rgba(0,0,0,.45)); backdrop-filter:blur(3px); }
+.adm-sys-box { width:min(380px,100%); background:var(--bg-card-solid, var(--bg-card, #fff)); color:var(--text-main); border:1px solid var(--border-card); border-radius:16px; padding:20px 20px 16px; box-shadow:0 18px 50px rgba(0,0,0,.35); font-family:var(--font-thai); }
+.adm-sys-box h2 { margin:0 0 4px; font-size:17px; color:var(--text-heading); }
+.adm-sys-box p { margin:0 0 12px; font-size:12px; color:var(--text-muted); }
+.adm-sys-box label { display:block; font-size:12px; color:var(--text-muted); margin-bottom:10px; }
+.adm-sys-box input { display:block; width:100%; box-sizing:border-box; margin-top:4px; padding:10px 12px; font-size:15px; border-radius:10px; border:1px solid var(--border-input); background:var(--bg-input); color:var(--text-main); font-family:inherit; }
+.adm-sys-err { font-size:12px; color:var(--ng); margin:-2px 0 10px; }
+.adm-sys-err[hidden] { display:none; }
+.adm-sys-act { display:flex; gap:8px; justify-content:flex-end; }
+.adm-sys-ok { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:700; }

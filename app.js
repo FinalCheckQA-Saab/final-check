@@ -3469,6 +3469,27 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
      ADMIN PANEL & LOGIN
   ══════════════════════════════════════ */
   let admLoggedIn = false;
+  // 🔒 กลุ่ม "ผู้ใช้และความปลอดภัย" (รหัสผ่าน Admin / บัญชีผู้ใช้ / Login Log) ใช้ได้เฉพาะ "ผู้ดูแลระบบ" (System Admin)
+  // ผู้ดูแลระบบ = บัญชีแยกต่างหาก (ตาราง system_admins) ไม่ผูกกับ username ของ Admin Panel
+  // ต้องล็อกอินผู้ดูแลระบบอีกชั้นทุกครั้งที่เปิดกลุ่มนี้ — เก็บสถานะใน memory เท่านั้น (รีเฟรช/ปิดแผง/ออกจาก Admin = ล็อกใหม่)
+  let _sysAdminOk = false;
+  function fcIsSystemAdmin() {
+    if (!admLoggedIn) return false;
+    if (!sb) return true; // โหมด local/dev (ไม่มี Supabase) — ไม่มีบัญชีให้แยกสิทธิ์
+    return _sysAdminOk;
+  }
+  window.fcIsSystemAdmin = fcIsSystemAdmin; // ให้ admin-console.js ใช้เช็คก่อนเปิดเมนู
+  // ล็อกอินผู้ดูแลระบบ — ตรวจผ่าน RPC verify_system_admin (DB ตอบแค่ true/false) • คืน true/false, โยน error ถ้า RPC ใช้ไม่ได้
+  window.fcSysAdminLogin = async function (username, password) {
+    if (!admLoggedIn) return false;
+    if (!sb) return true;
+    const { data: ok, error } = await sb.rpc('verify_system_admin', { p_username: username, p_password: password });
+    if (error) { console.error('verify_system_admin error:', error); throw error; }
+    _sysAdminOk = ok === true;
+    if (_sysAdminOk) { renderStaffAccountList(); renderLoginLogList(); } // โหลดข้อมูลที่ถูกกั้นไว้ก่อนหน้า
+    return _sysAdminOk;
+  };
+  window.fcSysAdminLock = function () { _sysAdminOk = false; };
   // ✅ SECURITY: เก็บรหัสผ่าน admin ไว้ใน memory (ไม่ localStorage) หลัง login
   // สำเร็จ เพื่อแนบไปกับทุก RPC call ที่ต้องเช็คสิทธิ์ฝั่ง DB (sync_catalog,
   // delete_catalog_item, save_app_settings, admin_delete_history ฯลฯ)
@@ -3597,6 +3618,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       if (!(await showConfirmModal('ต้องการออกจากระบบ Admin ใช่หรือไม่?', { confirmLabel: 'ออกจากระบบ' }))) return;
       admLoggedIn = false; updateApprovalNav();
       _adminSessionPass = null;
+      _sysAdminOk = false; // 🔒 ล็อกผู้ดูแลระบบด้วยเมื่อออกจาก Admin
       localStorage.removeItem('fc_admin_user');
       closePanel('admin-panel');
       toast('ออกจากระบบเรียบร้อยแล้ว', 'ok');
@@ -3607,6 +3629,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
 
     /* Change Pass — ต้องยืนยันรหัสเดิมก่อนเสมอ (ผ่าน RPC ฝั่ง DB) */
     $('btn-adm-pass').addEventListener('click', async () => {
+      if (!fcIsSystemAdmin()) { toast('เฉพาะผู้ดูแลระบบเท่านั้นที่เปลี่ยนรหัสผ่าน Admin ได้', 'ng'); return; } // 🔒
       const oldPass = $('adm-old-pass').value.trim();
       const newPass = $('adm-new-pass').value.trim();
       if (!oldPass) { toast('กรุณากรอกรหัสผ่านเดิม', 'ng'); return; }
@@ -4097,6 +4120,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   }
 
   async function renderStaffAccountList() {
+    if (!fcIsSystemAdmin()) return; // 🔒 เฉพาะผู้ดูแลระบบ
     const box = $('adm-user-list');
     if (!box) return;
     if (!sb) { box.innerHTML = '<span class="chip-empty">ต้องเชื่อมต่อ Supabase ก่อน</span>'; return; }
@@ -4279,6 +4303,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   }
 
   async function renderLoginLogList() {
+    if (!fcIsSystemAdmin()) return; // 🔒 เฉพาะผู้ดูแลระบบ
     const box = $('adm-login-log-list');
     if (!box) return;
     if (!sb) { box.innerHTML = '<span class="chip-empty">ต้องเชื่อมต่อ Supabase ก่อน</span>'; return; }
@@ -4321,6 +4346,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
 
   function bindStaffAccountPanel() {
     $('btn-adm-add-user').addEventListener('click', async () => {
+      if (!fcIsSystemAdmin()) { toast('เฉพาะผู้ดูแลระบบเท่านั้นที่จัดการบัญชีผู้ใช้ได้', 'ng'); return; } // 🔒
       if (!sb) { toast('ต้องเชื่อมต่อ Supabase ก่อน', 'ng'); return; }
       const username = $('adm-user-username').value.trim();
       const fullName = $('adm-user-fullname').value.trim();

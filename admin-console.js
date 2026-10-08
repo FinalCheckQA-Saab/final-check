@@ -36,6 +36,8 @@
     { re: /สำรองข้อมูล|Backup/, name: 'สำรองข้อมูล',     desc: 'Export / Import Backup',      grp: 'ข้อมูลและการสำรอง' },
     { re: /บันทึก PDF/,        name: 'บันทึก PDF อัตโนมัติ', desc: 'ตั้งโฟลเดอร์ปลายทาง',    grp: 'ข้อมูลและการสำรอง' }
   ];
+  var SECURE_GRP = 'ผู้ใช้และความปลอดภัย'; /* กลุ่มนี้เปิดได้เฉพาะ System Admin — ต้องล็อกอินผู้ดูแลระบบก่อน (app.js: fcIsSystemAdmin / fcSysAdminLogin) */
+  function canSecure() { return typeof window.fcIsSystemAdmin === 'function' && window.fcIsSystemAdmin(); }
   var GROUP_ORDER = ['โครงสร้างการผลิต', 'องค์กรและเอกสาร', 'ผู้ใช้และความปลอดภัย', 'ข้อมูลและการสำรอง'];
   var FALLBACK_ICON = ico('<circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4M4.2 19.8L7 17M17 7l2.8-2.8"/>');
 
@@ -67,6 +69,51 @@
     items.unshift({ sec: storageEl, name: 'สถานะพื้นที่จัดเก็บ', desc: 'กำลังโหลด…', grp: 'ข้อมูลและการสำรอง', icon: STORAGE_ICON, full: 'สถานะพื้นที่จัดเก็บ Storage', href: null, live: true });
   }
 
+  /* ── 🔒 ล็อกอินผู้ดูแลระบบ (บัญชีแยกจาก Admin Panel) ── */
+  var tilesSecure = [];
+  function refreshLocks() {
+    var ok = canSecure();
+    tilesSecure.forEach(function (t) { t.classList.toggle('is-locked', !ok); });
+  }
+  function askSysAdmin() {
+    return new Promise(function (resolve) {
+      var ov = document.createElement('div');
+      ov.className = 'adm-sys-back';
+      ov.innerHTML =
+        '<form class="adm-sys-box" role="dialog" aria-modal="true" aria-labelledby="adm-sys-title" autocomplete="off">' +
+          '<h2 id="adm-sys-title">🔒 เข้าสู่ระบบผู้ดูแลระบบ</h2>' +
+          '<p>เมนูกลุ่ม "ผู้ใช้และความปลอดภัย" เปิดได้เฉพาะผู้ดูแลระบบ</p>' +
+          '<label>ชื่อผู้ดูแลระบบ<input type="text" name="sysu" autocomplete="off" autocapitalize="off" spellcheck="false"></label>' +
+          '<label>รหัสผ่าน<input type="password" name="sysp" autocomplete="new-password"></label>' +
+          '<div class="adm-sys-err" role="alert" hidden></div>' +
+          '<div class="adm-sys-act"><button type="button" class="btn-sec" data-x="cancel">ยกเลิก</button>' +
+          '<button type="submit" class="btn-sec adm-sys-ok">เข้าสู่ระบบ</button></div>' +
+        '</form>';
+      document.body.appendChild(ov);
+      var f = ov.querySelector('form'), u = f.elements.sysu, p = f.elements.sysp;
+      var err = ov.querySelector('.adm-sys-err'), okBtn = ov.querySelector('.adm-sys-ok');
+      function done(v) { document.removeEventListener('keydown', onKey, true); ov.remove(); resolve(v); }
+      function onKey(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); } }
+      document.addEventListener('keydown', onKey, true);
+      ov.addEventListener('mousedown', function (e) { if (e.target === ov) done(false); });
+      ov.querySelector('[data-x="cancel"]').addEventListener('click', function () { done(false); });
+      f.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var un = u.value.trim();
+        if (!un || !p.value) { err.hidden = false; err.textContent = 'กรอกชื่อและรหัสผ่านให้ครบ'; return; }
+        okBtn.disabled = true; okBtn.textContent = '🔄 กำลังตรวจสอบ...'; err.hidden = true;
+        Promise.resolve(window.fcSysAdminLogin && window.fcSysAdminLogin(un, p.value)).then(function (ok) {
+          if (ok) { done(true); return; }
+          err.hidden = false; err.textContent = 'ชื่อหรือรหัสผ่านผู้ดูแลระบบไม่ถูกต้อง';
+          p.value = ''; p.focus();
+        }).catch(function () {
+          err.hidden = false; err.textContent = 'ตรวจสอบไม่สำเร็จ — ยังไม่ได้ตั้งค่าบัญชีผู้ดูแลระบบในฐานข้อมูล หรือเชื่อมต่อไม่ได้';
+        }).then(function () { okBtn.disabled = false; okBtn.textContent = 'เข้าสู่ระบบ'; });
+      });
+      setTimeout(function () { u.focus(); }, 30);
+    });
+  }
+
   /* ── Launcher ── */
   var launcher = document.createElement('div');
   launcher.className = 'adm-launcher';
@@ -95,16 +142,25 @@
       if (it.href) { el.href = it.href; el.target = '_blank'; el.rel = 'noopener'; } else { el.type = 'button'; }
       el.innerHTML = '<span class="adm-tile-ico">' + it.icon + '</span>' +
         '<span class="adm-tile-name"></span><span class="adm-tile-desc"></span>' +
-        (it.href ? '<span class="adm-tile-ext" title="เปิดในแท็บใหม่">↗</span>' : '');
+        (it.href ? '<span class="adm-tile-ext" title="เปิดในแท็บใหม่">↗</span>' : '') +
+        (it.grp === SECURE_GRP ? '<span class="adm-tile-lock" title="เฉพาะผู้ดูแลระบบ" aria-hidden="true">🔒</span>' : '');
       el.querySelector('.adm-tile-name').textContent = it.name;
       el.querySelector('.adm-tile-desc').textContent = it.desc;
-      if (!it.href) el.addEventListener('click', function () { openModal(it, el); });
+      if (!it.href) el.addEventListener('click', function () {
+        if (it.grp === SECURE_GRP && !canSecure()) {            /* 🔒 ต้องล็อกอินผู้ดูแลระบบก่อน */
+          askSysAdmin().then(function (ok) { refreshLocks(); if (ok) openModal(it, el); });
+          return;
+        }
+        openModal(it, el);
+      });
       it.tile = el; grid.appendChild(el);
+      if (it.grp === SECURE_GRP) tilesSecure.push(el);
     });
     groupEls.push({ box: box, list: list });
     groupsWrap.appendChild(box);
   });
   head.insertAdjacentElement('afterend', launcher);
+  refreshLocks();
 
   /* ให้ไอคอนสถานะพื้นที่จัดเก็บแสดง % การใช้งานแบบสด */
   items.forEach(function (it) {
@@ -163,6 +219,7 @@
     try { localStorage.setItem('fc_adm_max', v ? '1' : '0'); } catch (e) {}
   }
   function openModal(it, from) {
+    if (it.grp === SECURE_GRP && !canSecure()) return; /* 🔒 ป้องกันซ้ำชั้นที่ 2 */
     if (current) closeModal(true);
     current = it; opener = from || null;
     back.querySelector('.adm-modal-ico').innerHTML = it.icon;
@@ -208,7 +265,11 @@
 
   /* ปิด Admin Panel / ออกจากระบบ → ปิด Modal ด้วย */
   new MutationObserver(function () {
-    if (!panel.classList.contains('open')) { closeModal(true); search.value = ''; search.dispatchEvent(new Event('input')); }
+    if (!panel.classList.contains('open')) {
+      closeModal(true); search.value = ''; search.dispatchEvent(new Event('input'));
+      if (window.fcSysAdminLock) window.fcSysAdminLock(); /* 🔒 ปิดแผง = ล็อกผู้ดูแลระบบใหม่ ต้องล็อกอินอีกครั้งเมื่อเปิดกลุ่มนี้ */
+    } else if (current && current.grp === SECURE_GRP && !canSecure()) closeModal(true);
+    refreshLocks();
   }).observe(panel, { attributes: true, attributeFilter: ['class'] });
 
   /* เปิดครั้งแรกให้ panel กว้างพอสำหรับ grid (ถ้าผู้ใช้ไม่เคยปรับขนาดเอง) */
