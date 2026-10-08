@@ -1743,7 +1743,7 @@
     bindThemeToggle();
     bindAdminPanel();
     bindPalettePanel();          // 🎨 เลือกสีธีม 10 ชุด (Admin Panel)
-    bindUncheckedLinesPanel();   // 🆕 Model ที่ไม่มีการตรวจเช็คในแต่ละวัน (Admin Panel)
+    bindUncheckedLinesPanel();   // 🆕 Part ขาดตรวจ SME (Admin Panel)
     bindHolidayCalendarPanel();  // 🆕 ปฏิทินวันหยุด (Admin Panel)
     bindAlertSchedulePanel();    // 🆕 เวลาแจ้งเตือน Telegram Part ที่ยังไม่ตรวจ S/M/E (Admin Panel)
     bindActionButtons();
@@ -3555,7 +3555,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       if (admLoggedIn) {
         openPanel('admin-panel');
         if (_adminSessionPass) { renderStaffAccountList(); renderLoginLogList(); }
-        renderUncheckedLinesReport();   // 🆕 Model ที่ไม่มีการตรวจเช็คในแต่ละวัน
+        renderUncheckedLinesReport();   // 🆕 Part ขาดตรวจ SME
       }
       else {
         $('admin-login-modal').classList.remove('hidden');
@@ -3584,7 +3584,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
           _adminSessionPass = pass; // เก็บไว้ใน memory ใช้แนบ RPC (โหมด local ไม่มี RPC จริงอยู่แล้ว แต่ตั้งไว้ให้ครบ flow)
           $('admin-login-modal').classList.add('hidden');
           openPanel('admin-panel');
-          renderUncheckedLinesReport();   // 🆕 Model ที่ไม่มีการตรวจเช็คในแต่ละวัน
+          renderUncheckedLinesReport();   // 🆕 Part ขาดตรวจ SME
           toast('เข้าสู่ระบบสำเร็จ (local mode)', 'ok');
         } else {
           toast('รหัสผ่านไม่ถูกต้อง', 'ng');
@@ -3618,7 +3618,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
           $('admin-login-modal').classList.add('hidden');
           openPanel('admin-panel');
           renderStaffAccountList(); // 🆕 โหลดรายชื่อบัญชีผู้ใช้ทันทีหลัง login (เดิมว่างเปล่าจนกว่าจะเปิด Admin Panel ซ้ำ)
-          renderUncheckedLinesReport();   // 🆕 Model ที่ไม่มีการตรวจเช็คในแต่ละวัน
+          renderUncheckedLinesReport();   // 🆕 Part ขาดตรวจ SME
           toast(`เข้าสู่ระบบสำเร็จ (${username})`, 'ok');
         } else {
           toast('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'ng');
@@ -7016,10 +7016,11 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   }
 
   /* ══════════════════════════════════════
-     LINE ที่ไม่มีการตรวจเช็คในแต่ละวัน (Admin Panel)
-     ดึงผ่าน RPC get_unchecked_lines(p_from, p_to) — คำนวณฝั่งเซิร์ฟเวอร์ทั้งหมด
-     (ดู add_unchecked_lines_report.sql) ไม่ดาวน์โหลด history เต็มแถว/รูปถ่ายมาไล่เช็คฝั่ง browser
-     เกณฑ์: Model ที่ "ไม่ตรวจเลยสักจุด" ในวันนั้น (ไม่นับ Part ที่มาร์คไม่ได้ผลิตออก)
+     Part ขาดตรวจ SME (Admin Panel)
+     ดึงผ่าน RPC get_unchecked_parts_sme(p_from, p_to) — คำนวณฝั่งเซิร์ฟเวอร์ทั้งหมด
+     (ดู add_unchecked_parts_sme_report.sql) ไม่ดาวน์โหลด history เต็มแถว/รูปถ่ายมาไล่เช็คฝั่ง browser
+     เกณฑ์: Part ที่ตรวจ "ไม่ครบ" ในช่วง S / M / E ช่วงใดช่วงหนึ่งของวันนั้น
+            (none = ยังไม่ตรวจเลย, partial = ตรวจบางจุด) — ไม่นับวันหยุด / Part ที่ไม่ผลิต / วันนี้
   ══════════════════════════════════════ */
   async function renderUncheckedLinesReport() {
     const listEl = $('adm-uncl-list');
@@ -7031,65 +7032,74 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     const from = $('adm-uncl-from')?.value;
     const to = $('adm-uncl-to')?.value;
     if (!from || !to) return;
+    if (from > to) { listEl.innerHTML = '<span class="chip-empty">วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด</span>'; if (summaryEl) summaryEl.textContent = ''; if (topEl) topEl.innerHTML = ''; return; }
 
     listEl.innerHTML = '<span class="chip-empty">🔄 กำลังโหลด...</span>';
     if (summaryEl) summaryEl.textContent = '';
     if (topEl) topEl.innerHTML = '';
 
+    const STATE_TXT = { none: 'ยังไม่ตรวจ', partial: 'ตรวจไม่ครบ', ok: 'ครบ' };
+    const smeChips = r => ['S', 'M', 'E'].map(k => {
+      const st = r[k.toLowerCase() + '_state'] || 'ok';
+      return `<span class="sme-chip ${st}" title="${k} — ${STATE_TXT[st] || st}">${k}</span>`;
+    }).join('');
+
     try {
-      const { data, error } = await sb.rpc('get_unchecked_lines', { p_from: from, p_to: to });
+      const { data, error } = await sb.rpc('get_unchecked_parts_sme', { p_from: from, p_to: to });
       if (error) throw error;
 
       const rows = data || [];
       if (!rows.length) {
-        listEl.innerHTML = '<span class="chip-empty">✅ ไม่พบ Model ที่ขาดการตรวจในช่วงที่เลือก</span>';
+        listEl.innerHTML = '<span class="chip-empty">✅ ทุก Part ตรวจครบ S / M / E ในช่วงที่เลือก (นับถึงเมื่อวาน)</span>';
         return;
       }
 
-      // ── Top offenders — นับจำนวนวันที่ขาดตรวจต่อ Model ในช่วงที่เลือก เรียงมากไปน้อย โชว์ 5 อันดับแรก ──
-      const countByLine = {};
-      rows.forEach(r => { countByLine[r.line_id] = (countByLine[r.line_id] || 0) + 1; });
-      const ranked = Object.entries(countByLine).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      // ── Top offenders — นับจำนวนวันที่ขาดตรวจต่อ Part ในช่วงที่เลือก เรียงมากไปน้อย โชว์ 5 อันดับแรก ──
+      const byPart = {};
+      rows.forEach(r => {
+        const p = (byPart[r.jig_id] = byPart[r.jig_id] || { days: 0, r });
+        p.days++;
+      });
+      const ranked = Object.values(byPart).sort((a, b) => b.days - a.days).slice(0, 5);
       if (topEl && ranked.length) {
-        const items = ranked.map(([lid, count], i) => {
-          const line = catalog.lines.find(l => l.id === lid);
-          const dept = line ? catalog.depts.find(dp => dp.id === line.deptId) : null;
-          const label = line ? (line.name || line.id) : lid;
-          return `
+        topEl.innerHTML = '<div class="adm-uncl-top-title">⚠️ Part ที่ขาดตรวจบ่อยสุด</div>' + ranked.map((p, i) => `
             <div class="uncl-top-item rank-${i + 1}">
               <span class="uncl-top-rank">${i + 1}</span>
-              <span class="uncl-top-name">${escHtml(label)}${dept ? ` <span class="uncl-dept">(${escHtml(dept.name)})</span>` : ''}</span>
-              <span class="uncl-top-count">ขาด ${count} วัน</span>
-            </div>`;
-        }).join('');
-        topEl.innerHTML = `<div class="adm-uncl-top-title">⚠️ Model ที่ขาดตรวจบ่อยสุด</div>${items}`;
+              <span class="uncl-top-name">${escHtml(p.r.jig_name || p.r.jig_id)} <span class="uncl-dept">(${escHtml(p.r.dept_name)} / ${escHtml(p.r.model_name)})</span></span>
+              <span class="uncl-top-count">ขาด ${p.days} วัน</span>
+            </div>`).join('');
       }
 
-      // จัดกลุ่มตามวันที่ (ใหม่สุดก่อน) — แต่ละวันแสดงว่า Model ไหนขาดตรวจบ้าง
+      // จัดกลุ่มตามวันที่ (ใหม่สุดก่อน) — แต่ละวันแสดงว่า Part ไหนขาดช่วงไหนบ้าง
       const byDate = {};
-      rows.forEach(r => { (byDate[r.check_date] = byDate[r.check_date] || []).push(r.line_id); });
+      rows.forEach(r => { (byDate[r.check_date] = byDate[r.check_date] || []).push(r); });
       const dates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
 
-      if (summaryEl) summaryEl.textContent = `พบ Model ที่ขาดการตรวจรวม ${rows.length} ครั้ง ใน ${dates.length} วัน`;
+      const miss = { s: 0, m: 0, e: 0 };
+      rows.forEach(r => { ['s', 'm', 'e'].forEach(k => { if (r[k + '_state'] !== 'ok') miss[k]++; }); });
+      if (summaryEl) summaryEl.textContent = `พบ Part ที่ขาดตรวจ ${rows.length} รายการ ใน ${dates.length} วัน — ขาด S ${miss.s} ครั้ง, M ${miss.m} ครั้ง, E ${miss.e} ครั้ง`;
 
-      listEl.innerHTML = dates.map(d => {
+      listEl.innerHTML = dates.map((d, idx) => {
         const dt = new Date(d + 'T00:00:00');
         const dateLabel = dt.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric', weekday: 'short' });
-        const lineChips = byDate[d].map(lid => {
-          const line = catalog.lines.find(l => l.id === lid);
-          const dept = line ? catalog.depts.find(dp => dp.id === line.deptId) : null;
-          const label = line ? (line.name || line.id) : lid;
-          return `<span class="uncl-line-chip">${escHtml(label)}${dept ? ` <span class="uncl-dept">(${escHtml(dept.name)})</span>` : ''}</span>`;
+        let lastDept = null;
+        const partRows = byDate[d].map(r => {
+          const head = r.dept_id !== lastDept ? `<div class="uncl-grp">${escHtml(r.dept_name)}</div>` : '';
+          lastDept = r.dept_id;
+          return `${head}<div class="uncl-part">
+              <div class="uncl-part-info"><span class="uncl-part-name">${escHtml(r.jig_name || r.jig_id)}</span><span class="uncl-part-sub">Part No.: ${escHtml(r.jig_id)} · ${escHtml(r.model_name)}</span></div>
+              <div class="uncl-sme">${smeChips(r)}</div>
+            </div>`;
         }).join('');
         return `
-          <div class="adm-uncl-item">
-            <div class="uncl-date">${escHtml(dateLabel)} <span class="uncl-count">${byDate[d].length} Model</span></div>
-            <div class="uncl-lines">${lineChips}</div>
-          </div>`;
+          <details class="adm-uncl-item"${idx === 0 ? ' open' : ''}>
+            <summary class="uncl-date"><span>${escHtml(dateLabel)}</span> <span class="uncl-count">${byDate[d].length} Part</span></summary>
+            <div class="uncl-parts">${partRows}</div>
+          </details>`;
       }).join('');
     } catch (e) {
-      console.error('get_unchecked_lines error (ตรวจสอบว่ารัน SQL migration add_unchecked_lines_report.sql แล้วหรือยัง):', e);
-      listEl.innerHTML = '<span class="chip-empty">โหลดไม่สำเร็จ — ตรวจสอบว่ารัน SQL migration (add_unchecked_lines_report.sql) แล้วหรือยัง</span>';
+      console.error('get_unchecked_parts_sme error (ตรวจสอบว่ารัน SQL migration add_unchecked_parts_sme_report.sql แล้วหรือยัง):', e);
+      listEl.innerHTML = '<span class="chip-empty">โหลดไม่สำเร็จ — ตรวจสอบว่ารัน SQL migration (add_unchecked_parts_sme_report.sql) แล้วหรือยัง</span>';
     }
   }
 

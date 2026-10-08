@@ -44,7 +44,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- ⚠️ CACHE-BUST: เบราว์เซอร์/PWA มัก cache ไฟล์ .css ค้างไว้นานผิดปกติ (เหมือน app.js ด้านล่าง)
        เพิ่ม ?v= ให้บังคับโหลดไฟล์ใหม่ทุกครั้งที่แก้ style.css — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ style.css -->
-  <link rel="stylesheet" href="style.css?v=fc-holcal1">
+  <link rel="stylesheet" href="style.css?v=fc-sme1">
 </head>
 <body>
 
@@ -753,12 +753,12 @@
       <div class="admin-list admin-list-scroll" id="adm-line-list"></div>
     </div>
 
-    <!-- 🆕 Model ที่ไม่มีการตรวจเช็คในแต่ละวัน — ดึงผ่าน RPC get_unchecked_lines (คำนวณฝั่งเซิร์ฟเวอร์
-         ไม่ดาวน์โหลดรูปถ่าย/ข้อมูลเต็มแถวจาก history เหมือนวิธีเดิม, ดู add_unchecked_lines_report.sql) -->
+    <!-- 🆕 Part ขาดตรวจ SME — ดึงผ่าน RPC get_unchecked_parts_sme (คำนวณฝั่งเซิร์ฟเวอร์
+         ไม่ดาวน์โหลดรูปถ่าย/ข้อมูลเต็มแถวจาก history, ดู add_unchecked_parts_sme_report.sql) -->
     <div class="admin-section">
-      <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Model ที่ไม่มีการตรวจเช็คในแต่ละวัน</div>
+      <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Part ขาดตรวจ S / M / E</div>
       <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px; line-height:1.5;">
-        แสดง Model ที่ <b>ไม่มีการตรวจเลยสักจุด</b> ในวันนั้นๆ (Model ที่มาร์ค "ไม่ได้ผลิต" ครบทุก Part แล้ว จะไม่ถูกนับว่าขาดตรวจ) — เลือกช่วงวันที่แล้วกด "ค้นหา"
+        แสดง Part ที่ตรวจ <b>ไม่ครบ S / M / E</b> ในแต่ละวัน — ไม่นับวันหยุด, Part ที่มาร์ค "ไม่ได้ผลิต" และวันนี้ (ยังตรวจได้ทั้งวัน) — เลือกช่วงวันที่แล้วกด "ค้นหา"
       </div>
       <div class="admin-input-row">
         <input type="date" id="adm-uncl-from" title="จากวันที่">
@@ -1206,7 +1206,7 @@
 <!-- 🆕 ใส่เลขเวอร์ชันต่อท้าย ?v=... เพื่อบังคับให้เบราว์เซอร์ (โดยเฉพาะ Safari บน iPhone ซึ่งแคชไฟล์ .js
      ค้างนานผิดปกติ) โหลด app.js ก้อนใหม่ทุกครั้งที่มีการอัปเดตโค้ด — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ app.js
      แล้ว push ขึ้นใหม่ ไม่งั้นเครื่องที่เคยเข้าเว็บมาก่อนจะยังใช้ไฟล์เก่าจากแคชอยู่ -->
-<script src="app.js?v=fc-holcal1"></script>
+<script src="app.js?v=fc-sme1"></script>
 <script src="admin-console.js?v=1"></script>
 <script>
 (function () {
