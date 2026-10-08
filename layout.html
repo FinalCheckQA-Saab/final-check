@@ -6,7 +6,7 @@
 <title>Daily Quality Inspection Dashboard</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="manifest" href="manifest.json">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--navy:#16324f;--gold:#c9a24a;--ok:#22c55e;--ng:#ef4444;--part:#f59e0b;--fix:#06b6d4;--none:#cbd5e1;--text:#1f2937;--glass:rgba(255,255,255,.07);--line:rgba(255,255,255,.12)}
@@ -114,13 +114,59 @@ i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--p
 .lga button{padding:10px 18px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.08);cursor:pointer;font-weight:600}
 .lga button:hover{background:rgba(255,255,255,.16)}
 .lga .go{background:linear-gradient(135deg,#e2c46f,#c9a24a);border-color:transparent;color:#1f2937}.lga .go:hover{filter:brightness(1.08)}.lga .go:disabled{opacity:.6;cursor:wait}
+
+/* ═════ v2 — Header refresh ═════ */
+:root{--num:'Outfit','Noto Sans Thai',sans-serif}
+.top{position:sticky;top:0;z-index:40;padding:14px 24px 0;border-bottom:0;
+ background:radial-gradient(620px 160px at 94% -40px,rgba(201,162,74,.28),transparent 70%),radial-gradient(700px 180px at 6% -60px,rgba(47,111,209,.32),transparent 70%),linear-gradient(180deg,rgba(15,33,55,.96),rgba(10,21,36,.92));
+ -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 10px 30px -12px rgba(0,0,0,.7)}
+.top::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold) 20%,rgba(201,162,74,.15) 60%,transparent)}
+.logo{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;flex:none;color:#0f2137;background:linear-gradient(135deg,#f3d98b,var(--gold));box-shadow:0 6px 18px -4px rgba(201,162,74,.6),inset 0 1px 0 rgba(255,255,255,.5)}
+.logo svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+.ttl-row{display:flex;align-items:center;gap:14px;margin-top:6px}
+h1{font-size:26px;margin:0;letter-spacing:.2px}h1::after{display:none}
+.sub{margin:6px 0 0;font-size:13px;color:#a9bdd2}
+a.back{display:inline-block;padding:2px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);transition:.18s}
+a.back:hover{border-color:rgba(236,201,114,.7);background:rgba(255,255,255,.12)}
+.clock{padding:10px 18px 10px 20px;border-radius:18px;background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 24px -12px rgba(0,0,0,.6)}
+.c-time{font-family:var(--num);font-weight:600;font-size:40px;letter-spacing:1.5px}
+.c-date{font-size:13px;color:#d3dde9}
+.live{padding:2px 10px;border-radius:999px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#bdf0cf}
+.kpis{gap:12px}
+.kpi{position:relative;overflow:hidden;padding:12px 16px;border-radius:16px;border:1px solid color-mix(in srgb,var(--c,#64748b) 35%,var(--line));border-left-width:1px;
+ background:radial-gradient(160px 80px at 0 0,color-mix(in srgb,var(--c,#64748b) 24%,transparent),transparent 75%),linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.03));box-shadow:0 12px 26px -16px color-mix(in srgb,var(--c,#64748b) 70%,#000)}
+.kpi .ic{width:40px;height:40px;border-radius:13px;font-size:18px;background:linear-gradient(145deg,color-mix(in srgb,var(--c,#64748b) 85%,#fff),var(--c,#64748b))}
+.kpi b{font-family:var(--num);font-size:32px;font-weight:600;letter-spacing:-.5px}
+.kpi span{font-size:12.5px;color:#c3d0de}
+.prog .h b{font-family:var(--num);font-size:22px}
+.bar{height:10px;background:rgba(255,255,255,.1)}
+.bar i{position:relative;background:linear-gradient(90deg,#16a34a,#4ade80);box-shadow:0 0 14px rgba(74,222,128,.5)}
+.bar i::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);background-size:200% 100%;animation:shine 2.8s linear infinite}
+@keyframes shine{from{background-position:200% 0}to{background-position:-200% 0}}
+.handle{margin-top:10px;position:relative;z-index:1}
+.tg{border:1px solid rgba(236,201,114,.35);border-radius:999px;padding:3px 18px;margin-bottom:-11px;font-size:11.5px;color:#ecd9a0;background:linear-gradient(180deg,#1b3553,#10243b);box-shadow:0 6px 16px -6px rgba(0,0,0,.7);transition:.18s}
+.tg:hover{border-color:rgba(236,201,114,.8);color:#fff;transform:translateY(1px)}
+.tg:focus-visible{outline:2px solid #ecc972;outline-offset:2px}
+.top-mini{padding:2px 0 8px;gap:16px}
+.top-mini strong.mt{display:flex;align-items:center;gap:10px;font-size:16px}
+.top-mini .logo{width:30px;height:30px;border-radius:10px}.top-mini .logo svg{width:17px;height:17px}
+.mini-k{gap:8px}
+.mini-k span{padding:4px 12px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid var(--line);font-size:13px;color:#d3dde9}
+.mini-k b{font-family:var(--num);font-size:15px;color:#fff}
+.mini-k em{width:9px;height:9px;box-shadow:0 0 8px currentColor}
+.mini-k span:nth-child(1) em{color:var(--ok)}.mini-k span:nth-child(2) em{color:var(--part)}.mini-k span:nth-child(3) em{color:var(--ng)}
+.top-mini .c-time{font-family:var(--num);font-size:24px;font-weight:600}
+.top-mini .c-date{color:#c3d0de}
+body.collapsed .top{padding-top:10px}
+@media (max-width:640px){.top{padding:10px 14px 0}h1{font-size:19px}.c-time{font-size:30px}.logo{width:34px;height:34px}.clock{padding:8px 14px}}
+@media (prefers-reduced-motion:reduce){.bar i::after,.dot,.kpi.ng.hot{animation:none}}
 </style>
 </head>
 <body>
 <header class="top">
   <div class="top-full">
     <div class="r1">
-      <div><a class="back" href="index.html">‹ กลับแอปหลัก</a><h1 id="ttl">Daily Quality Inspection Dashboard</h1><div class="sub">สถานะการตรวจ S / M / E แบบเรียลไทม์ ตามตำแหน่งจริงบน Layout</div></div>
+      <div><a class="back" href="index.html">‹ กลับแอปหลัก</a><div class="ttl-row"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="m14 17 2 2 4-4"/></svg></span><h1 id="ttl">Daily Quality Inspection Dashboard</h1></div><div class="sub">สถานะการตรวจ S / M / E แบบเรียลไทม์ ตามตำแหน่งจริงบน Layout</div></div>
       <div class="clock"><div class="c-time">--:--:--</div><div class="c-date"></div><div class="live"><span class="dot"></span><span id="upd">กำลังโหลด...</span></div></div>
     </div>
     <div class="kpis">
@@ -133,7 +179,7 @@ i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--p
     </div>
   </div>
   <div class="top-mini">
-    <strong id="ttl2">Daily Quality Inspection Dashboard</strong>
+    <strong class="mt"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="m14 17 2 2 4-4"/></svg></span><span id="ttl2">Daily Quality Inspection Dashboard</span></strong>
     <div class="mini-k"><span><em style="background:var(--ok)"></em>ครบ <b id="m-ok">0</b></span><span><em style="background:var(--part)"></em>กำลังตรวจ <b id="m-part">0</b></span><span><em style="background:var(--ng)"></em>NG <b id="m-ng">0</b></span><span><em style="background:#94a3b8"></em>ยังไม่ตรวจ <b id="m-none">0</b></span></div>
     <div style="text-align:right"><span class="c-time">--:--:--</span> <span class="c-date"></span></div>
   </div>
