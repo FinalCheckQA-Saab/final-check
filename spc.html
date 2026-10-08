@@ -27,7 +27,37 @@ body{margin:0;font-family:'Noto Sans Thai',Tahoma,sans-serif;background:var(--bg
 header{background:linear-gradient(135deg,#0f2137,var(--navy));color:#fff;padding:12px 18px;border-bottom:3px solid var(--gold);display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
 header h1{margin:0;font-size:20px}header small{color:#cbd5e1;display:block;font-size:12px}
 a.back{color:#fff;font-size:13px;text-decoration:none;opacity:.9}
-.hbtn{font:inherit;font-size:13px;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-weight:600}
+/* ── ปุ่มหัวหน้า (ธีม / รีเฟรช): pill กระจกฝ้า + ไอคอน SVG เส้นคม + ไฮไลต์สีทอง ── */
+.hactions{display:flex;gap:10px;align-items:center}
+.hbtn{display:inline-flex;align-items:center;gap:9px;font:inherit;font-size:13px;font-weight:600;letter-spacing:.2px;line-height:1;
+  padding:6px 16px 6px 6px;border-radius:999px;border:1px solid rgba(255,255,255,.22);color:#fff;cursor:pointer;
+  background:linear-gradient(180deg,rgba(255,255,255,.17),rgba(255,255,255,.05));
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 3px 10px rgba(0,0,0,.28);
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease}
+.hbtn .ico{position:relative;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;
+  color:#ecc972;background:radial-gradient(circle at 30% 25%,rgba(236,201,114,.34),rgba(236,201,114,.1));
+  box-shadow:inset 0 0 0 1px rgba(236,201,114,.35);transition:background .2s ease,color .2s ease,box-shadow .2s ease}
+.hbtn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hbtn:hover{transform:translateY(-1px);border-color:rgba(236,201,114,.75);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 6px 16px rgba(0,0,0,.34),0 0 0 3px rgba(201,162,74,.18)}
+.hbtn:hover .ico{background:linear-gradient(135deg,#f0d283,var(--gold));color:#0f2137;box-shadow:0 0 12px rgba(236,201,114,.55)}
+.hbtn:active{transform:translateY(0) scale(.96)}
+.hbtn:focus-visible{outline:2px solid #ecc972;outline-offset:3px}
+/* ธีม: ดวงอาทิตย์ ⇄ พระจันทร์ หมุนสลับตามโหมดปัจจุบัน */
+.hbtn .ico-sun,.hbtn .ico-moon{position:absolute;transition:transform .55s cubic-bezier(.34,1.56,.64,1),opacity .3s ease}
+:root[data-theme="light"] .hbtn .ico-moon{opacity:0;transform:rotate(-100deg) scale(.3)}
+:root[data-theme="dark"] .hbtn .ico-sun{opacity:0;transform:rotate(100deg) scale(.3)}
+:root[data-theme="light"] #btn-theme:hover .ico-sun{transform:rotate(45deg) scale(1.08)}
+:root[data-theme="dark"] #btn-theme:hover .ico-moon{transform:rotate(-14deg) scale(1.08)}
+/* รีเฟรช: หมุนเมื่อ hover และหมุนต่อเนื่องระหว่างโหลดข้อมูล */
+.hbtn .ico-refresh{transition:transform .5s cubic-bezier(.34,1.56,.64,1)}
+#btn-refresh:hover .ico-refresh{transform:rotate(180deg)}
+#btn-refresh.spin{pointer-events:none;border-color:rgba(236,201,114,.75)}
+#btn-refresh.spin .ico-refresh{animation:hspin .85s linear infinite}
+@keyframes hspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.hbtn,.hbtn *{transition:none!important}#btn-refresh.spin .ico-refresh{animation-duration:2s}}
+@media (max-width:480px){.hbtn{padding-right:12px}}
 main{padding:14px 18px 40px;max-width:1100px;margin:0 auto}
 .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
 .filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
@@ -67,7 +97,19 @@ td.bad{color:var(--bad);font-weight:700}
 <body>
 <header>
   <div><a class="back" id="back" href="index.html">‹ กลับแอปหลัก</a><h1>SPC — กราฟควบคุม UCL / LCL</h1><small>X̄–R Chart ของหัวข้อที่ตรวจเป็นตัวเลข (ชิ้น S / M / E เป็น 1 กลุ่มย่อย) แยกตาม Part Number และเดือน</small></div>
-  <div><button class="hbtn" id="btn-theme" type="button" title="สลับธีม">🌓 ธีม</button> <button class="hbtn" id="btn-refresh" type="button">🔄 รีเฟรช</button></div>
+  <div class="hactions">
+    <button class="hbtn" id="btn-theme" type="button" title="สลับธีม สว่าง / มืด" aria-label="สลับธีม สว่าง / มืด">
+      <span class="ico" aria-hidden="true">
+        <svg class="ico-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <svg class="ico-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </span><span>ธีม</span>
+    </button>
+    <button class="hbtn" id="btn-refresh" type="button" title="โหลดข้อมูลล่าสุด" aria-label="รีเฟรชข้อมูล">
+      <span class="ico" aria-hidden="true">
+        <svg class="ico-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+      </span><span>รีเฟรช</span>
+    </button>
+  </div>
 </header>
 <main>
   <div id="warn"></div>
@@ -316,7 +358,8 @@ function sync(){const p=new URLSearchParams();if($('f-part').value)p.set('part',
 $('f-part').onchange=()=>{sync();loadData()};
 $('f-month').onchange=()=>{sync();loadData()};
 $('f-item').onchange=draw;
-$('btn-refresh').onclick=loadData;
+$('btn-refresh').onclick=async()=>{const b=$('btn-refresh');if(b.classList.contains('spin'))return;b.classList.add('spin');const t0=Date.now();
+  try{await loadData()}finally{setTimeout(()=>b.classList.remove('spin'),Math.max(0,700-(Date.now()-t0)))}};
 let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(document.querySelector('#c-x'))draw()},150)});
 (async()=>{
   $('f-month').value=q.get('month')||thisMonth();
