@@ -3330,3 +3330,21 @@ html[data-palette="coffee"][data-theme="dark"] {
 .ai-result{ min-height:150px; border-radius:16px; border:1.5px dashed color-mix(in srgb,var(--accent) 35%,var(--border-card)); background:radial-gradient(260px 120px at 50% 0,var(--accent-dim),transparent 75%),var(--bg-input); }
 .ai-placeholder{ min-height:120px; gap:12px; color:var(--text-muted); line-height:1.7; font-size:13.5px; }
 .ai-placeholder svg{ width:44px; height:44px; padding:10px; border-radius:14px; color:hsl(260,70%,60%); background:hsla(260,70%,60%,.12); box-shadow:inset 0 0 0 1px hsla(260,70%,60%,.28); }
+
+/* ── AI report v2 (ผลวิเคราะห์) ── */
+.ai-report{ font-size:14px; line-height:1.75; padding:4px 2px; }
+.ai-report h3{ position:sticky; top:0; z-index:1; margin:22px 0 10px; padding:9px 14px; border-radius:12px; font-size:14.5px; letter-spacing:.2px; color:var(--text-heading);
+  background:linear-gradient(90deg,var(--accent-dim),transparent 85%); border-left:4px solid var(--accent); backdrop-filter:blur(6px); }
+.ai-report h3:first-child{ margin-top:0; }
+.ai-report p{ margin:0 0 10px; color:var(--text-main); }
+.ai-report ul{ list-style:none; padding:0; margin:0 0 6px; display:grid; gap:8px; }
+.ai-report li{ --lc:var(--accent); position:relative; margin:0; padding:11px 14px 11px 18px; border-radius:14px; background:var(--bg-card); border:1px solid var(--border-card); box-shadow:0 1px 2px hsla(220,40%,20%,.05); transition:transform .15s, box-shadow .15s; }
+.ai-report li::before{ content:""; position:absolute; left:0; top:10px; bottom:10px; width:4px; border-radius:0 4px 4px 0; background:var(--lc); }
+.ai-report li:has(.tag-high){ --lc:var(--ng); }.ai-report li:has(.tag-med){ --lc:var(--fixed); }.ai-report li:has(.tag-low){ --lc:var(--ok); }
+.ai-report li:hover{ transform:translateY(-1px); box-shadow:0 10px 22px -12px color-mix(in srgb,var(--lc) 60%,hsla(0,0%,0%,.4)); }
+.ai-report li small{ color:var(--text-muted); font-size:12.5px; }
+.ai-report strong{ color:var(--text-heading); font-weight:700; }
+.ai-report .tag-risk{ font-size:11px; font-weight:700; padding:2px 10px; border-radius:999px; margin-left:8px; white-space:nowrap; }
+.ai-report .report-sep{ border-top:1px dashed var(--border-card); margin:16px 0; }
+.ai-result:has(.ai-report){ border-style:solid; background:var(--bg-body); padding:18px; }
+@media (max-width:760px){ .ai-report li{ padding:10px 12px 10px 16px; } .ai-report h3{ font-size:13.5px; } }
