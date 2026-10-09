@@ -519,7 +519,7 @@ textarea:focus,input[type=text]:focus{outline:0;border-color:var(--accent);box-s
       const note = item.note ? ` - _${esc(item.note)}_` : '';
       return `${idx + 1}. ${esc(item.label)}${value}${note}`;
     });
-    return `\n*<i class="ti ti-alert"></i>รายการที่ไม่ผ่าน:*\n${lines.join('\n')}\n`;
+    return `\n*🔴 รายการที่ไม่ผ่าน:*\n${lines.join('\n')}\n`;
   }
   // สรุปผลรายชิ้น S / M / E ใส่ในข้อความแจ้ง Supervisor (ผ่านกี่จุด / NG กี่จุด / เวลาที่ส่ง)
   function stageSummaryText(items, inspector) {
@@ -742,11 +742,11 @@ textarea:focus,input[type=text]:focus{outline:0;border-color:var(--accent);box-s
     const managerDashUrl = window.location.href.replace(/approve\.html.*$/, '').replace(/\/?$/, '/') + `manager-approve.html`;
     const text = `
 📋 *Daily Quality Inspection Report*
-<i class="ti ti-clock"></i>สถานะ: รอ Supervisor อนุมัติ (ขั้นที่ 2) — ตรวจสอบแบบกลุ่ม
+⏳ สถานะ: รอ Supervisor อนุมัติ (ขั้นที่ 2) — ตรวจสอบแบบกลุ่ม
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-<i class="ti ti-factory"></i>Model: ${esc(lineName)}
+🏭 Model: ${esc(lineName)}
 📦 จำนวน: ${count} รายการ (ผ่านทั้งหมด ไม่มี NG)
-<i class="ti ti-check"></i>Leaderตรวจสอบแล้วโดย: ${esc(approverName)}
+✅ Leader ตรวจสอบแล้วโดย: ${esc(approverName)}
 🕐 เมื่อ: ${new Date().toLocaleString('th-TH')}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
@@ -756,7 +756,7 @@ textarea:focus,input[type=text]:focus{outline:0;border-color:var(--accent);box-s
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
         body: JSON.stringify({
           text, chatId: MANAGER_NOTIFY_CHAT_ID,
-          buttonUrl: managerDashUrl, buttonText: '<i class="ti ti-check"></i>เปิดรายการรออนุมัติ (Supervisor)',
+          buttonUrl: managerDashUrl, buttonText: '✅ เปิดรายการรออนุมัติ (Supervisor)',
         }),
       });
     } catch (e) {
@@ -972,7 +972,7 @@ textarea:focus,input[type=text]:focus{outline:0;border-color:var(--accent);box-s
 
     const text = `
 📋 *Daily Quality Inspection Report*
-<i class="ti ti-clock"></i>สถานะ: รอ Supervisor อนุมัติ (ขั้นที่ 2)
+⏳ สถานะ: รอ Supervisor อนุมัติ (ขั้นที่ 2)
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 *${esc(row.jig_name)}*
 ${esc(row.jig_id || '')}
@@ -981,10 +981,10 @@ ${row.jig_doc_no ? `_${esc(row.jig_doc_no)}_` : ''}
 📅 วันที่ตรวจ: ${esc(row.insp_date)} เวลา ${esc(time)}${time ? ' น.' : ''}
 🏷 Production Order: ${esc(row.production_order || '-')}
 👤 ผู้ตรวจ: ${esc(row.inspector)}
-<i class="ti ti-search"></i>จุดเช็คทั้งหมด: ${items.length} จุด
-<i class="ti ti-check"></i>ผ่าน (OK): ${okCount}${ngCount > 0 ? `  ❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
+🔍 จุดเช็คทั้งหมด: ${items.length} จุด
+✅ ผ่าน (OK): ${okCount}${ngCount > 0 ? `  ❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 ${stageSummaryText(items, row.inspector)}${ngListText(items)}
-<i class="ti ti-check"></i>Leaderตรวจสอบแล้วโดย: ${esc(row.approved_by)}
+✅ Leader ตรวจสอบแล้วโดย: ${esc(row.approved_by)}
 🕐 เมื่อ: ${new Date(row.approved_at).toLocaleString('th-TH')}
 ${row.supervisor_comment ? `💬 ความเห็น: ${esc(row.supervisor_comment)}` : ''}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1003,7 +1003,7 @@ ${row.supervisor_comment ? `💬 ความเห็น: ${esc(row.supervisor_
         },
         body: JSON.stringify({
           text, chatId: MANAGER_NOTIFY_CHAT_ID,
-          buttonUrl: managerUrl, buttonText: '<i class="ti ti-check"></i>เปิดเพื่ออนุมัติ (Supervisor)',
+          buttonUrl: managerUrl, buttonText: '✅ เปิดเพื่ออนุมัติ (Supervisor)',
         }),
       });
     } catch (e) {

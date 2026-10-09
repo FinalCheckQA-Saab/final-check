@@ -517,7 +517,7 @@ textarea:focus,input[type=text]:focus{outline:0;border-color:var(--accent);box-s
       const note = item.note ? ` - _${esc(item.note)}_` : '';
       return `${idx + 1}. ${esc(item.label)}${value}${note}`;
     });
-    return `\n*<i class="ti ti-alert"></i>รายการที่ไม่ผ่าน:*\n${lines.join('\n')}\n`;
+    return `\n*🔴 รายการที่ไม่ผ่าน:*\n${lines.join('\n')}\n`;
   }
   // ── ระบุ stage การอนุมัติ (Leader = หน้านี้ / Supervisor = manager-approve.html) ──
   function approvalStage(row) {
@@ -706,11 +706,11 @@ textarea:focus,input[type=text]:focus{outline:0;border-color:var(--accent);box-s
   async function notifyBulkFullyApproved(lineName, count, approverName) {
     const text = `
 📋 *Daily Quality Inspection Report*
-<i class="ti ti-check"></i>สถานะ: อนุมัติครบทุกขั้นตอนแล้ว — อนุมัติแบบกลุ่ม
+✅ สถานะ: อนุมัติครบทุกขั้นตอนแล้ว — อนุมัติแบบกลุ่ม
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-<i class="ti ti-factory"></i>Model: ${esc(lineName)}
+🏭 Model: ${esc(lineName)}
 📦 จำนวน: ${count} รายการ (ผ่านทั้งหมด ไม่มี NG)
-<i class="ti ti-factory"></i>Supervisor อนุมัติโดย: ${esc(approverName)}
+👔 Supervisor อนุมัติโดย: ${esc(approverName)}
 🕐 เมื่อ: ${new Date().toLocaleString('th-TH')}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
@@ -934,7 +934,7 @@ textarea:focus,input[type=text]:focus{outline:0;border-color:var(--accent);box-s
 
     const text = `
 📋 *Daily Quality Inspection Report*
-<i class="ti ti-check"></i>สถานะ: อนุมัติครบทุกขั้นตอนแล้ว
+✅ สถานะ: อนุมัติครบทุกขั้นตอนแล้ว
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 *${esc(row.jig_name)}*
 ${esc(row.jig_id || '')}
@@ -943,11 +943,11 @@ ${row.jig_doc_no ? `_${esc(row.jig_doc_no)}_` : ''}
 📅 วันที่ตรวจ: ${esc(row.insp_date)} เวลา ${esc(time)}${time ? ' น.' : ''}
 🏷 Production Order: ${esc(row.production_order || '-')}
 👤 ผู้ตรวจ: ${esc(row.inspector)}
-<i class="ti ti-search"></i>จุดเช็คทั้งหมด: ${items.length} จุด
-<i class="ti ti-check"></i>ผ่าน (OK): ${okCount}${ngCount > 0 ? `  ❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
+🔍 จุดเช็คทั้งหมด: ${items.length} จุด
+✅ ผ่าน (OK): ${okCount}${ngCount > 0 ? `  ❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 ${ngListText(items)}
 👔 Leader: ${esc(row.approved_by)} (${row.approved_at ? new Date(row.approved_at).toLocaleString('th-TH') : '-'})
-<i class="ti ti-factory"></i>Supervisor: ${esc(row.manager_approved_by)} (${new Date(row.manager_approved_at).toLocaleString('th-TH')})
+👔 Supervisor: ${esc(row.manager_approved_by)} (${new Date(row.manager_approved_at).toLocaleString('th-TH')})
 ${row.manager_comment ? `💬 ความเห็น: ${esc(row.manager_comment)}` : ''}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
