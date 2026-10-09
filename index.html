@@ -835,6 +835,17 @@
       <div class="admin-list" id="adm-alert-list"></div>
     </div>
 
+    <!-- 🆕 แจ้งเตือนค้างอนุมัติ Leader / Supervisor ทาง Telegram — วันละ 1 รอบ/กลุ่ม (ดู add_approval_alert_schedules.sql)
+         ไม่แจ้งในวันที่ตั้งเป็นวันหยุดในปฏิทินด้านบน | ไม่มีรายการค้าง = ไม่ส่ง -->
+    <div class="admin-section">
+      <div class="admin-section-title">🔔 แจ้งเตือนค้างอนุมัติ (Leader / Supervisor)</div>
+      <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px; line-height:1.5;">
+        ส่งสรุปรายการค้างอนุมัติเข้ากลุ่ม Telegram วันละ 1 รอบต่อกลุ่ม ตามเวลาที่ตั้ง — ไม่ส่งในวันหยุดตามปฏิทินด้านบน และไม่ส่งถ้าไม่มีรายการค้าง
+        (แก้เวลา/กลุ่ม/เปิด-ปิด มีผลทันที ไม่ต้อง deploy ใหม่)
+      </div>
+      <div class="admin-list" id="adm-aprv-list"></div>
+    </div>
+
     <!-- Document Settings (ค่ากลางทั้งระบบ ตาม ISO — Doc No. เดียวทั้งบริษัท) -->
     <div class="admin-section">
       <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> ควบคุมเอกสาร (Document Control)</div>

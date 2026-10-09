@@ -36,7 +36,9 @@
     { re: /สำรองข้อมูล|Backup/, name: 'สำรองข้อมูล',     desc: 'Export / Import Backup',      grp: 'ข้อมูลและการสำรอง' },
     { re: /บันทึก PDF/,        name: 'บันทึก PDF อัตโนมัติ', desc: 'ตั้งโฟลเดอร์ปลายทาง',    grp: 'ข้อมูลและการสำรอง' },
     { re: /เวลาแจ้งเตือน Telegram/, name: 'แจ้งเตือน Telegram', desc: 'ตั้งเวลาเตือน Part ที่ยังไม่ตรวจ', grp: 'โครงสร้างการผลิต',
-      icon: ico('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>') }
+      icon: ico('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>') },
+    { re: /แจ้งเตือนค้างอนุมัติ/, name: 'แจ้งเตือนค้างอนุมัติ', desc: 'Leader / Supervisor ทาง Telegram', grp: 'โครงสร้างการผลิต',
+      icon: ico('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><polyline points="9 11 11 13 15 9"/>') }
   ];
   var SECURE_GRP = 'ผู้ใช้และความปลอดภัย'; /* กลุ่มนี้เปิดได้เฉพาะ System Admin — ต้องล็อกอินผู้ดูแลระบบก่อน (app.js: fcIsSystemAdmin / fcSysAdminLogin) */
   function canSecure() { return typeof window.fcIsSystemAdmin === 'function' && window.fcIsSystemAdmin(); }

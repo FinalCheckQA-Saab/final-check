@@ -1746,6 +1746,7 @@
     bindUncheckedLinesPanel();   // 🆕 Part ขาดตรวจ SME (Admin Panel)
     bindHolidayCalendarPanel();  // 🆕 ปฏิทินวันหยุด (Admin Panel)
     bindAlertSchedulePanel();    // 🆕 เวลาแจ้งเตือน Telegram Part ที่ยังไม่ตรวจ S/M/E (Admin Panel)
+    bindApprovalAlertPanel();    // 🆕 แจ้งเตือนค้างอนุมัติ Leader/Supervisor (Admin Panel)
     bindActionButtons();
     bindLightbox();
     bindHistoryPanel();
@@ -7514,6 +7515,128 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     if (!btn) return;
     btn.addEventListener('click', addAlertSchedule);
     loadAlertSchedules();
+  }
+
+
+  /* ══════════════════════════════════════
+     🆕 แจ้งเตือนค้างอนุมัติ Leader / Supervisor ทาง Telegram (Admin Panel)
+     ตาราง approval_alert_schedules (ดู add_approval_alert_schedules.sql) — 1 แถวต่อกลุ่ม = วันละ 1 รอบ
+     Edge Function pending-approval-alert อ่านตารางนี้ทุกนาที และข้ามวันที่อยู่ในตาราง holidays
+  ══════════════════════════════════════ */
+  const APRV_ROLES = [
+    { role: 'leader',     name: 'Leader',     chat: '-5207952325', page: 'approve.html' },
+    { role: 'supervisor', name: 'Supervisor', chat: '-5225233965', page: 'manager-approve.html' },
+  ];
+  let aprvAlertCache = [];
+
+  function aprvNowHM() { const n = new Date(); return String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0'); }
+
+  async function loadApprovalAlerts() {
+    if (!sb) return;
+    try {
+      const { data, error } = await sb.from('approval_alert_schedules').select('id, role, alert_time, label, enabled, chat_id, link_url');
+      if (error) throw error;
+      aprvAlertCache = data || [];
+      renderApprovalAlerts();
+    } catch (e) {
+      console.error('loadApprovalAlerts error (ตรวจสอบว่ารัน add_approval_alert_schedules.sql แล้วหรือยัง):', e);
+      const el = $('adm-aprv-list');
+      if (el) el.innerHTML = '<div class="adm-item" style="color:var(--text-muted);font-style:italic">โหลดไม่ได้ — ตรวจสอบว่ารัน add_approval_alert_schedules.sql แล้วหรือยัง</div>';
+    }
+  }
+
+  function renderApprovalAlerts() {
+    const el = $('adm-aprv-list');
+    if (!el) return;
+    el.innerHTML = APRV_ROLES.map(r => {
+      const s = aprvAlertCache.find(x => x.role === r.role);
+      if (!s) return `
+        <div class="adm-item" data-role="${r.role}" style="gap:8px;flex-wrap:wrap">
+          <b style="min-width:84px">${r.name}</b>
+          <input type="time" class="aprv-new-time" value="09:00" style="max-width:120px">
+          <input type="text" class="aprv-new-chat" value="${escHtml(r.chat)}" placeholder="Telegram chat id" style="flex:1;min-width:130px">
+          <button class="btn-adm-add aprv-add">+ เพิ่มเวลา</button>
+        </div>`;
+      return `
+        <div class="adm-item" data-role="${r.role}" data-id="${escHtml(s.id)}" style="gap:8px;flex-wrap:wrap">
+          <b style="min-width:84px">${r.name}</b>
+          <input type="time" class="aprv-time" value="${escHtml(s.alert_time)}" title="แก้เวลาแล้วบันทึกอัตโนมัติ" style="max-width:120px">
+          <input type="text" class="aprv-chat" value="${escHtml(s.chat_id)}" title="Telegram chat id ของกลุ่ม" style="flex:1;min-width:130px">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap">
+            <input type="checkbox" class="aprv-en" ${s.enabled ? 'checked' : ''}> เปิดใช้
+          </label>
+          <button class="adm-item-del" title="ลบเวลานี้">${ico(ICO_TRASH_P)}</button>
+        </div>`;
+    }).join('');
+    el.querySelectorAll('.adm-item').forEach(row => {
+      const role = row.dataset.role, id = row.dataset.id;
+      if (!id) { row.querySelector('.aprv-add').addEventListener('click', () => addApprovalAlert(role, row)); return; }
+      row.querySelector('.aprv-time').addEventListener('change', e => updateApprovalAlert(id, { alert_time: e.target.value }));
+      row.querySelector('.aprv-chat').addEventListener('change', e => updateApprovalAlert(id, { chat_id: e.target.value.trim() }));
+      row.querySelector('.aprv-en').addEventListener('change', e => updateApprovalAlert(id, { enabled: e.target.checked }));
+      row.querySelector('.adm-item-del').addEventListener('click', () => deleteApprovalAlert(id, role));
+    });
+  }
+
+  async function addApprovalAlert(role, row) {
+    const r = APRV_ROLES.find(x => x.role === role);
+    const t = row.querySelector('.aprv-new-time').value;
+    const chat = row.querySelector('.aprv-new-chat').value.trim();
+    if (!ALERT_TIME_RE.test(t)) { toast('กรุณาเลือกเวลา', 'ng'); return; }
+    if (!/^-?\d+$/.test(chat)) { toast('Telegram chat id ต้องเป็นตัวเลข เช่น -5207952325', 'ng'); return; }
+    if (!sb) { toast('ไม่ได้เชื่อมต่อ Supabase', 'ng'); return; }
+    try {
+      const { error } = await sb.from('approval_alert_schedules').insert({
+        id: 'apr_' + role, role, alert_time: t, label: r.name + ' ค้างอนุมัติ', enabled: true, chat_id: chat,
+        link_url: new URL(r.page, window.location.href).href,
+        // ถ้าเวลาที่ตั้งผ่านไปแล้วของวันนี้ ให้เริ่มส่งพรุ่งนี้ (กันส่งทันทีโดยไม่ตั้งใจ)
+        last_sent_date: t <= aprvNowHM() ? localDateStr() : null,
+      });
+      if (error) throw error;
+      toast(`เพิ่มแจ้งเตือน ${r.name} เวลา ${t} น. แล้ว`, 'ok');
+      loadApprovalAlerts();
+    } catch (e) {
+      console.error('addApprovalAlert error:', e);
+      toast('เพิ่มไม่สำเร็จ — ตรวจสอบว่ารัน add_approval_alert_schedules.sql แล้วหรือยัง', 'ng');
+    }
+  }
+
+  async function updateApprovalAlert(id, patch) {
+    if (patch.alert_time !== undefined) {
+      if (!ALERT_TIME_RE.test(patch.alert_time)) { toast('เวลาไม่ถูกต้อง', 'ng'); loadApprovalAlerts(); return; }
+      // เลื่อนเวลาไปข้างหน้า (ยังมาไม่ถึงวันนี้) = ให้ส่งใหม่ได้ในวันนี้ · ถ้าเวลาผ่านไปแล้ว = ไม่ส่งซ้ำวันนี้
+      patch.last_sent_date = patch.alert_time > aprvNowHM() ? null : localDateStr();
+    }
+    if (patch.chat_id !== undefined && !/^-?\d+$/.test(patch.chat_id)) { toast('Telegram chat id ต้องเป็นตัวเลข', 'ng'); loadApprovalAlerts(); return; }
+    try {
+      const { error } = await sb.from('approval_alert_schedules').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id);
+      if (error) throw error;
+      toast('บันทึกแล้ว', 'ok');
+      loadApprovalAlerts();
+    } catch (e) {
+      console.error('updateApprovalAlert error:', e);
+      toast('บันทึกไม่สำเร็จ', 'ng');
+      loadApprovalAlerts();
+    }
+  }
+
+  async function deleteApprovalAlert(id, role) {
+    const r = APRV_ROLES.find(x => x.role === role);
+    if (!(await showConfirmModal(`ลบการแจ้งเตือนค้างอนุมัติของ ${r ? r.name : ''} หรือไม่?`, { confirmLabel: 'ลบ', danger: true }))) return;
+    try {
+      const { error } = await sb.from('approval_alert_schedules').delete().eq('id', id);
+      if (error) throw error;
+      toast('ลบแล้ว', 'ok');
+      loadApprovalAlerts();
+    } catch (e) {
+      console.error('deleteApprovalAlert error:', e);
+      toast('ลบไม่สำเร็จ', 'ng');
+    }
+  }
+
+  function bindApprovalAlertPanel() {
+    if (!$('adm-aprv-list')) return;
+    loadApprovalAlerts();
   }
 
   /* ══════════════════════════════════════
