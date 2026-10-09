@@ -3903,9 +3903,13 @@ html[data-palette="coffee"][data-theme="dark"] {
   box-shadow: 0 0 0 4px var(--accent-dim);
 }
 .sig-x {
-  flex: none; align-self: flex-end; margin-bottom: 12px;
-  font-size: 15px; font-weight: 700; color: var(--text-muted); opacity: .7;
+  flex: none; align-self: flex-end; margin-bottom: 11px;
+  display: grid; place-items: center;
+  color: var(--text-muted); opacity: .7;
+  transition: color .2s, opacity .2s, transform .25s;
 }
+.sig-x svg { width: 22px; height: 22px; }
+.sig-field:focus-within .sig-x { color: var(--accent); opacity: 1; transform: rotate(-8deg); }
 .sig-card .sig-text-input {
   flex: 1; min-width: 0; width: 100%;
   padding: 6px 2px 8px; margin: 0;
