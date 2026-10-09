@@ -3624,7 +3624,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     };
     const items = rows.slice(1).map((r, ix) => {
       const g = k => (k in colIdx ? String(r[colIdx[k]] == null ? '' : r[colIdx[k]]).trim() : '');
-      const it = { line: ix + 2, label: g('label'), sub: g('sub'), method: g('method'), type: null, min: null, max: null, unit: null, error: '' };
+      const it = { line: ix + 1, label: g('label'), sub: g('sub'), method: g('method'), type: null, min: null, max: null, unit: null, error: '' };
       if (!it.label) { it.error = 'ไม่มีชื่อจุดตรวจ'; return it; }
       const mn = num(g('min')), mx = num(g('max'));
       if (mn.bad || mx.bad) { it.error = 'Min/Max ต้องเป็นตัวเลข'; return it; }
