@@ -542,6 +542,81 @@ function gauge(v,anim){
 const dt=g=>g.t.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'})+' '+g.t.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})+' น.';
 function pieceRows(g,u){return STAGES.map((s,i)=>'<div class="r"><span>'+s+'</span><span>'+(g.vals[i]==null?'—':fmt(g.vals[i])+(u?' '+esc(u):''))+'</span></div>').join('')}
 
+
+// ── กราฟระฆังคว่ำ (Capability Histogram): แท่งความถี่ของค่าที่วัดได้ทุกชิ้น + เส้นโค้งปกติ + ขีด LSL/USL ──
+function normCdf(z){const t=1/(1+0.2316419*Math.abs(z)),d=0.3989423*Math.exp(-z*z/2),p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p}
+function histStats(vals,it){
+  const N=vals.length,mean=N?vals.reduce((x,y)=>x+y,0)/N:0;
+  const s=N>1?Math.sqrt(vals.reduce((x,y)=>x+(y-mean)*(y-mean),0)/(N-1)):0; // S.D. รวมของทุกค่า (ระยะยาว) — ใช้กับ Pp/Ppk
+  const hasMin=it.min!=null&&isFinite(+it.min),hasMax=it.max!=null&&isFinite(+it.max);
+  const o={N,mean,s,vals,min:hasMin?+it.min:null,max:hasMax?+it.max:null};
+  if(s>0){
+    const c=[];if(hasMax)c.push((o.max-mean)/(3*s));if(hasMin)c.push((mean-o.min)/(3*s));
+    o.ppk=c.length?Math.min(...c):null;
+    if(hasMin&&hasMax)o.pp=(o.max-o.min)/(6*s);
+    o.pOut=(hasMin?normCdf((o.min-mean)/s):0)+(hasMax?1-normCdf((o.max-mean)/s):0);
+    if(N>=3)o.skew=N/((N-1)*(N-2))*vals.reduce((x,y)=>x+Math.pow((y-mean)/s,3),0);
+  }
+  o.nOut=vals.filter(v=>(hasMin&&v<o.min)||(hasMax&&v>o.max)).length;
+  return o;
+}
+const ppmTxt=p=>{if(p==null)return '—';const ppm=p*1e6;return ppm>=10000?(ppm/1e4).toFixed(2)+' %':ppm>=1?Math.round(ppm).toLocaleString('en-US')+' ppm':'< 1 ppm'};
+function histCard(hs,a,tile,u){
+  let h='<div class="card"><div class="ch"><div><h2>กราฟระฆังคว่ำ — การกระจายของค่าที่วัดได้</h2><div class="sub">รวมทุกค่า S / M / E เทียบกับเกณฑ์ LSL – USL · แท่ง = จำนวนชิ้นที่วัดได้ในช่วงนั้น, เส้นโค้ง = การแจกแจงปกติที่คาดไว้</div></div>'+(hs.N<100?'<span class="chip">ผลเบื้องต้น ('+hs.N+' ค่า)</span>':'')+'</div>';
+  if(hs.N<10||!(hs.s>0))return h+'<div class="notice"><div><b>ข้อมูลยังน้อยเกินไปสำหรับกราฟระฆัง</b><span>ต้องมีค่าที่วัดได้อย่างน้อย 10 ค่า (ตอนนี้ '+hs.N+' ค่า) และค่าต้องไม่เท่ากันทั้งหมด</span></div></div></div>';
+  if(hs.N<30)h+='<div class="notice"><div><b>ข้อมูล '+hs.N+' ค่า — รูปทรงยังไม่น่าเชื่อถือ</b><span>ข้อมูลน้อยทำให้รูปแท่งเปลี่ยนไปมาก แนะนำอย่างน้อย 100 ค่า (ประมาณ 25 ชุด) ก่อนใช้ตัดสินใจ</span></div></div>';
+  if(hs.skew!=null&&Math.abs(hs.skew)>1)h+='<div class="notice"><div><b>ข้อมูลเบ้ ('+(hs.skew>0?'หางขวา':'หางซ้าย')+')</b><span>เส้นโค้งปกติอาจไม่ตรงกับข้อมูลจริง ตัวเลข Ppk และ “คาดว่านอกเกณฑ์” จึงใช้ตัดสินแบบเด็ดขาดไม่ได้ · ถ้าเห็นสองยอด อาจมีหลายเครื่อง/หลายเงื่อนไขปนกัน</span></div></div>';
+  const r2=v=>v==null?'—':fmt(Math.round(v*100)/100),cls=v=>v==null?'':v>=1.33?'good':'bad',sub=v=>v==null?'':v>=1.33?'✔ ≥ 1.33':'✖ < 1.33';
+  const hasSpec=hs.min!=null||hs.max!=null;
+  h+='<div class="chartbox" id="c-h"></div><div class="tiles">'
+    +tile('Ppk (ระยะยาว)',r2(hs.ppk),sub(hs.ppk),cls(hs.ppk),'ok')
+    +tile('Cpk (ระยะสั้น)',a.cpk==null?'—':r2(a.cpk),a.cpk==null?'':sub(a.cpk),cls(a.cpk),'ok')
+    +tile('S.D. รวม',fmt(hs.s),u)
+    +tile('คาดว่านอกเกณฑ์',hasSpec?ppmTxt(hs.pOut):'—','ตามเส้นโค้งปกติ','','spec')
+    +tile('นอกเกณฑ์จริง',hs.nOut,'จาก '+hs.N+' ค่า',hs.nOut?'bad':'','spec')
+    +'</div><div class="note" style="margin-top:8px">Ppk ใช้ S.D. รวมของทุกค่า (รวมการเลื่อนของค่าระหว่างชุด) ส่วน Cpk ใช้ σ = R̄/d₂ (เฉพาะความผันแปรภายในชุด) · ถ้า Ppk ต่ำกว่า Cpk มาก แปลว่ากระบวนการเลื่อนระหว่างชุด</div></div>';
+  return h;
+}
+function hist(host,o,u){
+  host.innerHTML='';
+  const W=Math.max(320,host.clientWidth),sm=W<520,H=sm?250:300,m={l:sm?38:46,r:14,t:30,b:46},uid='h'+Math.random().toString(36).slice(2,7);
+  const svg=el('svg',{viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'กราฟระฆังคว่ำของค่าที่วัดได้'},host);
+  const {vals,mean,s,N}=o;
+  let lo=Math.min(Math.min(...vals),mean-4*s),hi=Math.max(Math.max(...vals),mean+4*s);
+  if(o.min!=null)lo=Math.min(lo,o.min);if(o.max!=null)hi=Math.max(hi,o.max);
+  const pd=(hi-lo)*.04;lo-=pd;hi+=pd;
+  // ความกว้างแท่งคิดจากช่วงของ "ข้อมูลจริง" (≈ √N แท่ง) ไม่ใช่จากแกนทั้งหมด — แกนอาจถูกขยายออกไปถึงเกณฑ์ แท่งจะได้ไม่หนาเกินไป
+  const dLo=Math.min(...vals),dHi=Math.max(...vals),k0=Math.min(20,Math.max(6,Math.ceil(Math.sqrt(N)))),w=((dHi-dLo)||s)/k0;
+  const j0=Math.floor((lo-dLo)/w),j1=Math.ceil((hi-dLo)/w),cnt={};
+  vals.forEach(v=>{const j=Math.min(Math.floor((v-dLo)/w),Math.floor((dHi-dLo)/w));cnt[j]=(cnt[j]||0)+1});
+  const pdf=x=>Math.exp(-((x-mean)*(x-mean))/(2*s*s))/(s*Math.sqrt(2*Math.PI));
+  const ymax=Math.max(Math.max(...Object.values(cnt)),N*w*pdf(mean))*1.15;
+  const iw=W-m.l-m.r,ih=H-m.t-m.b,B=m.t+ih,X=v=>m.l+(v-lo)/(hi-lo)*iw,Y=c=>m.t+(1-c/ymax)*ih;
+  const defs=el('defs',{},svg),hp=el('pattern',{id:uid+'h',width:7,height:7,patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'},defs);
+  el('rect',{width:7,height:7,fill:'var(--bad)','fill-opacity':.05},hp);el('line',{x1:0,y1:0,x2:0,y2:7,stroke:'var(--bad)','stroke-opacity':.3,'stroke-width':1.5},hp);
+  if(o.min!=null)el('rect',{x:m.l,y:m.t,width:Math.max(0,X(o.min)-m.l),height:ih,fill:'url(#'+uid+'h)'},svg);
+  if(o.max!=null)el('rect',{x:X(o.max),y:m.t,width:Math.max(0,W-m.r-X(o.max)),height:ih,fill:'url(#'+uid+'h)'},svg);
+  niceTicks(0,ymax,4).filter(t=>Number.isInteger(t)).forEach(t=>{const y=Y(t);el('line',{x1:m.l,x2:W-m.r,y1:y,y2:y,stroke:'var(--grid)','stroke-width':1},svg);
+    el('text',{x:m.l-8,y:y+4,'text-anchor':'end','font-size':11,fill:'var(--muted)'},svg).textContent=t});
+  niceTicks(lo,hi,sm?4:7).forEach(t=>{el('text',{x:X(t),y:B+16,'text-anchor':'middle','font-size':11,fill:'var(--muted)'},svg).textContent=fmt(t)});
+  if(u)el('text',{x:m.l+iw/2,y:H-6,'text-anchor':'middle','font-size':11,fill:'var(--muted)'},svg).textContent=u;
+  for(let j=j0;j<=j1;j++){const c=cnt[j];if(!c)continue;const a=dLo+j*w,b=a+w,mid=(a+b)/2,out=(o.min!=null&&mid<o.min)||(o.max!=null&&mid>o.max);
+    const r=el('rect',{x:X(a)+.5,y:Y(c),width:Math.max(1,X(b)-X(a)-1),height:B-Y(c),rx:2,fill:out?'var(--bad)':'var(--piece)','fill-opacity':out?.7:.65},svg);
+    el('title',{},r).textContent=fmt(a)+' – '+fmt(b)+(u?' '+u:'')+' : '+c+' ชิ้น'}
+  const pts=[];for(let i=0;i<=100;i++){const x=lo+(hi-lo)*i/100;pts.push([X(x),Y(N*w*pdf(x))])}
+  const d=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join('');
+  el('path',{d:d+'L'+pts[100][0].toFixed(1)+' '+B+'L'+pts[0][0].toFixed(1)+' '+B+'Z',fill:'var(--series)','fill-opacity':.08},svg);
+  el('path',{d,fill:'none',stroke:'var(--series)','stroke-width':2.6,'stroke-linejoin':'round','stroke-linecap':'round'},svg);
+  el('line',{x1:m.l,x2:W-m.r,y1:B,y2:B,stroke:'var(--muted)','stroke-width':1},svg);
+  const vline=(v,col,dash,lab,y,bold)=>{const x=X(v);el('line',{x1:x,x2:x,y1:m.t-4,y2:B,stroke:col,'stroke-dasharray':dash,'stroke-width':1.8},svg);
+    const t=lab+' '+fmt(v),cx=Math.min(W-m.r-t.length*3.4,Math.max(m.l+t.length*3.4,x));
+    el('text',{x:cx,y:y,'text-anchor':'middle','font-size':11,'font-weight':bold?700:600,fill:col},svg).textContent=t};
+  if(o.min!=null)vline(o.min,'var(--bad)','2 4','LSL',m.t-10,true);
+  if(o.max!=null)vline(o.max,'var(--bad)','2 4','USL',m.t-10,true);
+  const near=[o.min,o.max].some(v=>v!=null&&Math.abs(X(v)-X(mean))<90); // ป้าย X̄ อยู่แถวเดียวกับ LSL/USL ถ้าไม่ชนกัน
+  vline(mean,'var(--cl)','7 5','X̄',near?m.t+12:m.t-10,false);
+}
+
 function draw(){
   const key=$('f-item').value,month=$('f-month').value;
   if(!$('f-part').value||!month)return;
@@ -588,13 +663,16 @@ function draw(){
   const chip=t=>'<span class="chip">'+esc(t)+'</span>';
   h+='<div class="card"><div class="ch"><div><h2>X̄ Chart — ค่าเฉลี่ยต่อชุด</h2><div class="sub">'+esc(it.label)+(u?' ('+esc(u)+')':'')+' · '+esc(thMonth(month))+'</div></div>'+chip(partName)+'</div>'+legend+'<div class="chartbox" id="c-x"></div></div>';
   h+='<div class="card"><h2>R Chart — ช่วงกว้าง (Max − Min) ต่อชุด</h2><div class="sub">ดูความผันแปรภายในชุด S / M / E · ถ้า R สูงผิดปกติ แปลว่าชิ้นงานในชุดเดียวกันต่างกันมาก</div><div class="chartbox" id="c-r"></div></div>';
+  const hs=histStats(sg.flatMap(g=>g.got),it);
+  h+=histCard(hs,a,tile,u);
   h+='<div class="card"><details><summary>ดูเป็นตาราง ('+a.N+' ชุด)</summary><div class="tblwrap"><table><thead><tr><th>วัน-เวลา</th><th>Production Order</th><th>ผู้ตรวจ</th>'+STAGES.map(s=>'<th>'+s+'</th>').join('')+'<th>X̄</th><th>R</th><th>สถานะ</th></tr></thead><tbody>'
     +sg.map(g=>'<tr><td>'+esc(dt(g))+'</td><td>'+esc(g.r.production_order||'-')+'</td><td>'+esc(g.r.inspector||'-')+'</td>'
       +STAGES.map((s,i)=>{const v=g.vals[i];const bad=v!=null&&((it.min!=null&&v<it.min)||(it.max!=null&&v>it.max));return '<td class="'+(bad?'bad':'')+'">'+(v==null?'—':fmt(v))+(bad?' ✖':'')+'</td>'}).join('')
       +'<td class="'+(g.oocX?'bad':'')+'">'+fmt(g.mean)+(g.oocX?' ▲':'')+'</td><td class="'+(g.oocR?'bad':'')+'">'+fmt(g.range)+(g.oocR?' ▲':'')+'</td><td>'+(g.oos?'ค่านอกเกณฑ์':g.oocX||g.oocR?'นอกเส้นควบคุม':'ปกติ')+'</td></tr>').join('')
     +'</tbody></table></div></details></div>';
-  h+='<div class="card note"><b>วิธีคำนวณ</b> · X̄ = ค่าเฉลี่ยของ S/M/E ในแต่ละชุด, R = ค่ามากสุด − น้อยสุด · <code>UCL/LCL = X̿ ± A₂·R̄</code> (n='+n+', A₂='+K[n].A2+') · R chart: <code>UCL = D₄·R̄</code> (D₄='+K[n].D4+'), LCL = 0 · Cpk ใช้ σ = R̄/d₂ (d₂='+K[n].d2+') เทียบกับเกณฑ์ LSL/USL ที่ตั้งไว้ · <b>UCL/LCL</b> (เส้นควบคุม) มาจากข้อมูลจริงของกระบวนการ ต่างจาก <b>USL/LSL</b> (เกณฑ์ที่ตั้งไว้ในระบบ)</div>';
+  h+='<div class="card note"><b>วิธีคำนวณ</b> · X̄ = ค่าเฉลี่ยของ S/M/E ในแต่ละชุด, R = ค่ามากสุด − น้อยสุด · <code>UCL/LCL = X̿ ± A₂·R̄</code> (n='+n+', A₂='+K[n].A2+') · R chart: <code>UCL = D₄·R̄</code> (D₄='+K[n].D4+'), LCL = 0 · Cpk ใช้ σ = R̄/d₂ (d₂='+K[n].d2+') เทียบกับเกณฑ์ LSL/USL ที่ตั้งไว้ · <b>UCL/LCL</b> (เส้นควบคุม) มาจากข้อมูลจริงของกระบวนการ ต่างจาก <b>USL/LSL</b> (เกณฑ์ที่ตั้งไว้ในระบบ) · <b>Cpk</b> = ความสามารถระยะสั้น (σ ภายในชุด) ส่วน <b>Ppk</b> ในกราฟระฆังใช้ S.D. รวมของทุกค่า (ระยะยาว) · ควรมีข้อมูลอย่างน้อย 25 ชุดและกระบวนการนิ่งก่อนเชื่อถือค่า Cpk/Ppk</div>';
   body.innerHTML=h;
+  if($('c-h'))hist($('c-h'),hs,u);
   const cap=g=>'<b>'+esc(dt(g))+'</b>'+(g.r.production_order?'<div class="r"><span>Production Order</span><span>'+esc(g.r.production_order)+'</span></div>':'');
   const status=(bad,txt)=>'<div class="st '+(bad?'bad':'ok')+'">'+(bad?'▲ ':'✔ ')+txt+'</div>';
   const bad=(v)=>(it.min!=null&&v<it.min)||(it.max!=null&&v>it.max);
