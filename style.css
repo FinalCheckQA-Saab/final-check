@@ -3857,3 +3857,25 @@ html[data-palette="coffee"][data-theme="dark"] {
 .chip.jig-chip.jig-checked-today.selected .part-no { background: var(--ok); color: #fff; }
 .chip.jig-chip.jig-skipped .part-no { color: var(--text-muted); background: var(--pending-bg); box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .chip.jig-chip, .part-no { transition: none; } }
+
+/* ─────────────────────────────
+   🆕 นำเข้าจุดตรวจจาก CSV (Admin → จัดการจุดตรวจ)
+───────────────────────────── */
+.cp-csv-box { margin-top: 12px; padding: 12px; border: 1px dashed var(--border-card); border-radius: 10px; }
+.cp-csv-title { font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; }
+.cp-csv-hint { font-size: 11px; color: var(--text-muted); line-height: 1.5; margin-bottom: 8px; }
+.cp-csv-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.cp-csv-actions .btn-sec { padding: 9px 14px; }
+.cp-csv-pick { display: inline-flex; align-items: center; cursor: pointer; }
+.cp-csv-summary { font-size: 12px; font-weight: 600; margin: 10px 0 6px; line-height: 1.5; }
+.cp-csv-skip { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); margin-bottom: 6px; cursor: pointer; }
+.cp-csv-rows { max-height: 240px; overflow: auto; border: 1px solid var(--border-card); border-radius: 8px; }
+.cp-csv-rows table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.cp-csv-rows th, .cp-csv-rows td { padding: 6px 8px; border-bottom: 1px solid var(--border-card); text-align: left; vertical-align: top; }
+.cp-csv-rows th { position: sticky; top: 0; background: var(--bg-card-solid, var(--bg-card)); color: var(--text-muted); font-weight: 600; }
+.cp-csv-rows tr.bad td { background: hsla(0, 80%, 55%, 0.10); }
+.cp-csv-rows tr.dup td { opacity: .55; }
+.cp-csv-tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+.cp-csv-tag.ok  { background: hsla(145, 60%, 45%, 0.18); color: #16a34a; }
+.cp-csv-tag.bad { background: hsla(0, 80%, 55%, 0.18); color: #dc2626; }
+.cp-csv-tag.dup { background: hsla(40, 90%, 50%, 0.20); color: #b45309; }

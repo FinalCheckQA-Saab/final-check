@@ -44,7 +44,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- ⚠️ CACHE-BUST: เบราว์เซอร์/PWA มัก cache ไฟล์ .css ค้างไว้นานผิดปกติ (เหมือน app.js ด้านล่าง)
        เพิ่ม ?v= ให้บังคับโหลดไฟล์ใหม่ทุกครั้งที่แก้ style.css — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ style.css -->
-  <link rel="stylesheet" href="style.css?v=fc-sme1">
+  <link rel="stylesheet" href="style.css?v=fc-csv1">
 </head>
 <body>
 
@@ -1067,6 +1067,28 @@
         <div class="admin-input-row">
           <button class="btn-adm-add" id="btn-adm-cp" style="width:100%">+ เพิ่มจุดตรวจ</button>
         </div>
+
+        <!-- 🆕 นำเข้าจุดตรวจจากไฟล์ CSV — เพิ่มทีละหลายจุดเข้า Part ที่เลือกอยู่ -->
+        <div class="cp-csv-box" id="adm-csv-box">
+          <div class="cp-csv-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> เพิ่มจุดตรวจจากไฟล์ CSV</div>
+          <div class="cp-csv-hint">คอลัมน์: ชื่อจุดตรวจ (จำเป็น) · รายละเอียด · วิธีตรวจ · Min · Max · หน่วย — ถ้าใส่ทั้ง Min และ Max = ตรวจแบบกรอกตัวเลข, ไม่ใส่ = ปกติ / ไม่ปกติ</div>
+          <div class="cp-csv-actions">
+            <button type="button" class="btn-sec" id="btn-cp-csv-sample">ดาวน์โหลดไฟล์ตัวอย่าง</button>
+            <label class="btn-sec cp-csv-pick">เลือกไฟล์ CSV
+              <input type="file" id="inp-cp-csv" accept=".csv,text/csv,text/plain" style="display:none">
+            </label>
+          </div>
+          <div id="adm-csv-preview" class="hidden">
+            <div id="adm-csv-summary" class="cp-csv-summary"></div>
+            <label class="cp-csv-skip"><input type="checkbox" id="chk-cp-csv-skipdup" checked> ข้ามจุดตรวจที่ชื่อซ้ำกับที่มีอยู่แล้วใน Part นี้</label>
+            <div id="adm-csv-rows" class="cp-csv-rows"></div>
+            <div class="cp-csv-actions">
+              <button type="button" class="btn-sec" id="btn-cp-csv-cancel">ยกเลิก</button>
+              <button type="button" class="btn-adm-add" id="btn-cp-csv-apply" style="flex:1">นำเข้าจุดตรวจ</button>
+            </div>
+          </div>
+        </div>
+
         <div class="admin-list admin-list-scroll" id="adm-cp-list" style="margin-top:10px;"></div>
       </div>
     </div>
@@ -1217,7 +1239,7 @@
 <!-- 🆕 ใส่เลขเวอร์ชันต่อท้าย ?v=... เพื่อบังคับให้เบราว์เซอร์ (โดยเฉพาะ Safari บน iPhone ซึ่งแคชไฟล์ .js
      ค้างนานผิดปกติ) โหลด app.js ก้อนใหม่ทุกครั้งที่มีการอัปเดตโค้ด — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ app.js
      แล้ว push ขึ้นใหม่ ไม่งั้นเครื่องที่เคยเข้าเว็บมาก่อนจะยังใช้ไฟล์เก่าจากแคชอยู่ -->
-<script src="app.js?v=fc-egress1"></script>
+<script src="app.js?v=fc-csv1"></script>
 <script src="admin-console.js?v=1"></script>
 <script>
 (function () {

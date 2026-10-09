@@ -3564,6 +3564,210 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     });
   }
 
+  /* ══════════════════════════════════════
+     🆕 นำเข้าจุดตรวจจากไฟล์ CSV (Admin → จัดการจุดตรวจ)
+     ส่วน "pure" (ไม่แตะ DOM) อยู่ระหว่าง marker เพื่อให้ทดสอบแยกได้
+  ══════════════════════════════════════ */
+  /* CSV-PURE-START */
+  const CSV_MAX_ROWS = 500;
+  const CSV_MAX_BYTES = 1024 * 1024;
+
+  /* แปลงข้อความ CSV → อาร์เรย์ของแถว (รองรับ "ข้อความมี, หรือขึ้นบรรทัดใหม่", "" แทน ", BOM, , ; Tab) */
+  function parseCsvText(text) {
+    text = String(text || '').replace(/^﻿/, '');
+    const firstLine = text.split(/\r\n|\n|\r/)[0] || '';
+    const cnt = ch => (firstLine.match(new RegExp(ch === '\t' ? '\t' : '\\' + ch, 'g')) || []).length;
+    let delim = ',';
+    if (cnt('\t') > cnt(delim)) delim = '\t';
+    if (cnt(';') > cnt(delim)) delim = ';';
+    const rows = []; let row = [], cur = '', inQ = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQ) {
+        if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else inQ = false; }
+        else cur += c;
+      } else if (c === '"') inQ = true;
+      else if (c === delim) { row.push(cur); cur = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && text[i + 1] === '\n') i++;
+        row.push(cur); cur = ''; rows.push(row); row = [];
+      } else cur += c;
+    }
+    if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+    return rows.filter(r => r.some(v => String(v).trim() !== ''));
+  }
+
+  /* จับคู่หัวคอลัมน์ (ไทย/อังกฤษ) → label/sub/method/min/max/unit */
+  function csvColKey(h) {
+    const s = String(h || '').toLowerCase().replace(/[\s_\-\/()\[\]]/g, '');
+    if (!s) return null;
+    if (/min|ต่ำสุด|ขั้นต่ำ/.test(s)) return 'min';
+    if (/max|สูงสุด|ขั้นสูง/.test(s)) return 'max';
+    if (/unit|หน่วย/.test(s)) return 'unit';
+    if (/method|วิธี/.test(s)) return 'method';
+    if (/^sub|รายละเอียด|ตำแหน่ง|detail|desc/.test(s)) return 'sub';
+    if (/label|name|ชื่อ|จุดตรวจ|checkpoint|หัวข้อ/.test(s)) return 'label';
+    return null;
+  }
+
+  /* แถวดิบ → { items:[{line,label,sub,method,type,min,max,unit,error}], missingLabelCol } */
+  function csvToItems(rows) {
+    if (!rows.length) return { items: [], missingLabelCol: false };
+    const colIdx = {};
+    rows[0].forEach((h, i) => { const k = csvColKey(h); if (k && !(k in colIdx)) colIdx[k] = i; });
+    if (!('label' in colIdx)) return { items: [], missingLabelCol: true };
+    const num = v => {
+      const t = String(v == null ? '' : v).trim().replace(/,/g, '');
+      if (t === '') return { empty: true };
+      const n = Number(t);
+      return isFinite(n) ? { n } : { bad: true };
+    };
+    const items = rows.slice(1).map((r, ix) => {
+      const g = k => (k in colIdx ? String(r[colIdx[k]] == null ? '' : r[colIdx[k]]).trim() : '');
+      const it = { line: ix + 2, label: g('label'), sub: g('sub'), method: g('method'), type: null, min: null, max: null, unit: null, error: '' };
+      if (!it.label) { it.error = 'ไม่มีชื่อจุดตรวจ'; return it; }
+      const mn = num(g('min')), mx = num(g('max'));
+      if (mn.bad || mx.bad) { it.error = 'Min/Max ต้องเป็นตัวเลข'; return it; }
+      if (mn.empty !== mx.empty) { it.error = 'ต้องใส่ทั้ง Min และ Max (หรือเว้นว่างทั้งคู่)'; return it; }
+      if (!mn.empty) {
+        if (mn.n > mx.n) { it.error = 'Min มากกว่า Max'; return it; }
+        it.type = 'numeric'; it.min = mn.n; it.max = mx.n; it.unit = g('unit');
+      }
+      return it;
+    });
+    return { items, missingLabelCol: false };
+  }
+  /* CSV-PURE-END */
+
+  function bindCpCsvImport() {
+    const box = $('adm-csv-box');
+    if (!box) return;
+    let pending = null; // { items, fileName }
+
+    const norm = s => String(s || '').trim().toLowerCase();
+    const existingLabels = () => {
+      const jig = catalog.jigs.find(j => j.id === cpEditJigId);
+      return new Set(((jig && jig.checkpoints) || []).map(p => norm(p.label)));
+    };
+    const resetCsv = () => {
+      pending = null;
+      $('adm-csv-preview').classList.add('hidden');
+      $('adm-csv-rows').innerHTML = '';
+    };
+
+    /* วิเคราะห์สถานะแต่ละแถว: ok / bad / dup */
+    const classify = () => {
+      const have = existingLabels(), seen = new Set(), skipDup = $('chk-cp-csv-skipdup').checked;
+      pending.items.forEach(it => {
+        it.status = 'ok';
+        if (it.error) { it.status = 'bad'; return; }
+        const k = norm(it.label);
+        if (skipDup && (have.has(k) || seen.has(k))) it.status = 'dup';
+        seen.add(k);
+      });
+    };
+    const renderPreview = () => {
+      if (!pending) return;
+      classify();
+      const items = pending.items;
+      const ok = items.filter(i => i.status === 'ok').length;
+      const bad = items.filter(i => i.status === 'bad').length;
+      const dup = items.filter(i => i.status === 'dup').length;
+      $('adm-csv-summary').innerHTML = `ไฟล์ "${escHtml(pending.fileName)}" — พบ ${items.length} แถว · ` +
+        `<span style="color:#16a34a">นำเข้าได้ ${ok}</span>` +
+        (dup ? ` · <span style="color:#b45309">ซ้ำ (ข้าม) ${dup}</span>` : '') +
+        (bad ? ` · <span style="color:#dc2626">มีปัญหา (ข้าม) ${bad}</span>` : '');
+      $('adm-csv-rows').innerHTML = '<table><thead><tr><th>#</th><th>ชื่อจุดตรวจ</th><th>วิธีตรวจ</th><th>เกณฑ์</th><th>สถานะ</th></tr></thead><tbody>' +
+        items.map(it => {
+          const spec = it.type === 'numeric' ? `${it.min} – ${it.max}${it.unit ? ' ' + escHtml(it.unit) : ''}` : 'ปกติ / ไม่ปกติ';
+          const tag = it.status === 'ok' ? '<span class="cp-csv-tag ok">พร้อม</span>'
+            : it.status === 'dup' ? '<span class="cp-csv-tag dup">ชื่อซ้ำ</span>'
+            : `<span class="cp-csv-tag bad">${escHtml(it.error)}</span>`;
+          return `<tr class="${it.status}"><td>${it.line}</td><td>${escHtml(it.label)}${it.sub ? `<br><small style="color:var(--text-muted)">${escHtml(it.sub)}</small>` : ''}</td>` +
+            `<td>${escHtml(it.method)}</td><td>${spec}</td><td>${tag}</td></tr>`;
+        }).join('') + '</tbody></table>';
+      const btn = $('btn-cp-csv-apply');
+      btn.disabled = !ok;
+      btn.textContent = ok ? `นำเข้า ${ok} จุดตรวจ` : 'ไม่มีจุดตรวจที่นำเข้าได้';
+      $('adm-csv-preview').classList.remove('hidden');
+    };
+
+    /* อ่านไฟล์: ลอง UTF-8 ก่อน ถ้าไม่ใช่ (ไฟล์ CSV ไทยจาก Excel เก่ามักเป็น Windows-874) ค่อยถอดแบบไทย */
+    const readCsvFile = file => file.arrayBuffer().then(buf => {
+      try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+      catch (e) { return new TextDecoder('windows-874').decode(buf); }
+    });
+
+    $('inp-cp-csv').addEventListener('change', async e => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      if (!cpEditJigId) { toast('กรุณาเลือก Part ก่อนนำเข้าไฟล์', 'ng'); return; }
+      if (file.size > CSV_MAX_BYTES) { toast('ไฟล์ใหญ่เกิน 1 MB — กรุณาแบ่งไฟล์', 'ng'); return; }
+      try {
+        const rows = parseCsvText(await readCsvFile(file));
+        const res = csvToItems(rows);
+        if (res.missingLabelCol) { toast('ไม่พบคอลัมน์ "ชื่อจุดตรวจ" ในแถวแรกของไฟล์ — ดาวน์โหลดไฟล์ตัวอย่างดูรูปแบบได้', 'ng'); resetCsv(); return; }
+        if (!res.items.length) { toast('ไฟล์ไม่มีข้อมูลจุดตรวจ', 'ng'); resetCsv(); return; }
+        if (res.items.length > CSV_MAX_ROWS) { toast(`ไฟล์มี ${res.items.length} แถว — นำเข้าได้ครั้งละไม่เกิน ${CSV_MAX_ROWS} จุด`, 'ng'); resetCsv(); return; }
+        pending = { items: res.items, fileName: file.name };
+        renderPreview();
+      } catch (err) {
+        console.error('CSV import error', err);
+        toast('อ่านไฟล์ CSV ไม่สำเร็จ', 'ng');
+        resetCsv();
+      }
+    });
+
+    $('chk-cp-csv-skipdup').addEventListener('change', renderPreview);
+    $('btn-cp-csv-cancel').addEventListener('click', resetCsv);
+
+    $('btn-cp-csv-sample').addEventListener('click', () => {
+      const csv = '﻿' + [
+        'ชื่อจุดตรวจ,รายละเอียด/ตำแหน่งที่วัด,วิธีตรวจ,Min,Max,หน่วย',
+        'FLANGE SURFACE [ a ],ระยะจากขอบท่อถึงหน้าแปลน,วัดด้วย Gauge,0.4,0.6,mm',
+        'รอยเชื่อมรอบท่อ,ตรวจด้วยสายตา,Visual,,,',
+        '"BRACKET, LEFT",ความกว้างของ Bracket,Caliper,24.8,25.2,mm'
+      ].join('\r\n') + '\r\n';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      a.download = 'checkpoint-template.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
+
+    $('btn-cp-csv-apply').addEventListener('click', () => {
+      const jid = cpEditJigId;
+      if (!jid || !pending) return;
+      const jig = catalog.jigs.find(j => j.id === jid);
+      if (!jig) return;
+      classify();
+      const toAdd = pending.items.filter(i => i.status === 'ok');
+      if (!toAdd.length) { toast('ไม่มีจุดตรวจที่นำเข้าได้', 'ng'); return; }
+      if (!jig.checkpoints) jig.checkpoints = [];
+      let nextId = jig.checkpoints.length ? Math.max(...jig.checkpoints.map(p => p.id)) + 1 : 1;
+      toAdd.forEach((it, i) => {
+        // กระจายตำแหน่งเป็นตารางกลางแผนผัง กันจุดซ้อนทับกัน — ลากจัดตำแหน่งจริงภายหลัง
+        const col = i % 5, row = Math.floor(i / 5);
+        const x = 100 + col * 100 + Math.round(Math.random() * 10 - 5);
+        const y = 50 + (row % 5) * 55 + Math.floor(row / 5) * 12 + Math.round(Math.random() * 10 - 5);
+        jig.checkpoints.push({ id: nextId++, label: it.label, sub: it.sub, method: it.method, x, y,
+          type: it.type, min: it.min, max: it.max, unit: it.type === 'numeric' ? (it.unit || '') : null });
+      });
+      _syncing = true;
+      saveCatalog();
+      setTimeout(() => { _syncing = false; }, 2000);
+      const n = toAdd.length, skipped = pending.items.length - n;
+      resetCsv();
+      renderAdmCpMap(jid);
+      renderCpList(jid);
+      toast(`นำเข้า ${n} จุดตรวจจาก CSV แล้ว${skipped ? ` (ข้าม ${skipped})` : ''} — ลากจุดบนแผนผังเพื่อจัดตำแหน่ง`, 'ok');
+    });
+
+    /* เปลี่ยน Part ที่เลือก → เคลียร์พรีวิวเดิม กันนำเข้าผิด Part */
+    $('adm-cp-jig').addEventListener('change', resetCsv);
+  }
+
   function bindAdminPanel() {
     $('adm-jig-search').addEventListener('input', filterJigList);
 
@@ -3830,6 +4034,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       renderCpList(jid);
       toast('เพิ่มจุดตรวจแล้ว — ลากจุดบนแผนผังเพื่อจัดตำแหน่ง', 'ok');
     });
+
+    bindCpCsvImport(); // 🆕 นำเข้าจุดตรวจจาก CSV
 
     /* ── เทมเพลตหัวข้อตรวจสอบ — ใช้ซ้ำข้ามหลาย Part โดยไม่ต้องพิมพ์ใหม่ทุกครั้ง ── */
     $('adm-tpl-select').addEventListener('change', () => renderTplPreview());
