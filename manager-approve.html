@@ -492,6 +492,10 @@ textarea:focus,input[type=text]:focus{outline:0;border-color:var(--accent);box-s
   function esc(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
+  // escape สำหรับข้อความ Telegram (Markdown) — ใส่ \ หน้า _ * ` [ กันข้อความพังจนต้อง fallback เป็น plain text
+  function escTg(s) {
+    return String(s ?? '').replace(/[_*`\[]/g, m => '\\' + m);
+  }
   function statusLabel(s) {
     return s === 'ok' ? 'ผ่าน (OK)' : s === 'fixed' ? 'แก้ไขแล้ว' : s === 'ng' ? 'ไม่ผ่าน (NG)' : '-';
   }
@@ -514,8 +518,8 @@ textarea:focus,input[type=text]:focus{outline:0;border-color:var(--accent);box-s
     if (!ngItems.length) return '';
     const lines = ngItems.map((item, idx) => {
       const value = ` (${pieceSummaryText(item)})`; // 🆕 โชว์ผลทั้ง 3 ชิ้น ไม่ใช่แค่ค่าเดียว
-      const note = item.note ? ` - _${esc(item.note)}_` : '';
-      return `${idx + 1}. ${esc(item.label)}${value}${note}`;
+      const note = item.note ? ` - _${escTg(item.note)}_` : '';
+      return `${idx + 1}. ${escTg(item.label)}${value}${note}`;
     });
     return `\n*🔴 รายการที่ไม่ผ่าน:*\n${lines.join('\n')}\n`;
   }
@@ -708,9 +712,9 @@ textarea:focus,input[type=text]:focus{outline:0;border-color:var(--accent);box-s
 📋 *Daily Quality Inspection Report*
 ✅ สถานะ: อนุมัติครบทุกขั้นตอนแล้ว — อนุมัติแบบกลุ่ม
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-🏭 Model: ${esc(lineName)}
+🏭 Model: ${escTg(lineName)}
 📦 จำนวน: ${count} รายการ (ผ่านทั้งหมด ไม่มี NG)
-👔 Supervisor อนุมัติโดย: ${esc(approverName)}
+👔 Supervisor อนุมัติโดย: ${escTg(approverName)}
 🕐 เมื่อ: ${new Date().toLocaleString('th-TH')}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
@@ -936,19 +940,19 @@ textarea:focus,input[type=text]:focus{outline:0;border-color:var(--accent);box-s
 📋 *Daily Quality Inspection Report*
 ✅ สถานะ: อนุมัติครบทุกขั้นตอนแล้ว
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-*${esc(row.jig_name)}*
-${esc(row.jig_id || '')}
-${row.jig_doc_no ? `_${esc(row.jig_doc_no)}_` : ''}
+*${escTg(row.jig_name)}*
+${escTg(row.jig_id || '')}
+${row.jig_doc_no ? `_${escTg(row.jig_doc_no)}_` : ''}
 
-📅 วันที่ตรวจ: ${esc(row.insp_date)} เวลา ${esc(time)}${time ? ' น.' : ''}
-🏷 Production Order: ${esc(row.production_order || '-')}
-👤 ผู้ตรวจ: ${esc(row.inspector)}
+📅 วันที่ตรวจ: ${escTg(row.insp_date)} เวลา ${escTg(time)}${time ? ' น.' : ''}
+🏷 Production Order: ${escTg(row.production_order || '-')}
+👤 ผู้ตรวจ: ${escTg(row.inspector)}
 🔍 จุดเช็คทั้งหมด: ${items.length} จุด
 ✅ ผ่าน (OK): ${okCount}${ngCount > 0 ? `  ❌ ไม่ผ่าน (NG): ${ngCount}` : ''}
 ${ngListText(items)}
-👔 Leader: ${esc(row.approved_by)} (${row.approved_at ? new Date(row.approved_at).toLocaleString('th-TH') : '-'})
-👔 Supervisor: ${esc(row.manager_approved_by)} (${new Date(row.manager_approved_at).toLocaleString('th-TH')})
-${row.manager_comment ? `💬 ความเห็น: ${esc(row.manager_comment)}` : ''}
+🥼 Leader: ${escTg(row.approved_by)} (${row.approved_at ? new Date(row.approved_at).toLocaleString('th-TH') : '-'})
+👔 Supervisor: ${escTg(row.manager_approved_by)} (${new Date(row.manager_approved_at).toLocaleString('th-TH')})
+${row.manager_comment ? `💬 ความเห็น: ${escTg(row.manager_comment)}` : ''}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
 
