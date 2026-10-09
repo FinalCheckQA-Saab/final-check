@@ -2928,7 +2928,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         if (ngItems.length > 0) {
           telegramMsg += `\n*🔴 รายการที่ไม่ผ่าน:*\n`;
           ngItems.forEach((item, idx) => {
-            const value = ` (${pieceSummaryText(item).replace(/✖/g, '❌')})`; // โชว์ผลทั้ง S / M / E
+            const value = ` (${pieceSummaryText(item).replace(/✖/g, '❌').replace(/✔/g, '✅')})`; // โชว์ผลทั้ง S / M / E
             const note = item.note ? ` - _${escHtml(item.note)}_` : '';
             telegramMsg += `${idx + 1}. ${escHtml(item.label)}${value}${note}\n`;
           });
