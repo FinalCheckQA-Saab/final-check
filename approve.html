@@ -519,7 +519,7 @@ textarea:focus,input[type=text]:focus{outline:0;border-color:var(--accent);box-s
     const ngItems = (items || []).filter(i => i.status === 'ng');
     if (!ngItems.length) return '';
     const lines = ngItems.map((item, idx) => {
-      const value = ` (${pieceSummaryText(item)})`; // 🆕 โชว์ผลทั้ง 3 ชิ้น ไม่ใช่แค่ค่าเดียว
+      const value = ` (${pieceSummaryText(item).replace(/✖/g, '❌')})`; // 🆕 โชว์ผลทั้ง 3 ชิ้น ไม่ใช่แค่ค่าเดียว
       const note = item.note ? ` - _${escTg(item.note)}_` : '';
       return `${idx + 1}. ${escTg(item.label)}${value}${note}`;
     });
