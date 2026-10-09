@@ -3879,3 +3879,67 @@ html[data-palette="coffee"][data-theme="dark"] {
 .cp-csv-tag.ok  { background: hsla(145, 60%, 45%, 0.18); color: #16a34a; }
 .cp-csv-tag.bad { background: hsla(0, 80%, 55%, 0.18); color: #dc2626; }
 .cp-csv-tag.dup { background: hsla(40, 90%, 50%, 0.20); color: #b45309; }
+
+/* ─────────────────────────────
+   🆕 ช่องลายเซ็นรับรอง (พิมพ์ชื่อ) — ดีไซน์เส้นลงนาม
+───────────────────────────── */
+.sig-card .sig-block { border: 0; border-radius: 0; overflow: visible; padding: 2px 2px 0; }
+.sig-card .sig-label {
+  display: block; margin-bottom: 6px;
+  font-size: 11.5px; font-weight: 700; letter-spacing: .06em;
+  color: var(--text-muted);
+}
+.sig-field {
+  position: relative; display: flex; align-items: flex-end; gap: 12px;
+  padding: 14px 16px 6px; min-height: 76px;
+  background:
+    linear-gradient(180deg, transparent 70%, var(--accent-dim)) ,
+    var(--bg-input);
+  border: 1px solid var(--border-input); border-radius: 14px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.sig-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-dim);
+}
+.sig-x {
+  flex: none; align-self: flex-end; margin-bottom: 12px;
+  font-size: 15px; font-weight: 700; color: var(--text-muted); opacity: .7;
+}
+.sig-card .sig-text-input {
+  flex: 1; min-width: 0; width: 100%;
+  padding: 6px 2px 8px; margin: 0;
+  background: transparent; color: var(--text-main);
+  border: 0; border-bottom: 2px dashed var(--border-input); border-radius: 0; outline: 0;
+  font-family: 'Mali', 'Noto Sans Thai', var(--font-thai), cursive;
+  font-style: italic; font-weight: 500; font-size: 24px; line-height: 1.35;
+  letter-spacing: .01em; box-shadow: none;
+  transition: border-color .2s;
+}
+.sig-card .sig-text-input::placeholder {
+  font-family: var(--font-thai); font-style: normal; font-weight: 400;
+  font-size: 14px; color: var(--text-muted); opacity: .75;
+}
+.sig-field:focus-within .sig-text-input { border-bottom: 2px solid var(--accent); }
+.sig-ok {
+  flex: none; align-self: flex-end; margin-bottom: 10px;
+  width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--ok); color: #fff;
+  opacity: 0; transform: scale(.6);
+  transition: opacity .2s, transform .25s cubic-bezier(.2,.9,.3,1.4);
+}
+.sig-ok svg { width: 14px; height: 14px; }
+.sig-field:has(.sig-text-input:not(:placeholder-shown)) .sig-ok { opacity: 1; transform: none; }
+.sig-field:has(.sig-text-input:not(:placeholder-shown)) .sig-x { color: var(--accent); opacity: 1; }
+.sig-caption {
+  display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin-top: 8px; padding: 0 4px;
+  font-size: 11px; color: var(--text-muted);
+}
+.sig-caption span:first-child { font-weight: 600; }
+@media (max-width: 480px) {
+  .sig-card .sig-text-input { font-size: 21px; }
+  .sig-caption span:last-child { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .sig-ok, .sig-field, .sig-text-input { transition: none; } }

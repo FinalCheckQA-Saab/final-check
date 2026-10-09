@@ -28,7 +28,7 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=Mali:ital,wght@1,500&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
@@ -44,7 +44,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- ⚠️ CACHE-BUST: เบราว์เซอร์/PWA มัก cache ไฟล์ .css ค้างไว้นานผิดปกติ (เหมือน app.js ด้านล่าง)
        เพิ่ม ?v= ให้บังคับโหลดไฟล์ใหม่ทุกครั้งที่แก้ style.css — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ style.css -->
-  <link rel="stylesheet" href="style.css?v=fc-csv1">
+  <link rel="stylesheet" href="style.css?v=fc-sig1">
 </head>
 <body>
 
@@ -385,8 +385,13 @@
       <h2 class="card-title"><span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span> ลายเซ็นรับรอง (พิมพ์ชื่อ)</h2>
       <div class="sig-row">
         <div class="sig-block">
-          <label>ลงชื่อผู้ตรวจสอบ</label>
-          <input type="text" id="sig-inspector" class="sig-text-input" placeholder="พิมพ์ชื่อผู้ลงนามตรวจสอบ">
+          <label class="sig-label" for="sig-inspector">ลงชื่อผู้ตรวจสอบ</label>
+          <div class="sig-field">
+            <span class="sig-x" aria-hidden="true">✕</span>
+            <input type="text" id="sig-inspector" class="sig-text-input" placeholder="พิมพ์ชื่อผู้ลงนามตรวจสอบ" autocomplete="off" spellcheck="false">
+            <span class="sig-ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </div>
+          <div class="sig-caption"><span>ผู้ตรวจสอบ · Inspector</span><span>ชื่อนี้จะแสดงเป็นลายเซ็นในรายงาน PDF</span></div>
         </div>
       </div>
     </div>
