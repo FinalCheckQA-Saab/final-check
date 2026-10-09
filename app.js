@@ -6652,7 +6652,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
        (ต้องรัน add_dashboard_visibility.sql) — ทุกเครื่อง/จอ TV อ่านค่านี้ตอนเปิดแอป (pullAppSettingsFromSupabase)
   ══════════════════════════════════════ */
   const DASH_VIS_ITEMS = [
-    { id: 'line-status',  name: 'สถานะ Model วันนี้',          desc: 'สถานะการตรวจของแต่ละ Model แบบ Real-time' },
+    { id: 'line-status',  name: 'สถานะ Line / Model วันนี้',    desc: 'สถานะการตรวจของแต่ละ Model แยกตาม Line แบบ Real-time' },
     { id: 'ng-today',     name: 'NG วันนี้',                  desc: 'รายการ NG ที่พบวันนี้แบบละเอียด' },
     { id: 'kpi-row',      name: 'การ์ดตัวเลขสรุป (KPI)',       desc: 'จำนวนครั้งตรวจ / NG / Pass Rate / Part' },
     { id: 'chart-trend',  name: 'กราฟแนวโน้มการตรวจสอบ',       desc: 'กราฟผ่าน / NG รายวัน' },
