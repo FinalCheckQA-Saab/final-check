@@ -3947,3 +3947,33 @@ html[data-palette="coffee"][data-theme="dark"] {
   .sig-caption span:last-child { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .sig-ok, .sig-field, .sig-text-input { transition: none; } }
+
+/* ─────────────────────────────
+   🆕 แสดง/ซ่อนการ์ดและกราฟ Dashboard (Admin Panel) + คลาสซ่อนบน Dashboard
+───────────────────────────── */
+.dash-hidden { display: none !important; }
+.dashvis-list { display: flex; flex-direction: column; gap: 6px; }
+.dashvis-row {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border: 1px solid var(--border-card); border-radius: 12px;
+  background: var(--bg-input); cursor: pointer; transition: border-color .2s, background .2s;
+}
+.dashvis-row:hover { border-color: var(--accent); }
+.dashvis-row input { position: absolute; opacity: 0; pointer-events: none; }
+.dashvis-switch {
+  flex: none; position: relative; width: 38px; height: 22px; border-radius: 999px;
+  background: var(--border-input); transition: background .2s;
+}
+.dashvis-switch::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px hsla(0,0%,0%,.35); transition: transform .22s cubic-bezier(.2,.9,.3,1.2);
+}
+.dashvis-row input:checked + .dashvis-switch { background: var(--ok); }
+.dashvis-row input:checked + .dashvis-switch::after { transform: translateX(16px); }
+.dashvis-row input:focus-visible + .dashvis-switch { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dashvis-txt { display: flex; flex-direction: column; min-width: 0; }
+.dashvis-txt b { font-size: 13px; font-weight: 600; color: var(--text-main); }
+.dashvis-txt small { font-size: 11px; color: var(--text-muted); }
+.dashvis-row:has(input:not(:checked)) .dashvis-txt { opacity: .55; }
+.dashvis-quick { margin-top: 8px; font-size: 11px; color: var(--text-muted); }
+@media (prefers-reduced-motion: reduce) { .dashvis-switch, .dashvis-switch::after { transition: none; } }

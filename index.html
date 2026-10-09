@@ -44,7 +44,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- ⚠️ CACHE-BUST: เบราว์เซอร์/PWA มัก cache ไฟล์ .css ค้างไว้นานผิดปกติ (เหมือน app.js ด้านล่าง)
        เพิ่ม ?v= ให้บังคับโหลดไฟล์ใหม่ทุกครั้งที่แก้ style.css — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ style.css -->
-  <link rel="stylesheet" href="style.css?v=fc-sig2">
+  <link rel="stylesheet" href="style.css?v=fc-dash1">
 </head>
 <body>
 
@@ -409,7 +409,7 @@
   <div id="view-dashboard" class="hidden">
 
     <!-- ─── สถานะ Model วันนี้ — read-only, จัดกลุ่มตาม Line ─── -->
-    <div class="glass-card" style="margin-bottom:16px;">
+    <div class="glass-card" id="dash-line-status-card" style="margin-bottom:16px;">
       <div class="card-header-flex">
         <h2 class="card-title"><span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="7" r="4"/></svg></span> สถานะ Model วันนี้</h2>
         <span class="chart-legend line-status-legend">
@@ -1098,6 +1098,23 @@
       </div>
     </div>
 
+    <!-- 🆕 แสดง/ซ่อนการ์ดและกราฟบนหน้า Dashboard (ใช้กับทุกเครื่อง รวมถึงจอ TV) -->
+    <div class="admin-section" id="adm-dashvis-section">
+      <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> แสดง/ซ่อนกราฟ Dashboard</div>
+      <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+        ติ๊กเลือกการ์ดและกราฟที่ต้องการให้แสดงบนหน้า Dashboard — เห็นผลทันที แล้วกดบันทึกเพื่อใช้กับทุกเครื่อง (รวมจอ TV)
+      </div>
+      <div class="dashvis-list" id="adm-dashvis-list"></div>
+      <div class="dashvis-quick">
+        <button type="button" class="tpl-mini-link" id="btn-dashvis-all">แสดงทั้งหมด</button> /
+        <button type="button" class="tpl-mini-link" id="btn-dashvis-none">ซ่อนทั้งหมด</button>
+      </div>
+      <div class="palette-meta">
+        <div class="palette-current" id="adm-dashvis-current"></div>
+        <button class="btn-adm-add" id="btn-dashvis-save">บันทึก</button>
+      </div>
+    </div>
+
     <!-- Export / Import backup -->
     <div class="admin-section">
       <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> สำรองข้อมูล (Backup)</div>
@@ -1244,8 +1261,8 @@
 <!-- 🆕 ใส่เลขเวอร์ชันต่อท้าย ?v=... เพื่อบังคับให้เบราว์เซอร์ (โดยเฉพาะ Safari บน iPhone ซึ่งแคชไฟล์ .js
      ค้างนานผิดปกติ) โหลด app.js ก้อนใหม่ทุกครั้งที่มีการอัปเดตโค้ด — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ app.js
      แล้ว push ขึ้นใหม่ ไม่งั้นเครื่องที่เคยเข้าเว็บมาก่อนจะยังใช้ไฟล์เก่าจากแคชอยู่ -->
-<script src="app.js?v=fc-csv2"></script>
-<script src="admin-console.js?v=1"></script>
+<script src="app.js?v=fc-dash1"></script>
+<script src="admin-console.js?v=2"></script>
 <script>
 (function () {
   var collapseBtn = document.getElementById('sidebar-collapse-toggle');

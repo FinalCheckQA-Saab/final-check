@@ -877,12 +877,16 @@
         if (row.key === 'company_name_th') appSettings.companyNameTh = row.value; // 🆕 ชื่อบริษัทไทย (PDF header) — เว้นว่าง = ใช้ DEFAULT_COMPANY_NAME_TH
         if (row.key === 'company_name_en') appSettings.companyNameEn = row.value; // 🆕 ชื่อบริษัทอังกฤษ (PDF header) — เว้นว่าง = ใช้ DEFAULT_COMPANY_NAME_EN
         if (row.key === 'company_logo')    appSettings.companyLogo   = row.value; // 🆕 โลโก้บริษัท base64 — เว้นว่าง = ใช้ SUMMIT_LOGO_B64 เดิม
+        if (row.key === 'dashboard_hidden') {                                      // 🆕 การ์ด/กราฟ Dashboard ที่ซ่อนไว้ (ค่ากลางทุกเครื่อง)
+          try { const arr = JSON.parse(row.value); if (Array.isArray(arr)) { appSettings.dashHidden = arr.slice(); appSettings.dashHiddenSaved = arr.slice(); } } catch (e) { /* เก็บค่าเดิมถ้า parse ไม่ได้ */ }
+        }
         if (row.key === 'companies_json') {                                       // 🆕 รายชื่อนิติบุคคลในเครือ (ใช้ใน documents.html)
           try { const arr = JSON.parse(row.value); if (Array.isArray(arr)) appSettings.companies = arr; } catch (e) { /* เก็บค่าเดิมถ้า parse ไม่ได้ */ }
         }
       });
       saveAppSettingsLocal();
       renderAppSettingsForm();
+      applyDashVisibility(); renderDashVisForm(); // 🆕 อัปเดตการ์ด/กราฟ Dashboard ตามค่ากลางล่าสุด
     } catch (e) {
       console.error('pullAppSettingsFromSupabase error (ตรวจสอบว่ารัน SQL migration app_settings แล้วหรือยัง):', e);
     }
@@ -1746,6 +1750,7 @@
       }
     }
     loadAppSettings();               // ใช้ค่า cache/default ไปก่อนระหว่างรอ Supabase
+    applyDashVisibility();           // 🆕 ซ่อนการ์ด/กราฟ Dashboard ตามค่าที่ cache ไว้ทันที (กันกราฟที่ซ่อนไว้แวบขึ้นมา)
     renderAppSettingsForm();
     pullAppSettingsFromSupabase();   // แล้วอัปเดตให้ล่าสุดทันทีที่ดึงเสร็จ (ไม่บล็อกหน้าจอ)
     $('inp-date').value = localDateStr();
@@ -1760,6 +1765,7 @@
     bindThemeToggle();
     bindAdminPanel();
     bindPalettePanel();          // 🎨 เลือกสีธีม 10 ชุด (Admin Panel)
+    bindDashVisPanel();          // 🆕 ติ๊กแสดง/ซ่อนการ์ดและกราฟ Dashboard (Admin Panel)
     bindUncheckedLinesPanel();   // 🆕 Part ขาดตรวจ SME (Admin Panel)
     bindHolidayCalendarPanel();  // 🆕 ปฏิทินวันหยุด (Admin Panel)
     bindAlertSchedulePanel();    // 🆕 เวลาแจ้งเตือน Telegram Part ที่ยังไม่ตรวจ S/M/E (Admin Panel)
@@ -6637,6 +6643,104 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     });
     const save = $('btn-palette-save');
     if (save) save.addEventListener('click', savePaletteToSupabase);
+  }
+
+  /* ══════════════════════════════════════
+     🆕 แสดง/ซ่อนการ์ดและกราฟบน Dashboard — เลือกที่ Admin Panel
+     • ติ๊กแล้วเห็นผลทันที (จำในเครื่องนี้)
+     • "บันทึก" = เก็บ key 'dashboard_hidden' (JSON รายการ id ที่ซ่อน) ใน app_settings ผ่าน RPC save_dashboard_blocks
+       (ต้องรัน add_dashboard_visibility.sql) — ทุกเครื่อง/จอ TV อ่านค่านี้ตอนเปิดแอป (pullAppSettingsFromSupabase)
+  ══════════════════════════════════════ */
+  const DASH_VIS_ITEMS = [
+    { id: 'line-status',  name: 'สถานะ Model วันนี้',          desc: 'สถานะการตรวจของแต่ละ Model แบบ Real-time' },
+    { id: 'ng-today',     name: 'NG วันนี้',                  desc: 'รายการ NG ที่พบวันนี้แบบละเอียด' },
+    { id: 'kpi-row',      name: 'การ์ดตัวเลขสรุป (KPI)',       desc: 'จำนวนครั้งตรวจ / NG / Pass Rate / Part' },
+    { id: 'chart-trend',  name: 'กราฟแนวโน้มการตรวจสอบ',       desc: 'กราฟผ่าน / NG รายวัน' },
+    { id: 'chart-byline', name: 'กราฟ NG ตาม Model',          desc: 'กราฟแท่งเปรียบเทียบ NG แต่ละ Model' },
+    { id: 'chart-donut',  name: 'กราฟอัตราผ่านตาม Model',      desc: 'กราฟโดนัทสัดส่วนผ่านของแต่ละ Model' },
+    { id: 'ng-ranking',   name: 'จุดตรวจที่พบ NG บ่อยที่สุด',   desc: 'อันดับจุดตรวจที่ NG บ่อย' },
+    { id: 'ai-panel',     name: 'AI วิเคราะห์ข้อมูล',          desc: 'วิเคราะห์ pattern NG ด้วย AI' },
+  ];
+  const dashVisIds = () => DASH_VIS_ITEMS.map(x => x.id);
+  const getDashHidden = () => (Array.isArray(appSettings.dashHidden) ? appSettings.dashHidden : []).filter(id => dashVisIds().includes(id));
+  const getDashHiddenSaved = () => (Array.isArray(appSettings.dashHiddenSaved) ? appSettings.dashHiddenSaved : []).filter(id => dashVisIds().includes(id));
+  const sameIdSet = (a, b) => a.length === b.length && a.every(x => b.includes(x));
+
+  function dashVisEl(id) {
+    if (id === 'line-status') return $('dash-line-status-card');
+    const box = $('dashboard-sortable');
+    return box ? box.querySelector(`:scope > .dash-block[data-block-id="${id}"]`) : null;
+  }
+  function applyDashVisibility() {
+    const hidden = new Set(getDashHidden());
+    DASH_VIS_ITEMS.forEach(it => { const el = dashVisEl(it.id); if (el) el.classList.toggle('dash-hidden', hidden.has(it.id)); });
+    // กราฟที่เพิ่งถูกแสดงกลับมาต้องคำนวณขนาดใหม่ (ตอนซ่อนอยู่ canvas มีขนาด 0)
+    requestAnimationFrame(() => { try { Object.values(charts || {}).forEach(c => c && c.resize && c.resize()); } catch (e) { /* ignore */ } });
+  }
+  function renderDashVisForm() {
+    const list = $('adm-dashvis-list');
+    if (!list) return;
+    const hidden = getDashHidden();
+    list.innerHTML = DASH_VIS_ITEMS.map(it => `
+      <label class="dashvis-row">
+        <input type="checkbox" class="dashvis-chk" data-id="${it.id}" ${hidden.includes(it.id) ? '' : 'checked'}>
+        <span class="dashvis-switch" aria-hidden="true"></span>
+        <span class="dashvis-txt"><b>${escHtml(it.name)}</b><small>${escHtml(it.desc)}</small></span>
+      </label>`).join('');
+    const info = $('adm-dashvis-current');
+    if (info) {
+      const dirty = !sameIdSet(hidden, getDashHiddenSaved());
+      const shown = DASH_VIS_ITEMS.length - hidden.length;
+      info.innerHTML = `<b>แสดง ${shown} จาก ${DASH_VIS_ITEMS.length} รายการ</b><span class="${dirty ? 'dirty' : ''}">${dirty ? 'ยังไม่ได้บันทึกให้ทุกเครื่อง' : 'ใช้งานอยู่ทุกเครื่อง'}</span>`;
+    }
+  }
+  function setDashHidden(arr) {
+    appSettings.dashHidden = arr;
+    saveAppSettingsLocal();
+    applyDashVisibility();
+    renderDashVisForm();
+  }
+  async function saveDashVisToSupabase() {
+    if (!sb) { toast('ไม่ได้เชื่อมต่อ Supabase — ใช้ค่านี้เฉพาะเครื่องนี้', 'ng'); return; }
+    const pass = getAdminPass();
+    if (!pass) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อบันทึก', 'ng'); return; }
+    const btn = $('btn-dashvis-save');
+    if (btn) btn.disabled = true;
+    try {
+      const hidden = getDashHidden();
+      const { data: ok, error } = await sb.rpc('save_dashboard_blocks', {
+        p_username: localStorage.getItem('fc_admin_user') || 'admin',
+        p_password: pass,
+        p_hidden: JSON.stringify(hidden),
+      });
+      if (error) throw error;
+      if (!ok) { _adminSessionPass = null; toast('รหัสผ่าน Admin ไม่ถูกต้อง — บันทึกไม่สำเร็จ', 'ng'); return; }
+      appSettings.dashHiddenSaved = hidden.slice();
+      saveAppSettingsLocal();
+      renderDashVisForm();
+      toast('✅ บันทึกแล้ว — ทุกเครื่อง/จอ TV จะแสดงตามนี้เมื่อเปิดหรือรีเฟรชหน้า', 'ok');
+    } catch (e) {
+      console.error('saveDashVisToSupabase error:', e);
+      toast('บันทึกลงระบบกลางไม่สำเร็จ — ตอนนี้ใช้ค่านี้เฉพาะเครื่องนี้ (ตรวจว่ารัน add_dashboard_visibility.sql ใน Supabase แล้ว)', 'ng');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+  function bindDashVisPanel() {
+    renderDashVisForm();
+    applyDashVisibility();
+    const list = $('adm-dashvis-list');
+    if (!list) return;
+    list.addEventListener('change', e => {
+      if (!e.target.classList.contains('dashvis-chk')) return;
+      const hidden = new Set(getDashHidden());
+      if (e.target.checked) hidden.delete(e.target.dataset.id); else hidden.add(e.target.dataset.id);
+      setDashHidden(dashVisIds().filter(id => hidden.has(id)));
+    });
+    const all = $('btn-dashvis-all'), none = $('btn-dashvis-none'), save = $('btn-dashvis-save');
+    if (all)  all.addEventListener('click',  () => setDashHidden([]));
+    if (none) none.addEventListener('click', () => setDashHidden(dashVisIds()));
+    if (save) save.addEventListener('click', saveDashVisToSupabase);
   }
 
   /* ══════════════════════════════════════
