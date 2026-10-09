@@ -443,14 +443,28 @@
     };
   }
 
+  // 🆕 ดึงข้อมูลทีละ 1,000 แถว (Supabase จำกัดแถวต่อครั้ง) — mk() ต้องคืน query ใหม่ทุกครั้ง และต้อง order ให้คงที่
+  async function fetchAllRows(mk) {
+    const out = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await mk().range(from, from + 999);
+      if (error) return { data: out, error };
+      out.push(...(data || []));
+      if (!data || data.length < 1000) break;
+    }
+    return { data: out, error: null };
+  }
+
   // 🆕 ดึงประวัติจาก Supabase — ใส่ sinceIso (ISO timestamp) เพื่อดึงเฉพาะรายการใหม่กว่านั้น (ลด Egress มาก)
   // ไม่ใส่ = ดึงทั้งหมดเหมือนเดิม (ใช้ตอน export/โหลดเต็มแบบตั้งใจเท่านั้น — ดู pullHistoryFromSupabase() ที่เรียกแบบไม่มี argument)
   async function pullHistoryFromSupabase(sinceIso) {
     if (!sb) return null;
     try {
-      let q = sb.from('history').select('*').order('ts', { ascending: false });
-      if (sinceIso) q = q.gte('ts', sinceIso);
-      const { data, error } = await q;
+      const { data, error } = await fetchAllRows(() => {
+        let q = sb.from('history').select('*').order('ts', { ascending: false }).order('id', { ascending: false });
+        if (sinceIso) q = q.gte('ts', sinceIso);
+        return q;
+      });
       if (error) throw error;
       if (!data || !data.length) return null;
       return data.map(mapHistoryRow);
@@ -471,7 +485,10 @@
     return (Date.now() - pulledAt) < CATALOG_CACHE_HOURS * 3600000;
   }
 
-  const RECENT_HISTORY_DAYS = 90;
+  const RECENT_HISTORY_DAYS = 30;
+  // ประวัติตอนเปิดแอปดึงเป็นหลายหน้า (หน้าละ 1,000 แถว มีรูป base64) — ถ้าใช้ timeout 10 วิเท่า catalog จะหมดเวลาเมื่อข้อมูลโต
+  // แล้วขึ้นเตือน "เชื่อมต่อไม่สำเร็จ" ทั้งที่เน็ตปกติ จึงให้เวลาประวัติมากกว่า (ลดจำนวนวันด้านบนได้ ถ้าอยากเปิดแอปเร็ว/ประหยัด Egress)
+  const HISTORY_PULL_TIMEOUT_MS = 30000;
   function recentHistoryCutoffIso() {
     return new Date(Date.now() - RECENT_HISTORY_DAYS * 86400000).toISOString();
   }
@@ -1696,7 +1713,7 @@
     const [remoteCat, remoteHist] = await Promise.all([
       skipCatalogPull ? Promise.resolve(null) :
         withTimeout(pullCatalogFromSupabase().then(r => { dbgLog('pullCatalogFromSupabase() เสร็จแล้ว', r ? `${(r.depts||[]).length} depts` : 'null'); return r; }), 10000, 'TIMEOUT'),
-      withTimeout(pullHistoryFromSupabase(recentHistoryCutoffIso()).then(r => { dbgLog('pullHistoryFromSupabase() เสร็จแล้ว', r ? `${r.length} รายการ (${RECENT_HISTORY_DAYS} วันล่าสุด — ลด Egress)` : 'null'); return r; }), 10000, 'TIMEOUT'),
+      withTimeout(pullHistoryFromSupabase(recentHistoryCutoffIso()).then(r => { dbgLog('pullHistoryFromSupabase() เสร็จแล้ว', r ? `${r.length} รายการ (${RECENT_HISTORY_DAYS} วันล่าสุด — ลด Egress)` : 'null'); return r; }), HISTORY_PULL_TIMEOUT_MS, 'TIMEOUT'),
     ]);
     dbgLog('Promise.all ของ catalog+history เสร็จแล้ว', `catTimedOut=${remoteCat === 'TIMEOUT'}, histTimedOut=${remoteHist === 'TIMEOUT'}`);
     const catTimedOut  = remoteCat === 'TIMEOUT';
@@ -3093,12 +3110,12 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     try {
       // ดึง catalog ทุกตาราง
       const [depts, lines, jigs, checkpoints, templates, histRows] = await Promise.all([
-        sb.from('departments').select('*'),
-        sb.from('lines').select('*'),
-        sb.from('jigs').select('*'),
-        sb.from('checkpoints').select('*'),
-        sb.from('templates').select('*'),
-        sb.from('history').select('*').order('ts', { ascending: false }),
+        fetchAllRows(() => sb.from('departments').select('*').order('id')),
+        fetchAllRows(() => sb.from('lines').select('*').order('id')),
+        fetchAllRows(() => sb.from('jigs').select('*').order('id')),
+        fetchAllRows(() => sb.from('checkpoints').select('*').order('jig_id').order('item_id')),
+        fetchAllRows(() => sb.from('templates').select('*').order('id')),
+        fetchAllRows(() => sb.from('history').select('*').order('ts', { ascending: false }).order('id', { ascending: false })),
       ]);
 
       // ประกอบ checkpoints กลับเข้า jigs (เหมือนโครงสร้างใน memory)
@@ -8462,15 +8479,33 @@ ${JSON.stringify(summary, null, 2)}
   async function getStorageStats() {
     if (!sb) return null;
     try {
+      // 🆕 ทางลัดประหยัด Egress: ให้ Supabase คำนวณจำนวนแถว/ขนาดเองผ่าน RPC get_storage_stats (ดู get_storage_stats.sql)
+      //    ถ้ายังไม่ได้สร้างฟังก์ชันนี้ หรือเรียกไม่สำเร็จ → ตกไปใช้วิธีเดิมด้านล่าง (ดึงข้อมูลเต็มมาวัด) โดยอัตโนมัติ
+      try {
+        const { data: r, error: rErr } = await sb.rpc('get_storage_stats');
+        const T = ['departments', 'lines', 'jigs', 'checkpoints', 'history', 'templates'];
+        if (!rErr && r && T.every(k => r[k] && typeof r[k].n === 'number' && typeof r[k].bytes === 'number')) {
+          const sizeByTable = {};
+          T.forEach(k => { sizeByTable[k] = Number(r[k].bytes); });
+          return {
+            departments: r.departments.n, lines: r.lines.n, jigs: r.jigs.n,
+            checkpoints: r.checkpoints.n, history: r.history.n, templates: r.templates.n,
+            totalRecords: T.reduce((a, k) => a + r[k].n, 0),
+            sizeByTable,
+            totalBytes: T.reduce((a, k) => a + sizeByTable[k], 0),
+            timestamp: new Date().toLocaleString('th-TH'),
+          };
+        }
+      } catch (e) { /* ใช้วิธีเดิมต่อ */ }
       // ── ดึงข้อมูล "เต็ม" ของทุกตาราง (ไม่ใช่แค่นับจำนวนแถว) เพื่อคำนวณขนาดไบต์จริง
       //    รวมรูปถ่าย base64 ที่ฝังอยู่ใน history.items และ jigs.bg_image ด้วย — เป็นตัวกินพื้นที่หลัก
       const [dep, lin, jig, cp, hist, tpl] = await Promise.all([
-        sb.from('departments').select('*'),
-        sb.from('lines').select('*'),
-        sb.from('jigs').select('*'),
-        sb.from('checkpoints').select('*'),
-        sb.from('history').select('*'),
-        sb.from('templates').select('*'),
+        fetchAllRows(() => sb.from('departments').select('*').order('id')),
+        fetchAllRows(() => sb.from('lines').select('*').order('id')),
+        fetchAllRows(() => sb.from('jigs').select('*').order('id')),
+        fetchAllRows(() => sb.from('checkpoints').select('*').order('jig_id').order('item_id')),
+        fetchAllRows(() => sb.from('history').select('*').order('id')),
+        fetchAllRows(() => sb.from('templates').select('*').order('id')),
       ]);
       const err = dep.error || lin.error || jig.error || cp.error || hist.error || tpl.error;
       if (err) throw err;
@@ -8649,7 +8684,7 @@ ${JSON.stringify(summary, null, 2)}
     if (!listEl || !sb) return;
     listEl.innerHTML = `<div style="padding: 8px; text-align: center; color: var(--text-muted); font-size: 11px;">⏳ กำลังโหลด...</div>`;
     try {
-      const { data, error } = await sb.from('jigs').select('id, name, bg_image');
+      const { data, error } = await fetchAllRows(() => sb.from('jigs').select('id, name, bg_image').order('id'));
       if (error) throw error;
       const rows = (data || [])
         .map(j => ({ name: j.name, id: j.id, bytes: j.bg_image ? new Blob([j.bg_image]).size : 0 }))
@@ -8751,11 +8786,11 @@ ${JSON.stringify(summary, null, 2)}
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `jig-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `jig-backup-${localDateStr()}.json`;
       a.click();
       URL.revokeObjectURL(url);
 
-      toast(`✅ Backup downloaded — ${cat.jigs?.length || 0} Part, ${hist.length} records`, 'ok');
+      toast(`✅ Backup downloaded — ${cat.jigs?.length || 0} Part, ${hist.length} records (เฉพาะข้อมูลที่โหลดในเครื่อง ~${RECENT_HISTORY_DAYS} วันล่าสุด · ต้องการประวัติทั้งหมดให้ใช้ Export)`, 'ok');
       
       // ✅ STEP 2: Push ไป Supabase (ถ้า connection OK)
       // แต่ถ้า push ล้มเหลว ก็ไม่สำคัญ เพราะ local backup ยังอยู่

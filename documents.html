@@ -604,6 +604,8 @@
   </div>
 
 <script>
+// วันที่ตามเวลาเครื่อง (ไม่ใช้ UTC — ก่อน 07:00 น. จะไม่กลายเป็นเมื่อวาน)
+const localISODate = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const SUPABASE_URL = 'https://knzzmurumqrhwotyrooj.supabase.co'; // ⚠️ ใส่ URL ของ Supabase project ใหม่ (Final Check) — ห้ามใช้ของ Check Jig
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU'; // ⚠️ ใส่ anon key ของ project ใหม่
   const SUPABASE_CONFIGURED = (SUPABASE_URL.startsWith('https://') && !SUPABASE_URL.includes('YOUR-NEW-PROJECT'));
@@ -1499,7 +1501,7 @@
       _rememberedPin = pin;
 
       // บันทึกประวัติเริ่มต้น เก็บค่า Rev เดิมจากระบบ Part ไว้เป็นหมายเหตุ ไม่ให้ข้อมูลหาย
-      const revDate = parseThaiDateToISO(r.revDateText) || firstRevDate || new Date().toISOString().slice(0, 10);
+      const revDate = parseThaiDateToISO(r.revDateText) || firstRevDate || localISODate();
       const detailParts = [`นำเข้าจากทะเบียน Part เดิม`];
       if (r.jigId) detailParts.push(`รหัส Part: ${r.jigId}`);
       if (r.runNo) detailParts.push(`Run No.: ${r.runNo}`);
@@ -1734,7 +1736,7 @@
       <div class="card form-card">
         ${formHead('plus', `บันทึกการแก้ไขครั้งที่ ${nextRev}`, `${esc(doc.doc_no)} · จะเป็น REV ${nextRev}`)}
         <div class="fgrid">
-          ${fld('วันที่ปรับปรุง', `<input type="date" id="nr-date" value="${new Date().toISOString().slice(0,10)}">`)}
+          ${fld('วันที่ปรับปรุง', `<input type="date" id="nr-date" value="${localISODate()}">`)}
           ${fld('หน้า (Page)', `<input type="text" id="nr-page" placeholder="เช่น all หรือ เลขหน้า" value="all">`)}
           ${fld('รายละเอียดการแก้ไข', `<textarea id="nr-detail" placeholder="อธิบายสิ่งที่แก้ไขในรอบนี้"></textarea>`, { full: true })}
           ${fld('ผู้อนุมัติ', `<input type="text" id="nr-approver" placeholder="ชื่อผู้อนุมัติ">`, { full: true })}

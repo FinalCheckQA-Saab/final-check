@@ -302,9 +302,11 @@ try{if(localStorage.getItem('lay_legend_min')==='1')setLegend(true)}catch(e){}
 $('btn-full').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()};
 document.addEventListener('fullscreenchange',()=>setTimeout(fit,150));
 
+// ดึงข้อมูลทีละ 1,000 แถว (Supabase จำกัดแถวต่อครั้ง) — ต้อง order ให้คงที่
+async function fetchAll(mk){const out=[];for(let a=0;;a+=1000){const {data,error}=await mk().range(a,a+999);if(error)return{data:out,error};out.push(...(data||[]));if(!data||data.length<1000)break}return{data:out,error:null}}
 async function loadMaster(){
-  let [j,l,d]=await Promise.all([sb.from('jigs').select('id,name,line_id'),sb.from('lines').select('id,name,dept_id'),sb.from('departments').select('id,name,section')]);
-  if(d.error) d=await sb.from('departments').select('id,name');
+  let [j,l,d]=await Promise.all([fetchAll(()=>sb.from('jigs').select('id,name,line_id').order('id')),fetchAll(()=>sb.from('lines').select('id,name,dept_id').order('id')),fetchAll(()=>sb.from('departments').select('id,name,section').order('id'))]);
+  if(d.error) d=await fetchAll(()=>sb.from('departments').select('id,name').order('id'));
   const dep={},ln={};(d.data||[]).forEach(x=>dep[x.id]=x);(l.data||[]).forEach(x=>ln[x.id]=x);
   groups={};(d.data||[]).forEach(x=>groups[x.id]={name:x.name,section:x.section||'',parts:[]});
   parts={};(j.data||[]).forEach(p=>{const m=ln[p.line_id],q=m&&dep[m.dept_id];parts[p.id]={name:p.name,model:m?m.name:'',line:q?q.name:'',section:q&&q.section||'',deptId:q?q.id:''};if(q&&groups[q.id])groups[q.id].parts.push(p.id)});
@@ -331,7 +333,7 @@ async function loadStatus(){
   // Part ที่มาร์ค "ไม่ได้ผลิต" วันนี้ (ตาราง jig_skips เดียวกับแอปหลัก) → ตัดออกจากการสรุปสถานะบน Layout
   const sk=await sb.from('jig_skips').select('jig_id').eq('skip_date',date);
   if(sk.error)skipErr=sk.error.message;else(sk.data||[]).forEach(r=>skips.add(r.jig_id));
-  const {data,error}=await sb.from('history').select('id,jig_id,ts,items').eq('insp_date',date).order('ts',{ascending:true});
+  const {data,error}=await fetchAll(()=>sb.from('history').select('id,jig_id,ts,items').eq('insp_date',date).order('ts',{ascending:true}).order('id',{ascending:true}));
   if(error){statusErr=error.message;return}
   (data||[]).forEach(r=>{status[r.jig_id]=stageStates(r)}); // เรียงเก่า→ใหม่ ตัวสุดท้ายของ Part เดียวกันจะทับ = ชุดล่าสุดของวัน
 }
