@@ -8033,10 +8033,16 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     const statusMap = computeLineStatusToday();
     const q = lineSearchQuery.trim().toLowerCase();
 
-    const filtered = catalog.lines.filter(l => !q || (l.name || l.id).toLowerCase().includes(q));
+    // 🆕 ค้นได้ทั้งชื่อ Model และชื่อ Line — ถ้าตรงกับชื่อ Line จะแสดงทุก Model ในกลุ่ม Line นั้น
+    const has = (s) => String(s || '').toLowerCase().includes(q);
+    const filtered = catalog.lines.filter(l => {
+      if (!q) return true;
+      const dept = catalog.depts.find(d => d.id === l.deptId);
+      return has(l.name || l.id) || (dept && (has(dept.name) || has(dept.id)));
+    });
 
     if (!filtered.length) {
-      listEl.innerHTML = `<div class="line-status-empty">${q ? 'ไม่พบ Model ที่ค้นหา' : 'ยังไม่มี Model ในระบบ'}</div>`;
+      listEl.innerHTML = `<div class="line-status-empty">${q ? 'ไม่พบ Line / Model ที่ค้นหา' : 'ยังไม่มี Model ในระบบ'}</div>`;
       return;
     }
 
