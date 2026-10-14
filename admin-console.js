@@ -18,7 +18,8 @@
 
   /* key = regex จับชื่อหัวข้อเดิม → ชื่อสั้น / คำอธิบาย / กลุ่ม */
   var META = [
-    { re: /ซ่อนกราฟ|กราฟ Dashboard/, name: 'กราฟ Dashboard', desc: 'เลือกการ์ด/กราฟที่แสดง', grp: 'องค์กรและเอกสาร' },
+    { re: /คู่มือการใช้งาน Admin/, name: 'คู่มือ Admin Panel', desc: 'วิธีใช้เมนูตั้งค่า', grp: 'คู่มือการใช้งาน', action: 'manual:admin', icon: ico('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>') },
+    { re: /จัดการคู่มือ/,        name: 'จัดการคู่มือ',      desc: 'เพิ่ม / ลบ / แก้ไขคู่มือ', grp: 'คู่มือการใช้งาน', icon: ico('<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>') },
     { re: /สีธีม/,            name: 'สีธีมระบบ',        desc: 'เลือกชุดสีของแอป',            grp: 'องค์กรและเอกสาร' },
     { re: /เปลี่ยนรหัสผ่าน/,   name: 'รหัสผ่าน Admin',   desc: 'เปลี่ยนรหัสผู้ดูแลระบบ',       grp: 'ผู้ใช้และความปลอดภัย' },
     { re: /บัญชีผู้ใช้/,        name: 'บัญชีผู้ใช้',        desc: 'สร้าง/ลบผู้ใช้ที่ล็อกอินได้',    grp: 'ผู้ใช้และความปลอดภัย' },
@@ -43,7 +44,7 @@
   ];
   var SECURE_GRP = 'ผู้ใช้และความปลอดภัย'; /* กลุ่มนี้เปิดได้เฉพาะ System Admin — ต้องล็อกอินผู้ดูแลระบบก่อน (app.js: fcIsSystemAdmin / fcSysAdminLogin) */
   function canSecure() { return typeof window.fcIsSystemAdmin === 'function' && window.fcIsSystemAdmin(); }
-  var GROUP_ORDER = ['โครงสร้างการผลิต', 'องค์กรและเอกสาร', 'ผู้ใช้และความปลอดภัย', 'ข้อมูลและการสำรอง'];
+  var GROUP_ORDER = ['โครงสร้างการผลิต', 'องค์กรและเอกสาร', 'ผู้ใช้และความปลอดภัย', 'ข้อมูลและการสำรอง', 'คู่มือการใช้งาน'];
   var FALLBACK_ICON = ico('<circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4M4.2 19.8L7 17M17 7l2.8-2.8"/>');
 
   var store = document.createElement('div');   /* ที่พัก section ตอนไม่ได้เปิด */
@@ -64,7 +65,7 @@
     var svg = t && t.querySelector('svg');
     var iconHtml = meta.icon || (svg ? svg.outerHTML.replace(/class="inline-ico"/, '').replace('stroke-width="2"', 'stroke-width="1.8"') : FALLBACK_ICON);
     var link = sec.querySelector(':scope > a[href]');
-    var it = { sec: sec, name: meta.name, desc: meta.desc, grp: meta.grp, icon: iconHtml, full: raw, href: meta.link && link ? link.getAttribute('href') : null };
+    var it = { sec: sec, name: meta.name, desc: meta.desc, grp: meta.grp, icon: iconHtml, full: raw, href: meta.link && link ? link.getAttribute('href') : null, action: meta.action || null };
     store.appendChild(sec);
     return it;
   });
@@ -169,6 +170,10 @@
       el.querySelector('.adm-tile-name').textContent = it.name;
       el.querySelector('.adm-tile-desc').textContent = it.desc;
       if (!it.href) el.addEventListener('click', function () {
+        if (it.action && it.action.indexOf('manual:') === 0) {   /* 📖 เปิดคู่มือ (ไม่ใช่หน้าต่างตั้งค่า) */
+          if (window.FCManual) window.FCManual.open(it.action.slice(7), { from: el });
+          return;
+        }
         if (it.grp === SECURE_GRP && !canSecure()) {            /* 🔒 ต้องล็อกอินผู้ดูแลระบบก่อน */
           askSysAdmin().then(function (ok) { refreshLocks(); if (ok) openModal(it, el); });
           return;

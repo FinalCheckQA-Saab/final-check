@@ -443,28 +443,14 @@
     };
   }
 
-  // 🆕 ดึงข้อมูลทีละ 1,000 แถว (Supabase จำกัดแถวต่อครั้ง) — mk() ต้องคืน query ใหม่ทุกครั้ง และต้อง order ให้คงที่
-  async function fetchAllRows(mk) {
-    const out = [];
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await mk().range(from, from + 999);
-      if (error) return { data: out, error };
-      out.push(...(data || []));
-      if (!data || data.length < 1000) break;
-    }
-    return { data: out, error: null };
-  }
-
   // 🆕 ดึงประวัติจาก Supabase — ใส่ sinceIso (ISO timestamp) เพื่อดึงเฉพาะรายการใหม่กว่านั้น (ลด Egress มาก)
   // ไม่ใส่ = ดึงทั้งหมดเหมือนเดิม (ใช้ตอน export/โหลดเต็มแบบตั้งใจเท่านั้น — ดู pullHistoryFromSupabase() ที่เรียกแบบไม่มี argument)
   async function pullHistoryFromSupabase(sinceIso) {
     if (!sb) return null;
     try {
-      const { data, error } = await fetchAllRows(() => {
-        let q = sb.from('history').select('*').order('ts', { ascending: false }).order('id', { ascending: false });
-        if (sinceIso) q = q.gte('ts', sinceIso);
-        return q;
-      });
+      let q = sb.from('history').select('*').order('ts', { ascending: false });
+      if (sinceIso) q = q.gte('ts', sinceIso);
+      const { data, error } = await q;
       if (error) throw error;
       if (!data || !data.length) return null;
       return data.map(mapHistoryRow);
@@ -485,10 +471,7 @@
     return (Date.now() - pulledAt) < CATALOG_CACHE_HOURS * 3600000;
   }
 
-  const RECENT_HISTORY_DAYS = 30;
-  // ประวัติตอนเปิดแอปดึงเป็นหลายหน้า (หน้าละ 1,000 แถว มีรูป base64) — ถ้าใช้ timeout 10 วิเท่า catalog จะหมดเวลาเมื่อข้อมูลโต
-  // แล้วขึ้นเตือน "เชื่อมต่อไม่สำเร็จ" ทั้งที่เน็ตปกติ จึงให้เวลาประวัติมากกว่า (ลดจำนวนวันด้านบนได้ ถ้าอยากเปิดแอปเร็ว/ประหยัด Egress)
-  const HISTORY_PULL_TIMEOUT_MS = 30000;
+  const RECENT_HISTORY_DAYS = 90;
   function recentHistoryCutoffIso() {
     return new Date(Date.now() - RECENT_HISTORY_DAYS * 86400000).toISOString();
   }
@@ -877,16 +860,12 @@
         if (row.key === 'company_name_th') appSettings.companyNameTh = row.value; // 🆕 ชื่อบริษัทไทย (PDF header) — เว้นว่าง = ใช้ DEFAULT_COMPANY_NAME_TH
         if (row.key === 'company_name_en') appSettings.companyNameEn = row.value; // 🆕 ชื่อบริษัทอังกฤษ (PDF header) — เว้นว่าง = ใช้ DEFAULT_COMPANY_NAME_EN
         if (row.key === 'company_logo')    appSettings.companyLogo   = row.value; // 🆕 โลโก้บริษัท base64 — เว้นว่าง = ใช้ SUMMIT_LOGO_B64 เดิม
-        if (row.key === 'dashboard_hidden') {                                      // 🆕 การ์ด/กราฟ Dashboard ที่ซ่อนไว้ (ค่ากลางทุกเครื่อง)
-          try { const arr = JSON.parse(row.value); if (Array.isArray(arr)) { appSettings.dashHidden = arr.slice(); appSettings.dashHiddenSaved = arr.slice(); } } catch (e) { /* เก็บค่าเดิมถ้า parse ไม่ได้ */ }
-        }
         if (row.key === 'companies_json') {                                       // 🆕 รายชื่อนิติบุคคลในเครือ (ใช้ใน documents.html)
           try { const arr = JSON.parse(row.value); if (Array.isArray(arr)) appSettings.companies = arr; } catch (e) { /* เก็บค่าเดิมถ้า parse ไม่ได้ */ }
         }
       });
       saveAppSettingsLocal();
       renderAppSettingsForm();
-      applyDashVisibility(); renderDashVisForm(); // 🆕 อัปเดตการ์ด/กราฟ Dashboard ตามค่ากลางล่าสุด
     } catch (e) {
       console.error('pullAppSettingsFromSupabase error (ตรวจสอบว่ารัน SQL migration app_settings แล้วหรือยัง):', e);
     }
@@ -1717,7 +1696,7 @@
     const [remoteCat, remoteHist] = await Promise.all([
       skipCatalogPull ? Promise.resolve(null) :
         withTimeout(pullCatalogFromSupabase().then(r => { dbgLog('pullCatalogFromSupabase() เสร็จแล้ว', r ? `${(r.depts||[]).length} depts` : 'null'); return r; }), 10000, 'TIMEOUT'),
-      withTimeout(pullHistoryFromSupabase(recentHistoryCutoffIso()).then(r => { dbgLog('pullHistoryFromSupabase() เสร็จแล้ว', r ? `${r.length} รายการ (${RECENT_HISTORY_DAYS} วันล่าสุด — ลด Egress)` : 'null'); return r; }), HISTORY_PULL_TIMEOUT_MS, 'TIMEOUT'),
+      withTimeout(pullHistoryFromSupabase(recentHistoryCutoffIso()).then(r => { dbgLog('pullHistoryFromSupabase() เสร็จแล้ว', r ? `${r.length} รายการ (${RECENT_HISTORY_DAYS} วันล่าสุด — ลด Egress)` : 'null'); return r; }), 10000, 'TIMEOUT'),
     ]);
     dbgLog('Promise.all ของ catalog+history เสร็จแล้ว', `catTimedOut=${remoteCat === 'TIMEOUT'}, histTimedOut=${remoteHist === 'TIMEOUT'}`);
     const catTimedOut  = remoteCat === 'TIMEOUT';
@@ -1750,7 +1729,6 @@
       }
     }
     loadAppSettings();               // ใช้ค่า cache/default ไปก่อนระหว่างรอ Supabase
-    applyDashVisibility();           // 🆕 ซ่อนการ์ด/กราฟ Dashboard ตามค่าที่ cache ไว้ทันที (กันกราฟที่ซ่อนไว้แวบขึ้นมา)
     renderAppSettingsForm();
     pullAppSettingsFromSupabase();   // แล้วอัปเดตให้ล่าสุดทันทีที่ดึงเสร็จ (ไม่บล็อกหน้าจอ)
     $('inp-date').value = localDateStr();
@@ -1765,7 +1743,6 @@
     bindThemeToggle();
     bindAdminPanel();
     bindPalettePanel();          // 🎨 เลือกสีธีม 10 ชุด (Admin Panel)
-    bindDashVisPanel();          // 🆕 ติ๊กแสดง/ซ่อนการ์ดและกราฟ Dashboard (Admin Panel)
     bindUncheckedLinesPanel();   // 🆕 Part ขาดตรวจ SME (Admin Panel)
     bindHolidayCalendarPanel();  // 🆕 ปฏิทินวันหยุด (Admin Panel)
     bindAlertSchedulePanel();    // 🆕 เวลาแจ้งเตือน Telegram Part ที่ยังไม่ตรวจ S/M/E (Admin Panel)
@@ -2934,7 +2911,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         if (ngItems.length > 0) {
           telegramMsg += `\n*🔴 รายการที่ไม่ผ่าน:*\n`;
           ngItems.forEach((item, idx) => {
-            const value = ` (${pieceSummaryText(item).replace(/✖/g, '❌').replace(/✔/g, '✅')})`; // โชว์ผลทั้ง S / M / E
+            const value = ` (${pieceSummaryText(item)})`; // โชว์ผลทั้ง S / M / E
             const note = item.note ? ` - _${escHtml(item.note)}_` : '';
             telegramMsg += `${idx + 1}. ${escHtml(item.label)}${value}${note}\n`;
           });
@@ -3116,12 +3093,12 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     try {
       // ดึง catalog ทุกตาราง
       const [depts, lines, jigs, checkpoints, templates, histRows] = await Promise.all([
-        fetchAllRows(() => sb.from('departments').select('*').order('id')),
-        fetchAllRows(() => sb.from('lines').select('*').order('id')),
-        fetchAllRows(() => sb.from('jigs').select('*').order('id')),
-        fetchAllRows(() => sb.from('checkpoints').select('*').order('jig_id').order('item_id')),
-        fetchAllRows(() => sb.from('templates').select('*').order('id')),
-        fetchAllRows(() => sb.from('history').select('*').order('ts', { ascending: false }).order('id', { ascending: false })),
+        sb.from('departments').select('*'),
+        sb.from('lines').select('*'),
+        sb.from('jigs').select('*'),
+        sb.from('checkpoints').select('*'),
+        sb.from('templates').select('*'),
+        sb.from('history').select('*').order('ts', { ascending: false }),
       ]);
 
       // ประกอบ checkpoints กลับเข้า jigs (เหมือนโครงสร้างใน memory)
@@ -3525,6 +3502,17 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     ['adm-user-list', 'adm-login-log-list'].forEach(id => { const el = $(id); if (el) el.innerHTML = ''; }); // เคลียร์ข้อมูลที่ค้างในหน้าจอ
   }
   window.fcSysAdminLock = sysAdminClear;
+  // 📖 สะพานให้ manual.js (ระบบคู่มือ) ใช้ — เปิดเผยเฉพาะที่จำเป็น ไม่เปิดเผยรหัสผ่านโดยตรง
+  window.fcManualBridge = {
+    getClient: () => sb,
+    isAdmin: () => admLoggedIn,
+    getAdminCreds: () => {
+      const pass = getAdminPass();
+      return pass ? { username: localStorage.getItem('fc_admin_user') || 'admin', password: pass } : null;
+    },
+    clearAdminPass: () => { _adminSessionPass = null; },
+    toast: (msg, type) => toast(msg, type),
+  };
   window.fcSysAdminName = () => (sb && _sysAdminOk) ? _sysAdminName : null; // null = ยังไม่ได้ล็อกอิน (หรือโหมด local)
   // ออกจากระบบผู้ดูแลระบบ (ยังอยู่ใน Admin Panel ต่อได้) • คืน true ถ้าออกจริง
   window.fcSysAdminLogout = async function () {
@@ -3568,210 +3556,6 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       renderTplPreview();
       renderTplList();
     });
-  }
-
-  /* ══════════════════════════════════════
-     🆕 นำเข้าจุดตรวจจากไฟล์ CSV (Admin → จัดการจุดตรวจ)
-     ส่วน "pure" (ไม่แตะ DOM) อยู่ระหว่าง marker เพื่อให้ทดสอบแยกได้
-  ══════════════════════════════════════ */
-  /* CSV-PURE-START */
-  const CSV_MAX_ROWS = 500;
-  const CSV_MAX_BYTES = 1024 * 1024;
-
-  /* แปลงข้อความ CSV → อาร์เรย์ของแถว (รองรับ "ข้อความมี, หรือขึ้นบรรทัดใหม่", "" แทน ", BOM, , ; Tab) */
-  function parseCsvText(text) {
-    text = String(text || '').replace(/^﻿/, '');
-    const firstLine = text.split(/\r\n|\n|\r/)[0] || '';
-    const cnt = ch => (firstLine.match(new RegExp(ch === '\t' ? '\t' : '\\' + ch, 'g')) || []).length;
-    let delim = ',';
-    if (cnt('\t') > cnt(delim)) delim = '\t';
-    if (cnt(';') > cnt(delim)) delim = ';';
-    const rows = []; let row = [], cur = '', inQ = false;
-    for (let i = 0; i < text.length; i++) {
-      const c = text[i];
-      if (inQ) {
-        if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else inQ = false; }
-        else cur += c;
-      } else if (c === '"') inQ = true;
-      else if (c === delim) { row.push(cur); cur = ''; }
-      else if (c === '\n' || c === '\r') {
-        if (c === '\r' && text[i + 1] === '\n') i++;
-        row.push(cur); cur = ''; rows.push(row); row = [];
-      } else cur += c;
-    }
-    if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
-    return rows.filter(r => r.some(v => String(v).trim() !== ''));
-  }
-
-  /* จับคู่หัวคอลัมน์ (ไทย/อังกฤษ) → label/sub/method/min/max/unit */
-  function csvColKey(h) {
-    const s = String(h || '').toLowerCase().replace(/[\s_\-\/()\[\]]/g, '');
-    if (!s) return null;
-    if (/min|ต่ำสุด|ขั้นต่ำ/.test(s)) return 'min';
-    if (/max|สูงสุด|ขั้นสูง/.test(s)) return 'max';
-    if (/unit|หน่วย/.test(s)) return 'unit';
-    if (/method|วิธี/.test(s)) return 'method';
-    if (/^sub|รายละเอียด|ตำแหน่ง|detail|desc/.test(s)) return 'sub';
-    if (/label|name|ชื่อ|จุดตรวจ|checkpoint|หัวข้อ/.test(s)) return 'label';
-    return null;
-  }
-
-  /* แถวดิบ → { items:[{line,label,sub,method,type,min,max,unit,error}], missingLabelCol } */
-  function csvToItems(rows) {
-    if (!rows.length) return { items: [], missingLabelCol: false };
-    const colIdx = {};
-    rows[0].forEach((h, i) => { const k = csvColKey(h); if (k && !(k in colIdx)) colIdx[k] = i; });
-    if (!('label' in colIdx)) return { items: [], missingLabelCol: true };
-    const num = v => {
-      const t = String(v == null ? '' : v).trim().replace(/,/g, '');
-      if (t === '') return { empty: true };
-      const n = Number(t);
-      return isFinite(n) ? { n } : { bad: true };
-    };
-    const items = rows.slice(1).map((r, ix) => {
-      const g = k => (k in colIdx ? String(r[colIdx[k]] == null ? '' : r[colIdx[k]]).trim() : '');
-      const it = { line: ix + 1, label: g('label'), sub: g('sub'), method: g('method'), type: null, min: null, max: null, unit: null, error: '' };
-      if (!it.label) { it.error = 'ไม่มีชื่อจุดตรวจ'; return it; }
-      const mn = num(g('min')), mx = num(g('max'));
-      if (mn.bad || mx.bad) { it.error = 'Min/Max ต้องเป็นตัวเลข'; return it; }
-      if (mn.empty !== mx.empty) { it.error = 'ต้องใส่ทั้ง Min และ Max (หรือเว้นว่างทั้งคู่)'; return it; }
-      if (!mn.empty) {
-        if (mn.n > mx.n) { it.error = 'Min มากกว่า Max'; return it; }
-        it.type = 'numeric'; it.min = mn.n; it.max = mx.n; it.unit = g('unit');
-      }
-      return it;
-    });
-    return { items, missingLabelCol: false };
-  }
-  /* CSV-PURE-END */
-
-  function bindCpCsvImport() {
-    const box = $('adm-csv-box');
-    if (!box) return;
-    let pending = null; // { items, fileName }
-
-    const norm = s => String(s || '').trim().toLowerCase();
-    const existingLabels = () => {
-      const jig = catalog.jigs.find(j => j.id === cpEditJigId);
-      return new Set(((jig && jig.checkpoints) || []).map(p => norm(p.label)));
-    };
-    const resetCsv = () => {
-      pending = null;
-      $('adm-csv-preview').classList.add('hidden');
-      $('adm-csv-rows').innerHTML = '';
-    };
-
-    /* วิเคราะห์สถานะแต่ละแถว: ok / bad / dup */
-    const classify = () => {
-      const have = existingLabels(), seen = new Set(), skipDup = $('chk-cp-csv-skipdup').checked;
-      pending.items.forEach(it => {
-        it.status = 'ok';
-        if (it.error) { it.status = 'bad'; return; }
-        const k = norm(it.label);
-        if (skipDup && (have.has(k) || seen.has(k))) it.status = 'dup';
-        seen.add(k);
-      });
-    };
-    const renderPreview = () => {
-      if (!pending) return;
-      classify();
-      const items = pending.items;
-      const ok = items.filter(i => i.status === 'ok').length;
-      const bad = items.filter(i => i.status === 'bad').length;
-      const dup = items.filter(i => i.status === 'dup').length;
-      $('adm-csv-summary').innerHTML = `ไฟล์ "${escHtml(pending.fileName)}" — พบ ${items.length} แถว · ` +
-        `<span style="color:#16a34a">นำเข้าได้ ${ok}</span>` +
-        (dup ? ` · <span style="color:#b45309">ซ้ำ (ข้าม) ${dup}</span>` : '') +
-        (bad ? ` · <span style="color:#dc2626">มีปัญหา (ข้าม) ${bad}</span>` : '');
-      $('adm-csv-rows').innerHTML = '<table><thead><tr><th>#</th><th>ชื่อจุดตรวจ</th><th>วิธีตรวจ</th><th>เกณฑ์</th><th>สถานะ</th></tr></thead><tbody>' +
-        items.map(it => {
-          const spec = it.type === 'numeric' ? `${it.min} – ${it.max}${it.unit ? ' ' + escHtml(it.unit) : ''}` : 'ปกติ / ไม่ปกติ';
-          const tag = it.status === 'ok' ? '<span class="cp-csv-tag ok">พร้อม</span>'
-            : it.status === 'dup' ? '<span class="cp-csv-tag dup">ชื่อซ้ำ</span>'
-            : `<span class="cp-csv-tag bad">${escHtml(it.error)}</span>`;
-          return `<tr class="${it.status}"><td>${it.line}</td><td>${escHtml(it.label)}${it.sub ? `<br><small style="color:var(--text-muted)">${escHtml(it.sub)}</small>` : ''}</td>` +
-            `<td>${escHtml(it.method)}</td><td>${spec}</td><td>${tag}</td></tr>`;
-        }).join('') + '</tbody></table>';
-      const btn = $('btn-cp-csv-apply');
-      btn.disabled = !ok;
-      btn.textContent = ok ? `นำเข้า ${ok} จุดตรวจ` : 'ไม่มีจุดตรวจที่นำเข้าได้';
-      $('adm-csv-preview').classList.remove('hidden');
-    };
-
-    /* อ่านไฟล์: ลอง UTF-8 ก่อน ถ้าไม่ใช่ (ไฟล์ CSV ไทยจาก Excel เก่ามักเป็น Windows-874) ค่อยถอดแบบไทย */
-    const readCsvFile = file => file.arrayBuffer().then(buf => {
-      try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
-      catch (e) { return new TextDecoder('windows-874').decode(buf); }
-    });
-
-    $('inp-cp-csv').addEventListener('change', async e => {
-      const file = e.target.files && e.target.files[0];
-      e.target.value = '';
-      if (!file) return;
-      if (!cpEditJigId) { toast('กรุณาเลือก Part ก่อนนำเข้าไฟล์', 'ng'); return; }
-      if (file.size > CSV_MAX_BYTES) { toast('ไฟล์ใหญ่เกิน 1 MB — กรุณาแบ่งไฟล์', 'ng'); return; }
-      try {
-        const rows = parseCsvText(await readCsvFile(file));
-        const res = csvToItems(rows);
-        if (res.missingLabelCol) { toast('ไม่พบคอลัมน์ "ชื่อจุดตรวจ" ในแถวแรกของไฟล์ — ดาวน์โหลดไฟล์ตัวอย่างดูรูปแบบได้', 'ng'); resetCsv(); return; }
-        if (!res.items.length) { toast('ไฟล์ไม่มีข้อมูลจุดตรวจ', 'ng'); resetCsv(); return; }
-        if (res.items.length > CSV_MAX_ROWS) { toast(`ไฟล์มี ${res.items.length} แถว — นำเข้าได้ครั้งละไม่เกิน ${CSV_MAX_ROWS} จุด`, 'ng'); resetCsv(); return; }
-        pending = { items: res.items, fileName: file.name };
-        renderPreview();
-      } catch (err) {
-        console.error('CSV import error', err);
-        toast('อ่านไฟล์ CSV ไม่สำเร็จ', 'ng');
-        resetCsv();
-      }
-    });
-
-    $('chk-cp-csv-skipdup').addEventListener('change', renderPreview);
-    $('btn-cp-csv-cancel').addEventListener('click', resetCsv);
-
-    $('btn-cp-csv-sample').addEventListener('click', () => {
-      const csv = '﻿' + [
-        'ชื่อจุดตรวจ,รายละเอียด/ตำแหน่งที่วัด,วิธีตรวจ,Min,Max,หน่วย',
-        'FLANGE SURFACE [ a ],ระยะจากขอบท่อถึงหน้าแปลน,วัดด้วย Gauge,0.4,0.6,mm',
-        'รอยเชื่อมรอบท่อ,ตรวจด้วยสายตา,Visual,,,',
-        '"BRACKET, LEFT",ความกว้างของ Bracket,Caliper,24.8,25.2,mm'
-      ].join('\r\n') + '\r\n';
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-      a.download = 'checkpoint-template.csv';
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    });
-
-    $('btn-cp-csv-apply').addEventListener('click', () => {
-      const jid = cpEditJigId;
-      if (!jid || !pending) return;
-      const jig = catalog.jigs.find(j => j.id === jid);
-      if (!jig) return;
-      classify();
-      const toAdd = pending.items.filter(i => i.status === 'ok');
-      if (!toAdd.length) { toast('ไม่มีจุดตรวจที่นำเข้าได้', 'ng'); return; }
-      if (!jig.checkpoints) jig.checkpoints = [];
-      let nextId = jig.checkpoints.length ? Math.max(...jig.checkpoints.map(p => p.id)) + 1 : 1;
-      toAdd.forEach((it, i) => {
-        // กระจายตำแหน่งเป็นตารางกลางแผนผัง กันจุดซ้อนทับกัน — ลากจัดตำแหน่งจริงภายหลัง
-        const col = i % 5, row = Math.floor(i / 5);
-        const x = 100 + col * 100 + Math.round(Math.random() * 10 - 5);
-        const y = 50 + (row % 5) * 55 + Math.floor(row / 5) * 12 + Math.round(Math.random() * 10 - 5);
-        jig.checkpoints.push({ id: nextId++, label: it.label, sub: it.sub, method: it.method, x, y,
-          type: it.type, min: it.min, max: it.max, unit: it.type === 'numeric' ? (it.unit || '') : null });
-      });
-      _syncing = true;
-      saveCatalog();
-      setTimeout(() => { _syncing = false; }, 2000);
-      const n = toAdd.length, skipped = pending.items.length - n;
-      resetCsv();
-      renderAdmCpMap(jid);
-      renderCpList(jid);
-      toast(`นำเข้า ${n} จุดตรวจจาก CSV แล้ว${skipped ? ` (ข้าม ${skipped})` : ''} — ลากจุดบนแผนผังเพื่อจัดตำแหน่ง`, 'ok');
-    });
-
-    /* เปลี่ยน Part ที่เลือก → เคลียร์พรีวิวเดิม กันนำเข้าผิด Part */
-    $('adm-cp-jig').addEventListener('change', resetCsv);
   }
 
   function bindAdminPanel() {
@@ -4040,8 +3824,6 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       renderCpList(jid);
       toast('เพิ่มจุดตรวจแล้ว — ลากจุดบนแผนผังเพื่อจัดตำแหน่ง', 'ok');
     });
-
-    bindCpCsvImport(); // 🆕 นำเข้าจุดตรวจจาก CSV
 
     /* ── เทมเพลตหัวข้อตรวจสอบ — ใช้ซ้ำข้ามหลาย Part โดยไม่ต้องพิมพ์ใหม่ทุกครั้ง ── */
     $('adm-tpl-select').addEventListener('change', () => renderTplPreview());
@@ -5721,6 +5503,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     setShow($('nav-leader-check'), showLeader);
     setShow($('nav-sup-approved'), showSup);
     document.querySelectorAll('[data-approve-nav]:not(a)').forEach(el => setShow(el, showLeader || showSup)); // เส้นคั่น + หัวข้อ "การอนุมัติ"
+    document.querySelectorAll('[data-manual-approver]').forEach(el => setShow(el, showLeader || showSup)); // 📖 คู่มือ Leader / Supervisor โชว์เฉพาะเมื่อ Leader หรือ Supervisor login
     if (!showLeader && !showSup) return;
     const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     let leader = 0, sup = 0;
@@ -6643,104 +6426,6 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     });
     const save = $('btn-palette-save');
     if (save) save.addEventListener('click', savePaletteToSupabase);
-  }
-
-  /* ══════════════════════════════════════
-     🆕 แสดง/ซ่อนการ์ดและกราฟบน Dashboard — เลือกที่ Admin Panel
-     • ติ๊กแล้วเห็นผลทันที (จำในเครื่องนี้)
-     • "บันทึก" = เก็บ key 'dashboard_hidden' (JSON รายการ id ที่ซ่อน) ใน app_settings ผ่าน RPC save_dashboard_blocks
-       (ต้องรัน add_dashboard_visibility.sql) — ทุกเครื่อง/จอ TV อ่านค่านี้ตอนเปิดแอป (pullAppSettingsFromSupabase)
-  ══════════════════════════════════════ */
-  const DASH_VIS_ITEMS = [
-    { id: 'line-status',  name: 'สถานะ Line / Model วันนี้',    desc: 'สถานะการตรวจของแต่ละ Model แยกตาม Line แบบ Real-time' },
-    { id: 'ng-today',     name: 'NG วันนี้',                  desc: 'รายการ NG ที่พบวันนี้แบบละเอียด' },
-    { id: 'kpi-row',      name: 'การ์ดตัวเลขสรุป (KPI)',       desc: 'จำนวนครั้งตรวจ / NG / Pass Rate / Part' },
-    { id: 'chart-trend',  name: 'กราฟแนวโน้มการตรวจสอบ',       desc: 'กราฟผ่าน / NG รายวัน' },
-    { id: 'chart-byline', name: 'กราฟ NG ตาม Model',          desc: 'กราฟแท่งเปรียบเทียบ NG แต่ละ Model' },
-    { id: 'chart-donut',  name: 'กราฟอัตราผ่านตาม Model',      desc: 'กราฟโดนัทสัดส่วนผ่านของแต่ละ Model' },
-    { id: 'ng-ranking',   name: 'จุดตรวจที่พบ NG บ่อยที่สุด',   desc: 'อันดับจุดตรวจที่ NG บ่อย' },
-    { id: 'ai-panel',     name: 'AI วิเคราะห์ข้อมูล',          desc: 'วิเคราะห์ pattern NG ด้วย AI' },
-  ];
-  const dashVisIds = () => DASH_VIS_ITEMS.map(x => x.id);
-  const getDashHidden = () => (Array.isArray(appSettings.dashHidden) ? appSettings.dashHidden : []).filter(id => dashVisIds().includes(id));
-  const getDashHiddenSaved = () => (Array.isArray(appSettings.dashHiddenSaved) ? appSettings.dashHiddenSaved : []).filter(id => dashVisIds().includes(id));
-  const sameIdSet = (a, b) => a.length === b.length && a.every(x => b.includes(x));
-
-  function dashVisEl(id) {
-    if (id === 'line-status') return $('dash-line-status-card');
-    const box = $('dashboard-sortable');
-    return box ? box.querySelector(`:scope > .dash-block[data-block-id="${id}"]`) : null;
-  }
-  function applyDashVisibility() {
-    const hidden = new Set(getDashHidden());
-    DASH_VIS_ITEMS.forEach(it => { const el = dashVisEl(it.id); if (el) el.classList.toggle('dash-hidden', hidden.has(it.id)); });
-    // กราฟที่เพิ่งถูกแสดงกลับมาต้องคำนวณขนาดใหม่ (ตอนซ่อนอยู่ canvas มีขนาด 0)
-    requestAnimationFrame(() => { try { Object.values(charts || {}).forEach(c => c && c.resize && c.resize()); } catch (e) { /* ignore */ } });
-  }
-  function renderDashVisForm() {
-    const list = $('adm-dashvis-list');
-    if (!list) return;
-    const hidden = getDashHidden();
-    list.innerHTML = DASH_VIS_ITEMS.map(it => `
-      <label class="dashvis-row">
-        <input type="checkbox" class="dashvis-chk" data-id="${it.id}" ${hidden.includes(it.id) ? '' : 'checked'}>
-        <span class="dashvis-switch" aria-hidden="true"></span>
-        <span class="dashvis-txt"><b>${escHtml(it.name)}</b><small>${escHtml(it.desc)}</small></span>
-      </label>`).join('');
-    const info = $('adm-dashvis-current');
-    if (info) {
-      const dirty = !sameIdSet(hidden, getDashHiddenSaved());
-      const shown = DASH_VIS_ITEMS.length - hidden.length;
-      info.innerHTML = `<b>แสดง ${shown} จาก ${DASH_VIS_ITEMS.length} รายการ</b><span class="${dirty ? 'dirty' : ''}">${dirty ? 'ยังไม่ได้บันทึกให้ทุกเครื่อง' : 'ใช้งานอยู่ทุกเครื่อง'}</span>`;
-    }
-  }
-  function setDashHidden(arr) {
-    appSettings.dashHidden = arr;
-    saveAppSettingsLocal();
-    applyDashVisibility();
-    renderDashVisForm();
-  }
-  async function saveDashVisToSupabase() {
-    if (!sb) { toast('ไม่ได้เชื่อมต่อ Supabase — ใช้ค่านี้เฉพาะเครื่องนี้', 'ng'); return; }
-    const pass = getAdminPass();
-    if (!pass) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อบันทึก', 'ng'); return; }
-    const btn = $('btn-dashvis-save');
-    if (btn) btn.disabled = true;
-    try {
-      const hidden = getDashHidden();
-      const { data: ok, error } = await sb.rpc('save_dashboard_blocks', {
-        p_username: localStorage.getItem('fc_admin_user') || 'admin',
-        p_password: pass,
-        p_hidden: JSON.stringify(hidden),
-      });
-      if (error) throw error;
-      if (!ok) { _adminSessionPass = null; toast('รหัสผ่าน Admin ไม่ถูกต้อง — บันทึกไม่สำเร็จ', 'ng'); return; }
-      appSettings.dashHiddenSaved = hidden.slice();
-      saveAppSettingsLocal();
-      renderDashVisForm();
-      toast('✅ บันทึกแล้ว — ทุกเครื่อง/จอ TV จะแสดงตามนี้เมื่อเปิดหรือรีเฟรชหน้า', 'ok');
-    } catch (e) {
-      console.error('saveDashVisToSupabase error:', e);
-      toast('บันทึกลงระบบกลางไม่สำเร็จ — ตอนนี้ใช้ค่านี้เฉพาะเครื่องนี้ (ตรวจว่ารัน add_dashboard_visibility.sql ใน Supabase แล้ว)', 'ng');
-    } finally {
-      if (btn) btn.disabled = false;
-    }
-  }
-  function bindDashVisPanel() {
-    renderDashVisForm();
-    applyDashVisibility();
-    const list = $('adm-dashvis-list');
-    if (!list) return;
-    list.addEventListener('change', e => {
-      if (!e.target.classList.contains('dashvis-chk')) return;
-      const hidden = new Set(getDashHidden());
-      if (e.target.checked) hidden.delete(e.target.dataset.id); else hidden.add(e.target.dataset.id);
-      setDashHidden(dashVisIds().filter(id => hidden.has(id)));
-    });
-    const all = $('btn-dashvis-all'), none = $('btn-dashvis-none'), save = $('btn-dashvis-save');
-    if (all)  all.addEventListener('click',  () => setDashHidden([]));
-    if (none) none.addEventListener('click', () => setDashHidden(dashVisIds()));
-    if (save) save.addEventListener('click', saveDashVisToSupabase);
   }
 
   /* ══════════════════════════════════════
@@ -8033,16 +7718,10 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     const statusMap = computeLineStatusToday();
     const q = lineSearchQuery.trim().toLowerCase();
 
-    // 🆕 ค้นได้ทั้งชื่อ Model และชื่อ Line — ถ้าตรงกับชื่อ Line จะแสดงทุก Model ในกลุ่ม Line นั้น
-    const has = (s) => String(s || '').toLowerCase().includes(q);
-    const filtered = catalog.lines.filter(l => {
-      if (!q) return true;
-      const dept = catalog.depts.find(d => d.id === l.deptId);
-      return has(l.name || l.id) || (dept && (has(dept.name) || has(dept.id)));
-    });
+    const filtered = catalog.lines.filter(l => !q || (l.name || l.id).toLowerCase().includes(q));
 
     if (!filtered.length) {
-      listEl.innerHTML = `<div class="line-status-empty">${q ? 'ไม่พบ Line / Model ที่ค้นหา' : 'ยังไม่มี Model ในระบบ'}</div>`;
+      listEl.innerHTML = `<div class="line-status-empty">${q ? 'ไม่พบ Model ที่ค้นหา' : 'ยังไม่มี Model ในระบบ'}</div>`;
       return;
     }
 
@@ -8795,33 +8474,15 @@ ${JSON.stringify(summary, null, 2)}
   async function getStorageStats() {
     if (!sb) return null;
     try {
-      // 🆕 ทางลัดประหยัด Egress: ให้ Supabase คำนวณจำนวนแถว/ขนาดเองผ่าน RPC get_storage_stats (ดู get_storage_stats.sql)
-      //    ถ้ายังไม่ได้สร้างฟังก์ชันนี้ หรือเรียกไม่สำเร็จ → ตกไปใช้วิธีเดิมด้านล่าง (ดึงข้อมูลเต็มมาวัด) โดยอัตโนมัติ
-      try {
-        const { data: r, error: rErr } = await sb.rpc('get_storage_stats');
-        const T = ['departments', 'lines', 'jigs', 'checkpoints', 'history', 'templates'];
-        if (!rErr && r && T.every(k => r[k] && typeof r[k].n === 'number' && typeof r[k].bytes === 'number')) {
-          const sizeByTable = {};
-          T.forEach(k => { sizeByTable[k] = Number(r[k].bytes); });
-          return {
-            departments: r.departments.n, lines: r.lines.n, jigs: r.jigs.n,
-            checkpoints: r.checkpoints.n, history: r.history.n, templates: r.templates.n,
-            totalRecords: T.reduce((a, k) => a + r[k].n, 0),
-            sizeByTable,
-            totalBytes: T.reduce((a, k) => a + sizeByTable[k], 0),
-            timestamp: new Date().toLocaleString('th-TH'),
-          };
-        }
-      } catch (e) { /* ใช้วิธีเดิมต่อ */ }
       // ── ดึงข้อมูล "เต็ม" ของทุกตาราง (ไม่ใช่แค่นับจำนวนแถว) เพื่อคำนวณขนาดไบต์จริง
       //    รวมรูปถ่าย base64 ที่ฝังอยู่ใน history.items และ jigs.bg_image ด้วย — เป็นตัวกินพื้นที่หลัก
       const [dep, lin, jig, cp, hist, tpl] = await Promise.all([
-        fetchAllRows(() => sb.from('departments').select('*').order('id')),
-        fetchAllRows(() => sb.from('lines').select('*').order('id')),
-        fetchAllRows(() => sb.from('jigs').select('*').order('id')),
-        fetchAllRows(() => sb.from('checkpoints').select('*').order('jig_id').order('item_id')),
-        fetchAllRows(() => sb.from('history').select('*').order('id')),
-        fetchAllRows(() => sb.from('templates').select('*').order('id')),
+        sb.from('departments').select('*'),
+        sb.from('lines').select('*'),
+        sb.from('jigs').select('*'),
+        sb.from('checkpoints').select('*'),
+        sb.from('history').select('*'),
+        sb.from('templates').select('*'),
       ]);
       const err = dep.error || lin.error || jig.error || cp.error || hist.error || tpl.error;
       if (err) throw err;
@@ -9000,7 +8661,7 @@ ${JSON.stringify(summary, null, 2)}
     if (!listEl || !sb) return;
     listEl.innerHTML = `<div style="padding: 8px; text-align: center; color: var(--text-muted); font-size: 11px;">⏳ กำลังโหลด...</div>`;
     try {
-      const { data, error } = await fetchAllRows(() => sb.from('jigs').select('id, name, bg_image').order('id'));
+      const { data, error } = await sb.from('jigs').select('id, name, bg_image');
       if (error) throw error;
       const rows = (data || [])
         .map(j => ({ name: j.name, id: j.id, bytes: j.bg_image ? new Blob([j.bg_image]).size : 0 }))
@@ -9102,11 +8763,11 @@ ${JSON.stringify(summary, null, 2)}
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `jig-backup-${localDateStr()}.json`;
+      a.download = `jig-backup-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
 
-      toast(`✅ Backup downloaded — ${cat.jigs?.length || 0} Part, ${hist.length} records (เฉพาะข้อมูลที่โหลดในเครื่อง ~${RECENT_HISTORY_DAYS} วันล่าสุด · ต้องการประวัติทั้งหมดให้ใช้ Export)`, 'ok');
+      toast(`✅ Backup downloaded — ${cat.jigs?.length || 0} Part, ${hist.length} records`, 'ok');
       
       // ✅ STEP 2: Push ไป Supabase (ถ้า connection OK)
       // แต่ถ้า push ล้มเหลว ก็ไม่สำคัญ เพราะ local backup ยังอยู่

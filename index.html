@@ -28,7 +28,7 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=Mali:ital,wght@1,500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
@@ -44,7 +44,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- ⚠️ CACHE-BUST: เบราว์เซอร์/PWA มัก cache ไฟล์ .css ค้างไว้นานผิดปกติ (เหมือน app.js ด้านล่าง)
        เพิ่ม ?v= ให้บังคับโหลดไฟล์ใหม่ทุกครั้งที่แก้ style.css — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ style.css -->
-  <link rel="stylesheet" href="style.css?v=fc-dash1">
+  <link rel="stylesheet" href="style.css?v=fc-sme1">
+  <link rel="stylesheet" href="manual.css?v=1">
 </head>
 <body>
 
@@ -165,6 +166,19 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
       <span class="sidebar-link-text">ควบคุมเอกสาร</span>
     </a>
+
+    <!-- 📖 คู่มือการใช้งาน — เนื้อหาแก้ไขได้ที่ Admin Panel › จัดการคู่มือ (manual.js) -->
+    <div class="sidebar-divider"></div>
+    <span class="sidebar-nav-label">คู่มือการใช้งาน</span>
+    <button type="button" class="side-nav-item" id="nav-manual-inspector" data-manual="inspector">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span class="sidebar-link-text">คู่มือผู้ตรวจสอบ</span>
+    </button>
+    <!-- แสดงเฉพาะ Leader / Supervisor (ควบคุมโดย updateApprovalNav() ใน app.js) -->
+    <button type="button" class="side-nav-item" id="nav-manual-approver" data-manual="approver" data-manual-approver style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span class="sidebar-link-text">คู่มือ Leader / Supervisor</span>
+    </button>
   </nav>
 
   <div class="sidebar-bottom">
@@ -385,13 +399,8 @@
       <h2 class="card-title"><span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span> ลายเซ็นรับรอง (พิมพ์ชื่อ)</h2>
       <div class="sig-row">
         <div class="sig-block">
-          <label class="sig-label" for="sig-inspector">ลงชื่อผู้ตรวจสอบ</label>
-          <div class="sig-field">
-            <span class="sig-x" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></span>
-            <input type="text" id="sig-inspector" class="sig-text-input" placeholder="พิมพ์ชื่อผู้ลงนามตรวจสอบ" autocomplete="off" spellcheck="false">
-            <span class="sig-ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-          </div>
-          <div class="sig-caption"><span>ผู้ตรวจสอบ · Inspector</span><span>ชื่อนี้จะแสดงเป็นลายเซ็นในรายงาน PDF</span></div>
+          <label>ลงชื่อผู้ตรวจสอบ</label>
+          <input type="text" id="sig-inspector" class="sig-text-input" placeholder="พิมพ์ชื่อผู้ลงนามตรวจสอบ">
         </div>
       </div>
     </div>
@@ -409,9 +418,9 @@
   <div id="view-dashboard" class="hidden">
 
     <!-- ─── สถานะ Model วันนี้ — read-only, จัดกลุ่มตาม Line ─── -->
-    <div class="glass-card" id="dash-line-status-card" style="margin-bottom:16px;">
+    <div class="glass-card" style="margin-bottom:16px;">
       <div class="card-header-flex">
-        <h2 class="card-title"><span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="7" r="4"/></svg></span> สถานะ Line / Model วันนี้</h2>
+        <h2 class="card-title"><span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="7" r="4"/></svg></span> สถานะ Model วันนี้</h2>
         <span class="chart-legend line-status-legend">
           <span class="cl-dot" style="background:var(--pending)"></span>ยังไม่ตรวจ
           <span class="cl-dot" style="background:var(--fixed)"></span>กำลังตรวจ (ยังไม่ครบ)
@@ -423,7 +432,7 @@
       <div class="line-view-toolbar">
         <div class="jig-search-wrap line-search-wrap" id="line-search-wrap">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" class="jig-search-input" id="line-search-input" placeholder="ค้นหาชื่อ Line หรือ Model...">
+          <input type="text" class="jig-search-input" id="line-search-input" placeholder="ค้นหาชื่อ Model...">
           <button class="jig-search-clear hidden" id="line-search-clear">✕</button>
         </div>
       </div>
@@ -1072,50 +1081,26 @@
         <div class="admin-input-row">
           <button class="btn-adm-add" id="btn-adm-cp" style="width:100%">+ เพิ่มจุดตรวจ</button>
         </div>
-
-        <!-- 🆕 นำเข้าจุดตรวจจากไฟล์ CSV — เพิ่มทีละหลายจุดเข้า Part ที่เลือกอยู่ -->
-        <div class="cp-csv-box" id="adm-csv-box">
-          <div class="cp-csv-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> เพิ่มจุดตรวจจากไฟล์ CSV</div>
-          <div class="cp-csv-hint">คอลัมน์: ชื่อจุดตรวจ (จำเป็น) · รายละเอียด · วิธีตรวจ · Min · Max · หน่วย — ถ้าใส่ทั้ง Min และ Max = ตรวจแบบกรอกตัวเลข, ไม่ใส่ = ปกติ / ไม่ปกติ</div>
-          <div class="cp-csv-actions">
-            <button type="button" class="btn-sec" id="btn-cp-csv-sample">ดาวน์โหลดไฟล์ตัวอย่าง</button>
-            <label class="btn-sec cp-csv-pick">เลือกไฟล์ CSV
-              <input type="file" id="inp-cp-csv" accept=".csv,text/csv,text/plain" style="display:none">
-            </label>
-          </div>
-          <div id="adm-csv-preview" class="hidden">
-            <div id="adm-csv-summary" class="cp-csv-summary"></div>
-            <label class="cp-csv-skip"><input type="checkbox" id="chk-cp-csv-skipdup" checked> ข้ามจุดตรวจที่ชื่อซ้ำกับที่มีอยู่แล้วใน Part นี้</label>
-            <div id="adm-csv-rows" class="cp-csv-rows"></div>
-            <div class="cp-csv-actions">
-              <button type="button" class="btn-sec" id="btn-cp-csv-cancel">ยกเลิก</button>
-              <button type="button" class="btn-adm-add" id="btn-cp-csv-apply" style="flex:1">นำเข้าจุดตรวจ</button>
-            </div>
-          </div>
-        </div>
-
         <div class="admin-list admin-list-scroll" id="adm-cp-list" style="margin-top:10px;"></div>
       </div>
     </div>
 
-    <!-- 🆕 แสดง/ซ่อนการ์ดและกราฟบนหน้า Dashboard (ใช้กับทุกเครื่อง รวมถึงจอ TV) -->
-    <div class="admin-section" id="adm-dashvis-section">
-      <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> แสดง/ซ่อนกราฟ Dashboard</div>
-      <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
-        ติ๊กเลือกการ์ดและกราฟที่ต้องการให้แสดงบนหน้า Dashboard — เห็นผลทันที แล้วกดบันทึกเพื่อใช้กับทุกเครื่อง (รวมจอ TV)
-      </div>
-      <div class="dashvis-list" id="adm-dashvis-list"></div>
-      <div class="dashvis-quick">
-        <button type="button" class="tpl-mini-link" id="btn-dashvis-all">แสดงทั้งหมด</button> /
-        <button type="button" class="tpl-mini-link" id="btn-dashvis-none">ซ่อนทั้งหมด</button>
-      </div>
-      <div class="palette-meta">
-        <div class="palette-current" id="adm-dashvis-current"></div>
-        <button class="btn-adm-add" id="btn-dashvis-save">บันทึก</button>
-      </div>
-    </div>
+    <!-- 📖 คู่มือการใช้งาน Admin Panel (เปิดอ่าน) — admin-console.js แปลงเป็นไอคอนในกลุ่ม "คู่มือการใช้งาน" -->
+<div class="admin-section" id="adm-manual-view-section">
+<div class="admin-section-title"> คู่มือการใช้งาน Admin Panel</div>
+<div style="font-size:11px; color:var(--text-muted);">เปิดอ่านวิธีใช้เมนูตั้งค่าทั้งหมดของ Admin Panel</div>
+</div>
 
-    <!-- Export / Import backup -->
+<!-- 📖 จัดการคู่มือ — เพิ่ม / ลบ / แก้ไข คู่มือทั้ง 4 ฉบับ (manual.js สร้างตัวแก้ไขใน #adm-manual-editor) -->
+<div class="admin-section" id="adm-manual-edit-section">
+<div class="admin-section-title"> จัดการคู่มือการใช้งาน</div>
+<div style="font-size:11px; color:var(--text-muted); margin-bottom:8px; line-height:1.5;">
+เพิ่ม ลบ แก้ไข และเรียงลำดับหัวข้อของคู่มือทั้ง 4 ฉบับ — บันทึกแล้วทุกเครื่องเห็นฉบับใหม่ทันที
+</div>
+<div id="adm-manual-editor"></div>
+</div>
+
+<!-- Export / Import backup -->
     <div class="admin-section">
       <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> สำรองข้อมูล (Backup)</div>
       <button id="btn-export-data" class="btn-sec" style="width:100%"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export ข้อมูล Part ทั้งหมด (.json)</button>
@@ -1261,8 +1246,9 @@
 <!-- 🆕 ใส่เลขเวอร์ชันต่อท้าย ?v=... เพื่อบังคับให้เบราว์เซอร์ (โดยเฉพาะ Safari บน iPhone ซึ่งแคชไฟล์ .js
      ค้างนานผิดปกติ) โหลด app.js ก้อนใหม่ทุกครั้งที่มีการอัปเดตโค้ด — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ app.js
      แล้ว push ขึ้นใหม่ ไม่งั้นเครื่องที่เคยเข้าเว็บมาก่อนจะยังใช้ไฟล์เก่าจากแคชอยู่ -->
-<script src="app.js?v=fc-dash3"></script>
+<script src="app.js?v=fc-sme1"></script>
 <script src="admin-console.js?v=2"></script>
+<script src="manual.js?v=1"></script>
 <script>
 (function () {
   var collapseBtn = document.getElementById('sidebar-collapse-toggle');
