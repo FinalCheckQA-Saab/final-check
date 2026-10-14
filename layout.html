@@ -100,21 +100,6 @@ i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--p
 .toast .ti{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;color:#fff;background:var(--tc);box-shadow:0 0 0 4px color-mix(in srgb,var(--tc) 25%,transparent)}
 .toast .tm{font-size:14px;line-height:1.45;white-space:pre-line;color:#eef3f9;padding-top:2px}
 .toast.ok{--tc:var(--ok)}.toast.err{--tc:var(--ng)}.toast.warn{--tc:var(--part)}.toast.info{--tc:#38bdf8}
-.lg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(5,12,22,.62);backdrop-filter:blur(6px);z-index:900;padding:16px}
-.lg.show{display:flex}
-.lgc{width:min(96vw,400px);padding:26px 26px 22px;border-radius:22px;background:linear-gradient(160deg,#17314f,#0d1b2e);border:1px solid rgba(201,162,74,.45);box-shadow:0 30px 80px rgba(0,0,0,.65);animation:pop .28s cubic-bezier(.2,.9,.3,1.2)}
-@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.95)}}
-.lgc.shake{animation:shake .4s}@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
-.lgi{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:24px;background:linear-gradient(135deg,#e2c46f,#b8913a);box-shadow:0 8px 22px rgba(201,162,74,.4);margin-bottom:14px}
-.lgc h3{margin:0;font-size:19px}.lgc p{margin:4px 0 16px;font-size:13px;color:#9fb3c8}
-.lgc label{display:block;font-size:12px;color:#b6c4d4;margin:10px 0 5px}
-.lgc input{width:100%;padding:11px 13px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.07);color:#fff;font-size:15px;outline:none}
-.lgc input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,162,74,.25)}
-#lg-err{min-height:20px;margin-top:10px;font-size:13px;color:#fca5a5}
-.lga{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
-.lga button{padding:10px 18px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.08);cursor:pointer;font-weight:600}
-.lga button:hover{background:rgba(255,255,255,.16)}
-.lga .go{background:linear-gradient(135deg,#e2c46f,#c9a24a);border-color:transparent;color:#1f2937}.lga .go:hover{filter:brightness(1.08)}.lga .go:disabled{opacity:.6;cursor:wait}
 
 /* ═════ v2 — Header refresh ═════ */
 :root{--num:'Outfit','Noto Sans Thai',sans-serif}
@@ -238,15 +223,6 @@ html[data-theme="light"] .edit-bar .hint{color:#64748b}
 html[data-theme="light"] #info{background:#fff;border:1px solid rgba(15,33,55,.12);color:#1f2937;box-shadow:0 8px 22px -12px rgba(15,33,55,.3)}
 html[data-theme="light"] .toast{background:rgba(255,255,255,.97);border-color:rgba(15,33,55,.14);box-shadow:0 14px 40px rgba(15,33,55,.25)}
 html[data-theme="light"] .toast .tm{color:#1f2937}
-html[data-theme="light"] .lg{background:rgba(15,33,55,.38)}
-html[data-theme="light"] .lgc{background:#fff;color:#1f2937;border-color:rgba(184,144,58,.55);box-shadow:0 30px 80px rgba(15,33,55,.35)}
-html[data-theme="light"] .lgc p{color:#64748b}
-html[data-theme="light"] .lgc label{color:#475569}
-html[data-theme="light"] .lgc input{background:#f4f6fa;color:#1f2937;border-color:rgba(15,33,55,.2)}
-html[data-theme="light"] #lg-err{color:#dc2626}
-html[data-theme="light"] .lga button{background:rgba(15,33,55,.06);color:#1f2937;border-color:rgba(15,33,55,.16)}
-html[data-theme="light"] .lga button:hover{background:rgba(15,33,55,.12)}
-html[data-theme="light"] .lga .go{background:linear-gradient(135deg,#e2c46f,#c9a24a);color:#1f2937;border-color:transparent}
 
 /* ── ปุ่มธีม + เมนูเลือกโหมด/ชุดสี ── */
 .tools #btn-theme[aria-expanded="true"]{background:var(--accent);color:#fff}
@@ -284,6 +260,71 @@ html[data-theme="light"] .tp-seg button[aria-pressed="true"]{color:#fff}
 .tg svg{width:10px;height:10px;display:block;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .tg:hover{opacity:1;color:#fff;transform:none;border-color:color-mix(in srgb,var(--gold) 55%,transparent);border-top:0}
 .tg:focus-visible{outline:2px solid #ecc972;outline-offset:1px}
+/* ═════ Admin Login — redesign (world-class · theme/palette aware) ═════ */
+.lg{--lg-a:color-mix(in srgb,var(--accent) 58%,#0b1626);--lg-b:color-mix(in srgb,var(--accent) 92%,#0b1626);--lg-glow:color-mix(in srgb,var(--accent) 55%,transparent);position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;overflow-y:auto;z-index:900;background:radial-gradient(760px 460px at 50% 28%,color-mix(in srgb,var(--accent) 24%,transparent),transparent 70%),rgba(4,10,20,.7);-webkit-backdrop-filter:blur(10px) saturate(1.2);backdrop-filter:blur(10px) saturate(1.2)}
+.lg.show{display:flex;animation:lgfade .25s ease-out}
+@keyframes lgfade{from{opacity:0}}
+.lgc{position:relative;isolation:isolate;overflow:hidden;width:min(100%,420px);margin:auto;padding:38px 32px 24px;border-radius:28px;text-align:center;color:#e8eef6;background:linear-gradient(180deg,rgba(25,40,64,.97),rgba(11,21,37,.98));border:1px solid rgba(255,255,255,.1);box-shadow:0 50px 120px -30px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.12) inset;animation:lgpop .4s cubic-bezier(.2,.9,.25,1.15)}
+@keyframes lgpop{from{opacity:0;transform:translateY(18px) scale(.94)}}
+.lgc.shake{animation:lgshake .42s}
+@keyframes lgshake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.lgc::before{content:'';position:absolute;z-index:-1;left:50%;top:-130px;width:380px;height:300px;margin-left:-190px;border-radius:50%;background:radial-gradient(closest-side,var(--lg-glow),transparent);filter:blur(24px);opacity:.7;animation:lgdrift 7s ease-in-out infinite alternate;pointer-events:none}
+.lgc::after{content:'';position:absolute;z-index:-1;left:12%;right:12%;top:0;height:1px;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--accent) 80%,#fff),transparent);opacity:.9;pointer-events:none}
+@keyframes lgdrift{to{transform:translate(40px,18px) scale(1.12)}}
+.lgi{position:relative;width:68px;height:68px;margin:0 auto 20px;border-radius:22px;display:grid;place-items:center;color:#fff;background:linear-gradient(145deg,var(--lg-b),var(--lg-a));box-shadow:0 14px 34px -8px var(--lg-glow),0 0 0 1px rgba(255,255,255,.18) inset,0 1px 0 rgba(255,255,255,.35) inset;animation:lgfloat 4s ease-in-out infinite}
+.lgi svg{width:32px;height:32px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.lgi::after{content:'';position:absolute;inset:-1px;border-radius:inherit;border:2px solid var(--lg-glow);animation:lgring 2.8s ease-out infinite;pointer-events:none}
+@keyframes lgfloat{50%{transform:translateY(-4px)}}
+@keyframes lgring{from{transform:scale(1);opacity:.9}to{transform:scale(1.55);opacity:0}}
+.lgc h3{margin:0;font-size:22px;font-weight:700;letter-spacing:.2px;color:#fff}
+.lgc p{margin:6px 0 26px;font-size:13.5px;color:#9db0c6}
+.lgf{text-align:left;margin-bottom:14px}
+.lgc label{display:block;margin:0 0 7px 2px;font-size:12.5px;font-weight:600;color:#b6c6d9}
+.lgw{position:relative}
+.lgw>svg.ico{position:absolute;left:15px;top:50%;width:19px;height:19px;margin-top:-9.5px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;color:#7f93ab;pointer-events:none;transition:color .2s}
+.lgc input{width:100%;height:50px;padding:0 46px;border-radius:15px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.05);color:#fff;font-size:15px;outline:none;transition:border-color .2s,box-shadow .2s,background .2s}
+.lgc input::placeholder{color:#6b8099}
+.lgc input:hover{border-color:rgba(255,255,255,.24)}
+.lgc input:focus{border-color:color-mix(in srgb,var(--accent) 85%,#fff);background:rgba(255,255,255,.08);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 24%,transparent)}
+.lgw:focus-within>svg.ico{color:color-mix(in srgb,var(--accent) 85%,#fff)}
+.lgeye{position:absolute;right:8px;top:50%;width:34px;height:34px;margin-top:-17px;display:grid;place-items:center;border:0;border-radius:10px;background:transparent;color:#7f93ab;cursor:pointer;transition:background .2s,color .2s}
+.lgeye:hover{background:rgba(255,255,255,.09);color:#fff}
+.lgeye svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.lgeye .ec{display:none}.lgeye.on .ec{display:block}.lgeye.on .eo{display:none}
+#lg-err{min-height:22px;margin:2px 0 10px;font-size:13px;font-weight:500;color:#fca5a5}
+.lga{display:flex;flex-direction:column;gap:6px}
+.lga button{font-family:inherit;cursor:pointer;transition:transform .15s,box-shadow .2s,filter .2s,background .2s,color .2s}
+.lga .go{position:relative;overflow:hidden;height:52px;border:0;border-radius:15px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15.5px;font-weight:700;letter-spacing:.3px;color:#fff;background:linear-gradient(135deg,var(--lg-b),var(--lg-a));box-shadow:0 14px 30px -10px var(--lg-glow),0 1px 0 rgba(255,255,255,.3) inset}
+.lga .go::after{content:'→';font-size:18px;line-height:1;transition:transform .2s}
+.lga .go::before{content:'';position:absolute;top:0;left:-70%;width:50%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-20deg);transition:left .6s;pointer-events:none}
+.lga .go:hover{transform:translateY(-1px);filter:brightness(1.08)}
+.lga .go:hover::before{left:130%}
+.lga .go:hover::after{transform:translateX(4px)}
+.lga .go:active{transform:scale(.99)}
+.lga .go:disabled{cursor:wait;filter:saturate(.7);transform:none}
+.lga .go:disabled::after{content:'';width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:lgspin .7s linear infinite}
+@keyframes lgspin{to{transform:rotate(1turn)}}
+#lg-x{height:44px;border:0;border-radius:12px;background:transparent;color:#8fa3ba;font-size:14px;font-weight:600}
+#lg-x:hover{color:#fff;background:rgba(255,255,255,.07)}
+.lga button:focus-visible,.lgeye:focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 80%,#fff);outline-offset:2px}
+html[data-theme="light"] .lg{--lg-a:color-mix(in srgb,var(--accent) 80%,#0b1626);--lg-b:var(--accent);background:radial-gradient(760px 460px at 50% 28%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 70%),rgba(15,33,55,.45)}
+html[data-theme="light"] .lgc{color:#1f2937;background:linear-gradient(180deg,#fff,#f5f8fc);border-color:rgba(15,33,55,.08);box-shadow:0 50px 110px -30px rgba(15,33,55,.5),0 1px 0 #fff inset}
+html[data-theme="light"] .lgc::before{opacity:.4}
+html[data-theme="light"] .lgc h3{color:#0f2137}
+html[data-theme="light"] .lgc p{color:#64748b}
+html[data-theme="light"] .lgc label{color:#475569}
+html[data-theme="light"] .lgw>svg.ico,html[data-theme="light"] .lgeye{color:#94a3b8}
+html[data-theme="light"] .lgw:focus-within>svg.ico{color:var(--accent)}
+html[data-theme="light"] .lgc input{background:#f2f5fa;color:#0f2137;border-color:rgba(15,33,55,.14)}
+html[data-theme="light"] .lgc input::placeholder{color:#94a3b8}
+html[data-theme="light"] .lgc input:hover{border-color:rgba(15,33,55,.28)}
+html[data-theme="light"] .lgc input:focus{background:#fff;border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent)}
+html[data-theme="light"] .lgeye:hover{background:rgba(15,33,55,.07);color:#0f2137}
+html[data-theme="light"] #lg-err{color:#dc2626}
+html[data-theme="light"] #lg-x{color:#64748b}
+html[data-theme="light"] #lg-x:hover{color:#0f2137;background:rgba(15,33,55,.06)}
+@media (max-width:480px){.lgc{padding:30px 22px 18px;border-radius:24px}}
+@media (prefers-reduced-motion:reduce){.lgc,.lgc::before,.lgi,.lgi::after,.lg.show{animation:none!important}}
 </style>
 </head>
 <body>
@@ -357,12 +398,13 @@ html[data-theme="light"] .tp-seg button[aria-pressed="true"]{color:#fff}
   <div id="info" style="display:none"></div>
 </main>
 <div class="toasts" id="toasts"></div>
-<div class="lg" id="lg"><div class="lgc" id="lgc">
-  <div class="lgi">🔒</div><h3>เข้าสู่โหมดแก้ไข Layout</h3><p>สำหรับผู้ดูแลระบบ (Admin) เท่านั้น</p>
-  <label for="lg-u">ชื่อผู้ใช้</label><input id="lg-u" autocomplete="username">
-  <label for="lg-p">รหัสผ่าน</label><input id="lg-p" type="password" autocomplete="current-password">
-  <div id="lg-err"></div>
-  <div class="lga"><button id="lg-x" type="button">ยกเลิก</button><button id="lg-ok" type="button" class="go">เข้าสู่ระบบ</button></div>
+<div class="lg" id="lg" role="dialog" aria-modal="true" aria-labelledby="lg-t"><div class="lgc" id="lgc">
+  <div class="lgi" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8.1 7.5 9.5 4.4-1.4 7.5-4.9 7.5-9.5V6z"/><rect x="9" y="11" width="6" height="4.5" rx="1"/><path d="M10 11V9.6a2 2 0 0 1 4 0V11"/></svg></div>
+  <h3 id="lg-t">เข้าสู่โหมดแก้ไข Layout</h3><p>สำหรับผู้ดูแลระบบ (Admin) เท่านั้น</p>
+  <div class="lgf"><label for="lg-u">ชื่อผู้ใช้</label><div class="lgw"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/></svg><input id="lg-u" autocomplete="username" placeholder="กรอกชื่อผู้ใช้" spellcheck="false" autocapitalize="off"></div></div>
+  <div class="lgf"><label for="lg-p">รหัสผ่าน</label><div class="lgw"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><input id="lg-p" type="password" autocomplete="current-password" placeholder="กรอกรหัสผ่าน"><button type="button" class="lgeye" id="lg-eye" tabindex="-1" aria-label="แสดง/ซ่อนรหัสผ่าน" onclick="var p=document.getElementById('lg-p'),s=p.type==='password';p.type=s?'text':'password';this.classList.toggle('on',s);p.focus()"><svg class="eo" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="ec" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.7 10.7 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.3 6.4C3.8 8.1 2 12 2 12s3.6 7 10 7c1.7 0 3.2-.4 4.5-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></div></div>
+  <div id="lg-err" role="alert"></div>
+  <div class="lga"><button id="lg-ok" type="button" class="go">เข้าสู่ระบบ</button><button id="lg-x" type="button">ยกเลิก</button></div>
 </div></div>
 <script>
 const SB_URL='https://knzzmurumqrhwotyrooj.supabase.co', SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU';
@@ -383,7 +425,7 @@ function toast(msg,type='ok',ms=4000){
 function adminLogin(){
   return new Promise(res=>{
     const m=$('lg'),u=$('lg-u'),p=$('lg-p'),err=$('lg-err'),ok=$('lg-ok');
-    u.value='';p.value='';err.textContent='';m.classList.add('show');setTimeout(()=>u.focus(),60);
+    u.value='';p.value='';p.type='password';$('lg-eye').classList.remove('on');err.textContent='';m.classList.add('show');setTimeout(()=>u.focus(),60);
     const close=v=>{m.classList.remove('show');res(v)};
     const bad=t=>{err.textContent=t;const c=$('lgc');c.classList.remove('shake');void c.offsetWidth;c.classList.add('shake')};
     const go=async()=>{
