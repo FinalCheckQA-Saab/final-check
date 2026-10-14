@@ -2519,6 +2519,16 @@
     }
   }
 
+  /* ── 🆕 บรรทัดพิกัด GPS ของการตรวจแต่ละชิ้น (S/M/E) สำหรับ Telegram — ใช้ร่วมกันทุกข้อความ ──
+     คืนค่า '' ถ้าไม่มีพิกัด (ชุดเก่า) เพื่อไม่ให้ข้อความพัง; ลิงก์ Google Maps เป็น URL ธรรมดา Telegram จะทำเป็นลิงก์กดได้เอง */
+  function gpsTelegramLine(gps) {
+    if (!gps || gps.latitude == null || gps.longitude == null) return '';
+    const lat = Number(gps.latitude), lng = Number(gps.longitude);
+    if (!isFinite(lat) || !isFinite(lng)) return '';
+    const acc = gps.accuracy != null && isFinite(Number(gps.accuracy)) ? ` (±${Math.round(Number(gps.accuracy))} ม.)` : '';
+    return `📍 พิกัด: ${lat.toFixed(6)}, ${lng.toFixed(6)}${acc}\n🗺 https://maps.google.com/?q=${lat.toFixed(6)},${lng.toFixed(6)}\n`;
+  }
+
   /* ── ส่ง Telegram แจ้ง NG ทันที แม้ยังตรวจไม่ครบทุกชิ้น (ไม่ต้องรอจนถึง E) ── */
   function buildStageNgTelegram(record, cur) {
     const sl = stageLabel(cur), n = recordPieceCount(record) || DEFAULT_PIECE_COUNT;
@@ -2567,7 +2577,7 @@ ${record.jigDocNo ? `_${escHtml(record.jigDocNo)}_` : ''}
 🏷 Production Order: ${escHtml(record.productionOrder || '-')}
 👤 ผู้ตรวจ: ${escHtml(record.items[0].pieces[cur].by || record.inspector)}
 🕐 เวลาส่ง: ${fmtHM(record.items[0].pieces[cur].at)} น.
-
+${gpsTelegramLine(record.items[0].pieces[cur].gps)}
 🔍 จุดเช็ค ${total} จุด • ✅ ผ่าน ${total - ngCount} • ❌ NG ${ngCount}
 `;
     if (ngCount) {
@@ -2885,6 +2895,8 @@ ${escHtml(record.jigId || '')}
             const ok = st.filter(x => x === 'ok' || x === 'fixed').length;
             const by = items[0] && items[0].pieces && items[0].pieces[p] ? items[0].pieces[p].by : '';
             t += `${ng > 0 ? '❌' : '✅'} *${stageLabel(p).short}* (${stageLabel(p).th}): ผ่าน ${ok}/${items.length}${ng > 0 ? ` • NG ${ng}` : ''}${by && by !== record.inspector ? ` — ${escHtml(by)}` : ''}\n`;
+            const g = items[0] && items[0].pieces && items[0].pieces[p] ? items[0].pieces[p].gps : null;
+            if (g && g.latitude != null && g.longitude != null) t += `   📍 ${Number(g.latitude).toFixed(6)}, ${Number(g.longitude).toFixed(6)} — https://maps.google.com/?q=${Number(g.latitude).toFixed(6)},${Number(g.longitude).toFixed(6)}\n`;
           }
           return t;
         })();
