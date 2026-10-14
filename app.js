@@ -2895,8 +2895,6 @@ ${escHtml(record.jigId || '')}
             const ok = st.filter(x => x === 'ok' || x === 'fixed').length;
             const by = items[0] && items[0].pieces && items[0].pieces[p] ? items[0].pieces[p].by : '';
             t += `${ng > 0 ? '❌' : '✅'} *${stageLabel(p).short}* (${stageLabel(p).th}): ผ่าน ${ok}/${items.length}${ng > 0 ? ` • NG ${ng}` : ''}${by && by !== record.inspector ? ` — ${escHtml(by)}` : ''}\n`;
-            const g = items[0] && items[0].pieces && items[0].pieces[p] ? items[0].pieces[p].gps : null;
-            if (g && g.latitude != null && g.longitude != null) t += `   📍 ${Number(g.latitude).toFixed(6)}, ${Number(g.longitude).toFixed(6)}\n`;
           }
           return t;
         })();
@@ -2932,7 +2930,6 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
           telegramMsg += `\n📝 *หมายเหตุเพิ่มเติม:*\n_${escHtml(record.notes.trim())}_\n`;
         }
         telegramMsg += `
-📍 GPS: ${gpsData.latitude.toFixed(6)}, ${gpsData.longitude.toFixed(6)}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
         const approveUrl = window.location.href.replace(/index\.html.*$/, '').replace(/\/?$/, '/')
