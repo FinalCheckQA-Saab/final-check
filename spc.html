@@ -260,20 +260,37 @@ header.collapsed .logo{width:28px;height:28px;border-radius:9px}
 @media (max-width:640px){header.collapsed .logo{display:none}}
 main{max-width:1180px;padding:20px 20px 56px}
 .card{border-radius:18px;padding:18px 22px;margin-bottom:16px;box-shadow:var(--sh)}
-.filters{display:grid;grid-template-columns:minmax(220px,1.3fr) 190px minmax(240px,1.6fr);gap:14px}
+.filters{display:grid;grid-template-columns:minmax(220px,1.3fr) 250px minmax(240px,1.6fr);gap:14px}
 .filters .grow{min-width:0}.filters label{font-size:12.5px;gap:7px}
 .filters select,.filters input{width:100%;min-width:0;height:46px;padding:0 14px;border-radius:12px;font-size:14.5px;font-weight:500;background:var(--bg);border:1.5px solid var(--border);transition:border-color .18s,box-shadow .18s}
 .filters select{appearance:none;padding-right:38px;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 20px) 20px,calc(100% - 15px) 20px;background-size:5px 5px;background-repeat:no-repeat}
 .filters select:hover,.filters input:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--border))}
 .filters select:focus,.filters input:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-dim)}
 @media (max-width:820px){.filters{grid-template-columns:1fr}}
-.stp{display:flex;align-items:center;gap:6px}.stp select,.stp input{flex:1;min-width:0}
-.stp-b{flex:0 0 auto;width:40px;height:46px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);color:var(--ink);display:grid;place-items:center;cursor:pointer;transition:border-color .18s,background .18s,color .18s,transform .1s}
-.stp-b:hover:not(:disabled){border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
-.stp-b:active:not(:disabled){transform:scale(.94)}
-.stp-b:focus-visible{outline:0;box-shadow:0 0 0 4px var(--accent-dim)}
-.stp-b:disabled{opacity:.35;cursor:not-allowed}
-@media (max-width:820px){.stp-b{width:44px}}
+/* ── Stepper: ช่องเดียวต่อเนื่อง — รายการ = ขึ้น/ลง, เวลา = ซ้าย/ขวา ── */
+.stp{display:flex;align-items:stretch;height:46px;border-radius:12px;background:var(--bg);border:1.5px solid var(--border);overflow:hidden;transition:border-color .18s,box-shadow .18s}
+.stp:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--border))}
+.stp:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-dim)}
+.stp select,.stp input{flex:1;min-width:0;height:100%;border:0!important;box-shadow:none!important;background-color:transparent;border-radius:0;padding:0 12px}
+.stp input{text-align:center;padding:0 4px}
+.stp.v select{padding-left:14px;background-image:none}
+.stp-b{flex:0 0 auto;border:0;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer;padding:0;transition:background .15s,color .15s,transform .08s}
+.stp-b svg{display:block;transition:transform .15s}
+.stp-b:hover:not(:disabled){background:var(--accent-dim);color:var(--accent)}
+.stp-b:active:not(:disabled){background:color-mix(in srgb,var(--accent) 22%,transparent)}
+.stp-b:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.stp-b:disabled{opacity:.3;cursor:default}
+.stp.h .stp-b{width:38px}
+.stp.h .stp-b[data-d="-1"]{border-right:1px solid var(--border)}
+.stp.h .stp-b[data-d="1"]{border-left:1px solid var(--border)}
+.stp.h .stp-b[data-d="-1"]:active:not(:disabled) svg{transform:translateX(-2px)}
+.stp.h .stp-b[data-d="1"]:active:not(:disabled) svg{transform:translateX(2px)}
+.stp-v{display:flex;flex-direction:column;width:34px;border-left:1px solid var(--border)}
+.stp-v .stp-b{flex:1;width:100%}
+.stp-v .stp-b[data-d="-1"]{border-bottom:1px solid var(--border)}
+.stp-v .stp-b[data-d="-1"]:active:not(:disabled) svg{transform:translateY(-1px)}
+.stp-v .stp-b[data-d="1"]:active:not(:disabled) svg{transform:translateY(1px)}
+@media (max-width:820px){.stp.h .stp-b{width:46px}.stp-v{width:44px}}
 .hero{position:relative;overflow:hidden;display:grid;grid-template-columns:1fr 270px;gap:8px 28px;align-items:center;padding:24px 28px 24px 32px;border-radius:20px;margin-bottom:16px;border:1px solid color-mix(in srgb,var(--hc) 45%,var(--border));background:linear-gradient(115deg,var(--hb),var(--card) 72%);box-shadow:var(--sh)}
 .hero::before{content:"";position:absolute;inset:0 auto 0 0;width:6px;background:var(--hc)}
 .s-good{--hc:var(--good);--hb:var(--good-bg)}.s-warn{--hc:var(--amber);--hb:var(--warn-bg)}.s-bad{--hc:var(--bad);--hb:var(--bad-bg)}.s-info{--hc:var(--accent);--hb:var(--accent-dim)}
@@ -345,9 +362,9 @@ tbody tr:hover{background:var(--accent-dim)}th{font-weight:600}
   <div id="warn"></div>
   <div class="card">
     <div class="filters">
-      <label class="grow">Part Number<div class="stp"><button type="button" class="stp-b" data-t="f-part" data-d="-1" aria-label="ก่อนหน้า"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><select id="f-part"><option value="">กำลังโหลด...</option></select><button type="button" class="stp-b" data-t="f-part" data-d="1" aria-label="ถัดไป"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div></label>
-      <label>เดือน<div class="stp"><button type="button" class="stp-b" data-t="f-month" data-d="-1" aria-label="ก่อนหน้า"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><input type="month" id="f-month"><button type="button" class="stp-b" data-t="f-month" data-d="1" aria-label="ถัดไป"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div></label>
-      <label class="grow">หัวข้อตรวจ (ตัวเลข)<div class="stp"><button type="button" class="stp-b" data-t="f-item" data-d="-1" aria-label="ก่อนหน้า"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><select id="f-item"><option value="">—</option></select><button type="button" class="stp-b" data-t="f-item" data-d="1" aria-label="ถัดไป"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div></label>
+      <label for="f-part" class="grow">Part Number<div class="stp v"><select id="f-part"><option value="">กำลังโหลด...</option></select><div class="stp-v"><button type="button" class="stp-b" data-t="f-part" data-d="-1" aria-label="Part ก่อนหน้า"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button><button type="button" class="stp-b" data-t="f-part" data-d="1" aria-label="Part ถัดไป"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div></div></label>
+      <label for="f-month">เดือน<div class="stp h"><button type="button" class="stp-b" data-t="f-month" data-d="-1" aria-label="เดือนก่อนหน้า"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><input type="month" id="f-month"><button type="button" class="stp-b" data-t="f-month" data-d="1" aria-label="เดือนถัดไป"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div></label>
+      <label for="f-item" class="grow">หัวข้อตรวจ (ตัวเลข)<div class="stp v"><select id="f-item"><option value="">—</option></select><div class="stp-v"><button type="button" class="stp-b" data-t="f-item" data-d="-1" aria-label="หัวข้อก่อนหน้า"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button><button type="button" class="stp-b" data-t="f-item" data-d="1" aria-label="หัวข้อถัดไป"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div></div></label>
     </div>
   </div>
   <div id="body"><div class="card msg">เลือก Part Number และเดือน เพื่อดูกราฟ</div></div>
