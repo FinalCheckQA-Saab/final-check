@@ -378,3 +378,7 @@ body.sidebar-collapsed [data-fcm-body][hidden] { display: contents; }   /* โ�
 @keyframes fcm-pulse { 0%, 100% { transform: translateY(-1px); } 50% { transform: translateY(2px); } }
 .fcm-pdfhost { pointer-events: none; }
 @media print { .fcm-pdfhost { display: none !important; } }
+
+/* ── ธีม "ขาวเทาคลีน": ปุ่มคู่มือใน Sidebar สีขาว ── */
+html[data-palette="clean"][data-theme="light"] .sidebar-nav button.side-nav-item.fcm-nav { color: #4b5563; }
+html[data-palette="clean"][data-theme="light"] .sidebar-nav button.side-nav-item.fcm-nav:hover { background: #f1f3f6; color: #111827; }
