@@ -341,7 +341,7 @@ body.sidebar-collapsed .sidebar-nav button.side-nav-item.fcm-nav { justify-conte
 }
 
 
-/* ───────────────────────── 🆕 กลุ่ม "คู่มือหน้าระบบ" (Sidebar + ตัวแก้ไขใน Admin Panel) ───────────────────────── */
+/* ───────────────────────── 🆕 กลุ่ม "คู่มือการดูข้อมูล" (Sidebar + ตัวแก้ไขใน Admin Panel) ───────────────────────── */
 #fcm-guide-group, #fcm-guide-nav { display: contents; }
 #fcm-guide-group[hidden] { display: none; }
 .fcm-ed-grp { display: grid; gap: 6px; padding: 10px 12px; border: 1px dashed var(--fcm-line, #d5dbe5); border-radius: 12px; }

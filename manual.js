@@ -3,7 +3,7 @@
    ใช้ร่วมกันใน index.html (Sidebar + Admin Panel) และ documents.html
    ---------------------------------------------------------------------
    • คู่มือ 4 ฉบับ: inspector / approver / admin / docs
-   • 🆕 กลุ่ม "คู่มือหน้าระบบ" (Dashboard / Layout S M E / SPC + ที่ Admin เพิ่มเอง) แสดงใน Sidebar — เก็บที่ตาราง app_guides
+   • 🆕 กลุ่ม "คู่มือการดูข้อมูล" (Dashboard / Layout S M E / SPC + ที่ Admin เพิ่มเอง) แสดงใน Sidebar — เก็บที่ตาราง app_guides
    • เนื้อหา default ฝังอยู่ในไฟล์นี้ (ใช้ได้ทันทีแม้ยังไม่ได้รัน SQL)
    • ถ้า Admin แก้ไขแล้วบันทึก → เก็บที่ตาราง app_manuals (Supabase) ทุกเครื่องเห็นฉบับเดียวกัน
    • เปิดอ่าน:  FCManual.open('inspector')  หรือใส่ data-manual="inspector" ที่ปุ่มใดก็ได้
@@ -264,7 +264,7 @@
   };
 
   /* ═════════════════════════════════════════════════════════════════════
-     🆕 กลุ่ม "คู่มือหน้าระบบ" (Dashboard / Layout S M E / SPC + ที่ Admin เพิ่มเอง)
+     🆕 กลุ่ม "คู่มือการดูข้อมูล" (Dashboard / Layout S M E / SPC + ที่ Admin เพิ่มเอง)
      • แสดงเป็นกลุ่มใน Sidebar (#fcm-guide-nav) — สร้างจากรายการที่เก็บในตาราง app_guides (แถว id = 'main')
      • Admin เพิ่ม / ลบ / แก้ไข / เรียงลำดับได้ที่ Admin Panel › จัดการคู่มือ
      • ใช้ key แบบ "g:<id>" กับ FCManual.open() และ data-manual
@@ -439,7 +439,7 @@
     if (META[aud]) return META[aud];
     if (isGuide(aud)) {
       var g = guideInList(GD.items, gid(aud)) || (ED && ED.G ? guideInList(ED.G.items, gid(aud)) : null);
-      return { label: g ? g.label : 'คู่มือ', where: 'แสดงที่เมนูด้านข้าง (Sidebar) กลุ่ม "คู่มือหน้าระบบ" — ทุกคนที่เข้าสู่ระบบเห็น' };
+      return { label: g ? g.label : 'คู่มือ', where: 'แสดงที่เมนูด้านข้าง (Sidebar) กลุ่ม "คู่มือการดูข้อมูล" — ทุกคนที่เข้าสู่ระบบเห็น' };
     }
     return null;
   }
@@ -1289,7 +1289,7 @@
     }).then(function () { ED.saving = false; paintEditor(); });
   }
 
-  /* ───────────── 🆕 Editor: กลุ่ม "คู่มือหน้าระบบ" (เพิ่ม / ลบ / แก้ไข / เรียงลำดับ) ───────────── */
+  /* ───────────── 🆕 Editor: กลุ่ม "คู่มือการดูข้อมูล" (เพิ่ม / ลบ / แก้ไข / เรียงลำดับ) ───────────── */
   function markGuide(it) {
     return { id: it.id, label: it.label, icon: it.icon || 'book', title: it.title, sections: it.sections.map(withId), isGuide: true };
   }
@@ -1335,8 +1335,8 @@
     }).join('');
     var missing = DEFAULT_GUIDES.some(function (g) { return !guideInList(G.items, g.id); });
     return '<div class="fcm-ed-grp">' +
-      '<div class="fcm-ed-grp-t">กลุ่ม "คู่มือหน้าระบบ" ใน Sidebar <small>' + G.items.length + ' ฉบับ</small></div>' +
-      '<div class="fcm-ed-tabs" role="tablist" aria-label="คู่มือหน้าระบบ">' + tabs +
+      '<div class="fcm-ed-grp-t">กลุ่ม "คู่มือการดูข้อมูล" ใน Sidebar <small>' + G.items.length + ' ฉบับ</small></div>' +
+      '<div class="fcm-ed-tabs" role="tablist" aria-label="คู่มือการดูข้อมูล">' + tabs +
         '<button type="button" class="fcm-tab fcm-tab-add" data-act="addguide">' + svg(IC.plus, 13) + ' เพิ่มคู่มือ</button>' +
         (missing ? '<button type="button" class="fcm-tab fcm-tab-add" data-act="gdefaults" title="นำคู่มือเริ่มต้นที่ถูกลบกลับมา">' + svg(IC.undo, 13) + ' กู้คืนคู่มือเริ่มต้น</button>' : '') +
       '</div>' +
@@ -1447,11 +1447,11 @@
       G.meta = { source: 'db', updated_at: now, updated_by: creds.username };
       G.dirty = false;
       applyGuides({ items: normGuides(content), meta: G.meta });      /* อัปเดต Sidebar ทันที */
-      toast('บันทึกกลุ่ม "คู่มือหน้าระบบ" แล้ว — ทุกเครื่องเห็นฉบับใหม่ทันที', 'ok');
+      toast('บันทึกกลุ่ม "คู่มือการดูข้อมูล" แล้ว — ทุกเครื่องเห็นฉบับใหม่ทันที', 'ok');
     }).catch(function (e) {
       var msg = (e && (e.message || e.code)) || '';
       if (/could not find|does not exist|schema cache|function|relation/i.test(msg)) {
-        toast('ยังไม่ได้สร้างตาราง/ฟังก์ชันคู่มือหน้าระบบใน Supabase — ให้รันไฟล์ add_guides.sql ก่อน', 'ng');
+        toast('ยังไม่ได้สร้างตาราง/ฟังก์ชันคู่มือการดูข้อมูลใน Supabase — ให้รันไฟล์ add_guides.sql ก่อน', 'ng');
       } else {
         toast('บันทึกคู่มือไม่สำเร็จ: ' + (msg || 'ดู Console (F12)'), 'ng');
       }
