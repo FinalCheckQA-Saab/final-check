@@ -256,6 +256,9 @@ html[data-theme="light"] .tp-seg{background:rgba(15,33,55,.06);border-color:rgba
 html[data-theme="light"] .tp-seg button:hover{background:rgba(15,33,55,.1)}
 html[data-theme="light"] .tp-seg button[aria-pressed="true"]{color:#fff}
 @media (prefers-reduced-motion:reduce){.tpop.show{animation:none}.tp-sw{transition:none}}
+/* ปุ่มย่อ/ขยายแถบด้านบน: แสดงเฉพาะลูกศร (โปร่งตา) */
+.tg{display:inline-grid;place-items:center;padding:3px 26px;line-height:1}
+.tg svg{width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 </style>
 </head>
 <body>
@@ -279,7 +282,7 @@ html[data-theme="light"] .tp-seg button[aria-pressed="true"]{color:#fff}
     <div class="mini-k"><span><em style="background:var(--ok)"></em>ครบ <b id="m-ok">0</b></span><span><em style="background:var(--part)"></em>กำลังตรวจ <b id="m-part">0</b></span><span><em style="background:var(--ng)"></em>NG <b id="m-ng">0</b></span><span><em style="background:#94a3b8"></em>ยังไม่ตรวจ <b id="m-none">0</b></span></div>
     <div style="text-align:right"><span class="c-time">--:--:--</span> <span class="c-date"></span></div>
   </div>
-  <div class="handle"><button class="tg" id="btn-collapse" type="button">▲ ย่อแถบด้านบน</button></div>
+  <div class="handle"><button class="tg" id="btn-collapse" type="button" title="ย่อแถบด้านบน" aria-label="ย่อแถบด้านบน" aria-expanded="true"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 15 12 9 18 15"/></svg></button></div>
 </header>
 <main>
   <div id="warn"></div>
@@ -393,7 +396,7 @@ const setZoom=z=>{zoom=Math.min(4,Math.max(1,z));fit()};
 $('z-in').onclick=()=>setZoom(zoom+.5);$('z-out').onclick=()=>setZoom(zoom-.5);$('z-fit').onclick=()=>setZoom(1);
 window.addEventListener('resize',fit);
 // ── ยุบ/ขยายแถบด้านบน (จำค่าไว้ในเครื่อง) ──
-function setCollapsed(c){document.body.classList.toggle('collapsed',c);$('btn-collapse').textContent=c?'▼ ขยายแถบด้านบน':'▲ ย่อแถบด้านบน';try{localStorage.setItem('lay_collapsed',c?'1':'0')}catch(e){}tick();fit()}
+function setCollapsed(c){document.body.classList.toggle('collapsed',c);(function(b,l){b.innerHTML=c?'<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 15 12 9 18 15"/></svg>';b.title=l;b.setAttribute('aria-label',l);b.setAttribute('aria-expanded',String(!c))})($('btn-collapse'),c?'ขยายแถบด้านบน':'ย่อแถบด้านบน');try{localStorage.setItem('lay_collapsed',c?'1':'0')}catch(e){}tick();fit()}
 $('btn-collapse').onclick=()=>setCollapsed(!document.body.classList.contains('collapsed'));
 try{if(localStorage.getItem('lay_collapsed')==='1')setCollapsed(true)}catch(e){}
 function setLegend(min){$('legend').classList.toggle('min',min);$('leg-tg').textContent=min?'ⓘ สัญลักษณ์ ▸':'ⓘ สัญลักษณ์ ◂';try{localStorage.setItem('lay_legend_min',min?'1':'0')}catch(e){}}
