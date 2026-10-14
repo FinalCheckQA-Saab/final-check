@@ -156,6 +156,23 @@ a.back:hover{border-color:rgba(236,201,114,.7);background:rgba(255,255,255,.12)}
 .mini-k b{font-family:var(--num);font-size:15px;color:#fff}
 .mini-k em{width:9px;height:9px;box-shadow:0 0 8px currentColor}
 .mini-k span:nth-child(1) em{color:var(--ok)}.mini-k span:nth-child(2) em{color:var(--part)}.mini-k span:nth-child(3) em{color:var(--ng)}
+/* ── แถบสรุปสถานะ (ย่อ) — สีสด มีชีวิตชีวา ── */
+.mini-k{gap:10px}
+.mini-k span{--c:#94a3b8;white-space:nowrap;padding:5px 14px 5px 11px;font-weight:600;color:#fff;
+  border-color:color-mix(in srgb,var(--c) 60%,transparent);
+  background:linear-gradient(135deg,color-mix(in srgb,var(--c) 42%,transparent),color-mix(in srgb,var(--c) 14%,transparent));
+  box-shadow:0 6px 16px -8px color-mix(in srgb,var(--c) 85%,#000),inset 0 1px 0 rgba(255,255,255,.2)}
+.mini-k span:nth-child(1){--c:var(--ok)}
+.mini-k span:nth-child(2){--c:var(--part)}
+.mini-k span:nth-child(3){--c:var(--ng)}
+.mini-k span:nth-child(4){--c:#94a3b8}
+.mini-k em{width:10px;height:10px;background:var(--c)!important;box-shadow:0 0 8px var(--c)}
+.mini-k b{font-size:18px;font-weight:700;line-height:1.45;min-width:1.6ch;padding:0 8px;border-radius:999px;text-align:center;background:var(--c);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.mini-k span:nth-child(2) em{animation:mkpulse 1.6s infinite}
+.mini-k span.hot{animation:mkhot 1.2s infinite}
+@keyframes mkpulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 75%,transparent)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@keyframes mkhot{50%{box-shadow:0 0 0 3px color-mix(in srgb,var(--ng) 45%,transparent),0 6px 18px -6px var(--ng)}}
+@media (prefers-reduced-motion:reduce){.mini-k em,.mini-k span.hot{animation:none!important}}
 .top-mini .c-time{font-family:var(--num);font-size:24px;font-weight:600}
 .top-mini .c-date{color:#c3d0de}
 body.collapsed .top{padding-top:10px}
@@ -622,6 +639,9 @@ setInterval(()=>{if(!edit)refresh()},60000); // รีเฟรชอัตโ�
   });
   sync();
 })();
+</script>
+<script>/* ไฮไลต์ป้าย NG เมื่อมีรายการ NG > 0 */
+(function(){var n=document.getElementById('m-ng');if(!n)return;var p=n.parentNode;function f(){p.classList.toggle('hot',(parseInt(n.textContent,10)||0)>0)}new MutationObserver(f).observe(n,{childList:true,characterData:true,subtree:true});f()})();
 </script>
 </body>
 </html>
