@@ -293,6 +293,9 @@
     eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
     undo: '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>',
     save: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>',
+    minus: '<line x1="5" y1="12" x2="19" y2="12"/>',
+    maximize: '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>',
+    restore: '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>',
     search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>'
   };
 
@@ -450,6 +453,8 @@
           '<span class="fcm-head-ico">' + svg(IC.book, 22) + '</span>' +
           '<div class="fcm-head-t"><h2 id="fcm-title"></h2><p class="fcm-sub"></p></div>' +
           '<div class="fcm-head-act">' +
+            '<button type="button" class="fcm-ibtn" data-fcm="min" title="ยุบหน้าต่าง" aria-label="ยุบหน้าต่าง">' + svg(IC.minus, 18) + '</button>' +
+            '<button type="button" class="fcm-ibtn" data-fcm="max" title="ขยายเต็มจอ" aria-label="ขยายเต็มจอ">' + svg(IC.maximize, 16) + '</button>' +
             '<button type="button" class="fcm-ibtn" data-fcm="print" title="พิมพ์ / บันทึกเป็น PDF" aria-label="พิมพ์">' + svg(IC.print, 17) + '</button>' +
             '<button type="button" class="fcm-ibtn" data-fcm="close" title="ปิด (Esc)" aria-label="ปิด">' + svg(IC.close, 18) + '</button>' +
           '</div>' +
@@ -463,6 +468,7 @@
           '<nav class="fcm-toc" aria-label="สารบัญ"></nav>' +
           '<div class="fcm-main" tabindex="-1"></div>' +
         '</div>' +
+        '<span class="fcm-resize" title="ลากเพื่อปรับขนาด" aria-hidden="true"></span>' +
       '</div>';
     document.body.appendChild(back);
 
@@ -475,10 +481,14 @@
       count: back.querySelector('.fcm-count'),
       toc: back.querySelector('.fcm-toc'),
       main: back.querySelector('.fcm-main'),
-      bar: back.querySelector('.fcm-progress i')
+      bar: back.querySelector('.fcm-progress i'),
+      head: back.querySelector('.fcm-head'),
+      grip: back.querySelector('.fcm-resize')
     };
+    loadWin();
+    bindWindow();
 
-    back.addEventListener('mousedown', function (e) { if (e.target === back) close(); });
+    back.addEventListener('mousedown', function (e) { if (e.target === back && !W.free && !W.max) close(); });
     back.querySelector('[data-fcm="close"]').addEventListener('click', close);
     back.querySelector('[data-fcm="print"]').addEventListener('click', doPrint);
 
@@ -507,7 +517,7 @@
     document.addEventListener('keydown', function (e) {
       if (!S.open) return;
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return; }
-      if (e.key === 'Tab') {
+      if (e.key === 'Tab' && !W.min) {
         var f = Array.prototype.filter.call(
           V.modal.querySelectorAll('button,[href],input,[tabindex]:not([tabindex="-1"])'),
           function (x) { return x.offsetParent !== null && !x.disabled; });
@@ -519,6 +529,99 @@
     }, true);
     window.addEventListener('afterprint', function () { document.body.classList.remove('fcm-printing'); });
     return V;
+  }
+
+  /* ── หน้าต่างลากย้าย / ปรับขนาด / ขยายเต็มจอ / ยุบ ── */
+  var WIN_KEY = 'fc_manual_win_v1';
+  var W = { max: false, min: false, free: false, x: 0, y: 0, w: 0, h: 0 };
+  function narrow() { return window.innerWidth <= 760; }
+  function loadWin() {
+    try {
+      var o = JSON.parse(localStorage.getItem(WIN_KEY) || 'null');
+      if (!o) return;
+      W.max = !!o.max;
+      if (o.free && isFinite(o.x) && isFinite(o.y) && o.w > 0 && o.h > 0) { W.free = true; W.x = o.x; W.y = o.y; W.w = o.w; W.h = o.h; }
+    } catch (e) { /* ignore */ }
+  }
+  function saveWin() {
+    try { localStorage.setItem(WIN_KEY, JSON.stringify({ max: W.max, free: W.free, x: W.x, y: W.y, w: W.w, h: W.h })); } catch (e) { /* ignore */ }
+  }
+  function clampWin() {
+    if (!W.free) return;
+    var vw = window.innerWidth, vh = window.innerHeight;
+    W.w = Math.max(420, Math.min(W.w, vw));
+    W.h = Math.max(320, Math.min(W.h, vh));
+    W.x = Math.min(Math.max(W.x, -(W.w - 140)), vw - 140);   /* ให้เหลือส่วนหัวโผล่อย่างน้อย 140px เสมอ */
+    W.y = Math.min(Math.max(W.y, 0), vh - 56);
+  }
+  function applyWin() {
+    if (!V) return;
+    var m = V.modal;
+    clampWin();
+    m.classList.toggle('is-max', W.max && !W.min);
+    m.classList.toggle('is-min', W.min);
+    V.back.classList.toggle('is-min', W.min);
+    var free = W.free && !W.max && !W.min && !narrow();
+    m.classList.toggle('is-free', free);
+    if (free) { m.style.left = W.x + 'px'; m.style.top = W.y + 'px'; m.style.width = W.w + 'px'; m.style.height = W.h + 'px'; }
+    else { m.style.left = ''; m.style.top = ''; m.style.width = ''; m.style.height = ''; }
+    document.body.classList.toggle('fcm-lock', S.open && !W.min);
+
+    var bMax = V.back.querySelector('[data-fcm="max"]'), bMin = V.back.querySelector('[data-fcm="min"]');
+    var maxed = W.max && !W.min;
+    bMax.innerHTML = svg(maxed ? IC.restore : IC.maximize, 16);
+    bMax.title = maxed ? 'ย่อกลับ' : 'ขยายเต็มจอ';
+    bMax.setAttribute('aria-label', bMax.title);
+    bMin.innerHTML = svg(W.min ? IC.maximize : IC.minus, W.min ? 16 : 18);
+    bMin.title = W.min ? 'เปิดหน้าต่างกลับ' : 'ยุบหน้าต่าง';
+    bMin.setAttribute('aria-label', bMin.title);
+  }
+  function toggleMax() { if (W.min) W.min = false; W.max = !W.max; saveWin(); applyWin(); }
+  function toggleMin() { W.min = !W.min; applyWin(); if (!W.min) { try { V.modal.focus(); } catch (e) { /* ignore */ } } }
+  function ensureFree() {
+    if (W.free) return;
+    var r = V.modal.getBoundingClientRect();
+    W.x = r.left; W.y = r.top; W.w = r.width; W.h = r.height; W.free = true;
+    applyWin();
+  }
+  function drag(el, onMove, e) {
+    var sx = e.clientX, sy = e.clientY;
+    try { if (el.setPointerCapture && e.pointerId != null) el.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
+    function mv(ev) { onMove(ev.clientX - sx, ev.clientY - sy); }
+    function up() {
+      el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up);
+      el.classList.remove('is-drag'); saveWin();
+    }
+    el.classList.add('is-drag');
+    el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  }
+  function bindWindow() {
+    V.back.querySelector('[data-fcm="min"]').addEventListener('click', toggleMin);
+    V.back.querySelector('[data-fcm="max"]').addEventListener('click', toggleMax);
+    V.head.addEventListener('dblclick', function (e) { if (!e.target.closest('button') && !W.min && !narrow()) toggleMax(); });
+    V.head.addEventListener('click', function (e) { if (W.min && !e.target.closest('button')) toggleMin(); });
+    V.head.addEventListener('pointerdown', function (e) {
+      if ((e.pointerType === 'mouse' && e.button !== 0) || e.target.closest('button')) return;
+      if (W.min || W.max || narrow()) return;
+      ensureFree();
+      var ox = W.x, oy = W.y;
+      drag(V.head, function (dx, dy) {
+        W.x = ox + dx; W.y = oy + dy; clampWin();
+        V.modal.style.left = W.x + 'px'; V.modal.style.top = W.y + 'px';
+      }, e);
+    });
+    V.grip.addEventListener('pointerdown', function (e) {
+      if ((e.pointerType === 'mouse' && e.button !== 0) || W.min || W.max || narrow()) return;
+      e.preventDefault();
+      ensureFree();
+      var ow = W.w, oh = W.h;
+      drag(V.grip, function (dx, dy) {
+        W.w = Math.max(420, Math.min(ow + dx, window.innerWidth - W.x));
+        W.h = Math.max(320, Math.min(oh + dy, window.innerHeight - W.y));
+        V.modal.style.width = W.w + 'px'; V.modal.style.height = W.h + 'px';
+      }, e);
+    });
+    window.addEventListener('resize', function () { if (S.open) applyWin(); });
   }
 
   function setActive(i) {
@@ -596,6 +699,7 @@
     S.opener = opts.from || document.activeElement;
     v.search.value = '';
     var mySeq = ++S.seq;
+    W.min = false;
 
     if (opts.draft) {
       S.data = normalize(opts.draft, aud);
@@ -614,6 +718,7 @@
     } else {
       v.main.scrollTop = 0;
     }
+    applyWin();
 
     if (!opts.draft) {
       fetchManual(aud).then(function (r) {

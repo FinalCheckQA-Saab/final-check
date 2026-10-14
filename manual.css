@@ -325,3 +325,45 @@ body.sidebar-collapsed .sidebar-nav .side-nav-item.fcm-nav .fcm-nav-chev { displ
 .fcm-main::-webkit-scrollbar-thumb, .fcm-toc::-webkit-scrollbar-thumb { background: var(--fcm-border-in); border-radius: 8px; }
 @media (prefers-reduced-motion: reduce) { .fcm-main { scroll-behavior: auto; } .fcm-modal, .fcm-back { transition: none; } }
 @media print { body.fcm-printing .fcm-progress { display: none !important; } }
+
+/* ───────────────────────── หน้าต่างลากย้าย / ปรับขนาด / เต็มจอ / ยุบ ───────────────────────── */
+.fcm-modal { position: relative; }
+.fcm-head { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.fcm-head.is-drag { cursor: grabbing; }
+.fcm-modal.is-free { position: fixed; transform: none !important; max-width: none; max-height: none; transition: none; }
+.fcm-modal.is-max {
+  position: fixed; left: 0 !important; top: 0 !important; right: auto; bottom: auto;
+  width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+  max-width: none; max-height: none; border-radius: 0; border: 0; transform: none !important;
+}
+.fcm-modal.is-max .fcm-head, .fcm-modal.is-min .fcm-head { cursor: default; }
+.fcm-resize {
+  position: absolute; right: 0; bottom: 0; z-index: 5; width: 24px; height: 24px; cursor: nwse-resize; touch-action: none; opacity: .7;
+  background: linear-gradient(135deg, transparent 0 52%, var(--fcm-muted) 52% 58%, transparent 58% 70%, var(--fcm-muted) 70% 76%, transparent 76% 88%, var(--fcm-muted) 88% 94%, transparent 94%);
+}
+.fcm-resize:hover { opacity: 1; }
+.fcm-modal.is-max .fcm-resize, .fcm-modal.is-min .fcm-resize { display: none; }
+
+/* ยุบ: เหลือแถบเล็กมุมขวาล่าง — ไม่บังหน้าจอ ใช้งานแอปต่อได้ */
+.fcm-back.is-min { background: transparent; backdrop-filter: none; pointer-events: none; }
+.fcm-modal.is-min {
+  position: fixed; left: auto !important; top: auto !important; right: 18px; bottom: 18px;
+  width: min(340px, calc(100vw - 24px)) !important; height: auto !important;
+  transform: none !important; pointer-events: auto; border-radius: 16px;
+  box-shadow: 0 14px 40px rgba(8, 18, 34, .45);
+}
+.fcm-modal.is-min .fcm-progress, .fcm-modal.is-min .fcm-tools, .fcm-modal.is-min .fcm-layout,
+.fcm-modal.is-min .fcm-sub, .fcm-modal.is-min [data-fcm="max"], .fcm-modal.is-min [data-fcm="print"] { display: none; }
+.fcm-modal.is-min .fcm-head { padding: 10px 12px; border-bottom: 0; cursor: pointer; }
+.fcm-modal.is-min .fcm-head-ico { width: 34px; height: 34px; }
+.fcm-modal.is-min .fcm-head-t h2 { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+@media (max-width: 760px) {
+  .fcm-head { cursor: default; touch-action: auto; }
+  .fcm-resize, .fcm-head-act [data-fcm="max"] { display: none; }
+  .fcm-modal.is-min { right: 10px; bottom: 10px; border-radius: 14px; }
+}
+@media print {
+  body.fcm-printing .fcm-modal { position: static !important; left: auto !important; top: auto !important; width: 100% !important; height: auto !important; }
+  body.fcm-printing .fcm-resize { display: none !important; }
+}
