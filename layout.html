@@ -71,7 +71,7 @@ main{padding:12px 20px 14px}
 .legend.min{padding:5px}.legend.min .lgb{display:none}
 .legend span{display:inline-flex;align-items:center;gap:5px}.legend i{width:11px;height:11px;border-radius:50%;display:inline-block}
 /* ── Markers ── */
-.mk{position:absolute;transform:translate(-50%,-50%) scale(var(--sc,1));background:color-mix(in srgb,var(--bg,#fff) var(--bgo,100%),transparent);color:var(--tx,#1f2937);border:2.5px solid var(--bd,#16324f);border-radius:12px;padding:4px 8px 5px;box-shadow:0 6px 16px rgba(15,33,55,.3);text-align:center;min-width:70px;max-width:130px;cursor:pointer;transition:box-shadow .3s,filter .3s}
+.mk{position:absolute;transform:translate(-50%,-50%) scale(var(--sc,1));background:color-mix(in srgb,var(--bg,#fff) var(--bgo,100%),transparent);color:var(--tx,#1f2937);border:2.5px solid color-mix(in srgb,var(--bd,#16324f) var(--bdo,100%),transparent);border-radius:12px;padding:4px 8px 5px;box-shadow:0 6px 16px rgba(15,33,55,.3);text-align:center;min-width:70px;max-width:calc(130px*var(--fsr,1));cursor:pointer;transition:box-shadow .3s,filter .3s}
 .mk::after{content:'';position:absolute;inset:-5px;border-radius:16px;border:2px solid var(--ring,transparent);opacity:0;pointer-events:none}
 .mk.ok{--ring:var(--ok);box-shadow:0 0 0 3px rgba(34,197,94,.4),0 6px 16px rgba(15,33,55,.3)}
 .mk.part{--ring:var(--part);box-shadow:0 0 0 3px rgba(245,158,11,.45),0 6px 16px rgba(15,33,55,.3)}
@@ -81,7 +81,7 @@ main{padding:12px 20px 14px}
 .mk.off{opacity:.5;filter:grayscale(1)}
 .mk:hover{filter:brightness(1.05);z-index:3}
 .mk.sel{outline:3px dashed var(--gold);outline-offset:5px}.edit .mk{cursor:grab}
-.mk .n{font-size:10.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mk .n{font-size:var(--fs,10.5px);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mk .st{display:flex;gap:3px;justify-content:center;margin-top:3px}
 .mk i{font-style:normal;font-size:10px;font-weight:700;width:19px;height:19px;line-height:19px;border-radius:50%;background:var(--none);color:#fff}
 i.ok{background:var(--ok)}i.ng{background:var(--ng)}i.partial{background:var(--part)}i.off{background:var(--none);opacity:.6}
@@ -326,6 +326,8 @@ html[data-theme="light"] .tp-seg button[aria-pressed="true"]{color:#fff}
       <label>สีพื้นหลัง <input type="color" id="st-bg" style="padding:0;width:42px;height:30px"></label>
       <label>โปร่งใส <input type="range" id="st-bo" min="0" max="100" step="5" style="width:110px;padding:0"> <b id="st-bov"></b></label>
       <label>สีเส้น <input type="color" id="st-bd" style="padding:0;width:42px;height:30px"></label>
+      <label>เส้นโปร่งใส <input type="range" id="st-bdo" min="0" max="100" step="5" style="width:110px;padding:0"> <b id="st-bdov"></b></label>
+      <label>ตัวอักษร <input type="range" id="st-fs" min="8" max="24" step="0.5" style="width:110px;padding:0"> <b id="st-fsv"></b></label>
       <button id="st-all" type="button">ใช้กับทุกจุด</button><button id="st-reset" type="button">รีเซ็ต</button>
     </div>
     <div class="hint">1 จุด = 1 Line (รวมทุก Model/Part ใน Line นั้น) · ลากจุดไปวางตามตำแหน่งจริง · กดจุดเพื่อเลือก/ลบ · อย่าลืมกด "บันทึก"</div>
@@ -485,13 +487,15 @@ function lineStates(deptId){
   return STAGES.map((_,i)=>aggStage(rows.map(r=>r[i])));
 }
 const overall=s=>s&&s.every(x=>x==='off')?'off':!s||s.every(x=>x==='none')?'none':s.includes('ng')?'ng':s.every(x=>x==='ok')?'ok':'part';
-const DEF={s:1,bg:'#ffffff',bd:'#16324f',bo:100};
+const DEF={s:1,bg:'#ffffff',bd:'#16324f',bo:100,bdo:100,fs:10.5};
 const lum=h=>{const n=parseInt(h.slice(1),16);return .299*(n>>16)+.587*((n>>8)&255)+.114*(n&255)};
-const mkCss=m=>{const bg=m.bg||DEF.bg;return 'left:'+m.x+'%;top:'+m.y+'%;--sc:'+(m.s||1)+';--bg:'+bg+';--bgo:'+(m.bo==null?DEF.bo:m.bo)+'%;--bd:'+(m.bd||DEF.bd)+';--tx:'+(lum(bg)>150?'#1f2937':'#fff')};
+const mkCss=m=>{const bg=m.bg||DEF.bg;return 'left:'+m.x+'%;top:'+m.y+'%;--sc:'+(m.s||1)+';--bg:'+bg+';--bgo:'+(m.bo==null?DEF.bo:m.bo)+'%;--bdo:'+(m.bdo==null?DEF.bdo:m.bdo)+'%;--fs:'+(m.fs||DEF.fs)+'px;--fsr:'+((m.fs||DEF.fs)/DEF.fs)+';--bd:'+(m.bd||DEF.bd)+';--tx:'+(lum(bg)>150?'#1f2937':'#fff')};
 function syncStyleBar(){
   const m=cfg.markers.find(x=>x.id===sel);$('stbar').style.display=(edit&&m)?'':'none';if(!m)return;
   $('st-s').value=m.s||1;$('st-sv').textContent=(m.s||1)+'x';$('st-bg').value=m.bg||DEF.bg;$('st-bd').value=m.bd||DEF.bd;
   const bo=m.bo==null?DEF.bo:m.bo;$('st-bo').value=bo;$('st-bov').textContent=bo+'%';
+  const bdo=m.bdo==null?DEF.bdo:m.bdo;$('st-bdo').value=bdo;$('st-bdov').textContent=bdo+'%';
+  const fs=m.fs||DEF.fs;$('st-fs').value=fs;$('st-fsv').textContent=fs+'px';
 }
 function applyStyle(patch,all){
   const m=cfg.markers.find(x=>x.id===sel);if(!m)return;
@@ -551,15 +555,17 @@ $('e-exit').onclick=()=>{edit=false;$('info').style.display='none';$('editbar').
 $('e-add').onclick=()=>{
   const id=$('e-part').value;if(!id){toast('กรุณาเลือก Line ที่จะวางก่อน','warn');return}
   if(!cfg.image){toast('กรุณาอัปโหลดรูป Layout ก่อน','warn');return}
-  const last=cfg.markers[cfg.markers.length-1],m={id:'m'+Date.now(),lineId:id,x:50,y:50};if(last)Object.assign(m,{s:last.s,bg:last.bg,bd:last.bd,bo:last.bo});
+  const last=cfg.markers[cfg.markers.length-1],m={id:'m'+Date.now(),lineId:id,x:50,y:50};if(last)Object.assign(m,{s:last.s,bg:last.bg,bd:last.bd,bo:last.bo,bdo:last.bdo,fs:last.fs});
   cfg.markers.push(m);sel=m.id;render();
 };
 $('st-s').oninput=e=>applyStyle({s:+e.target.value});
 $('st-bg').oninput=e=>applyStyle({bg:e.target.value});
 $('st-bd').oninput=e=>applyStyle({bd:e.target.value});
 $('st-bo').oninput=e=>applyStyle({bo:+e.target.value});
-$('st-all').onclick=()=>{const m=cfg.markers.find(x=>x.id===sel);if(m)applyStyle({s:m.s||1,bg:m.bg||DEF.bg,bd:m.bd||DEF.bd,bo:m.bo==null?DEF.bo:m.bo},true)};
-$('st-reset').onclick=()=>applyStyle({s:1,bg:DEF.bg,bd:DEF.bd,bo:DEF.bo});
+$('st-bdo').oninput=e=>applyStyle({bdo:+e.target.value});
+$('st-fs').oninput=e=>applyStyle({fs:+e.target.value});
+$('st-all').onclick=()=>{const m=cfg.markers.find(x=>x.id===sel);if(m)applyStyle({s:m.s||1,bg:m.bg||DEF.bg,bd:m.bd||DEF.bd,bo:m.bo==null?DEF.bo:m.bo,bdo:m.bdo==null?DEF.bdo:m.bdo,fs:m.fs||DEF.fs},true)};
+$('st-reset').onclick=()=>applyStyle({s:1,bg:DEF.bg,bd:DEF.bd,bo:DEF.bo,bdo:DEF.bdo,fs:DEF.fs});
 $('e-del').onclick=()=>{if(!sel)return;cfg.markers=cfg.markers.filter(m=>m.id!==sel);sel=null;render()};
 // ปรับรูปอัตโนมัติ: เริ่มจาก 3000px แบบไม่สูญเสียคุณภาพ (PNG) ถ้าไฟล์ใหญ่เกินงบค่อยใช้ WebP 92% แล้วลดขนาดทีละขั้น
 function optimizeImage(img){
