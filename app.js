@@ -2929,8 +2929,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         if (record.notes && record.notes.trim()) {
           telegramMsg += `\n📝 *หมายเหตุเพิ่มเติม:*\n_${escHtml(record.notes.trim())}_\n`;
         }
-        telegramMsg += `
-━━━━━━━━━━━━━━━━━━━━━━━━━
+        telegramMsg += `\n${gpsTelegramLine((items[0] && items[0].pieces && items[0].pieces[n - 1] && items[0].pieces[n - 1].gps) || gpsData)}━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
         const approveUrl = window.location.href.replace(/index\.html.*$/, '').replace(/\/?$/, '/')
           + `approve.html?id=${encodeURIComponent(record.id)}`;
