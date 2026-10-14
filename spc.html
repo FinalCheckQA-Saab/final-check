@@ -401,10 +401,10 @@ const nextMonth=m=>{let[y,mo]=m.split('-').map(Number);mo++;if(mo>12){mo=1;y++}r
 const thMonth=m=>new Date(m+'-01T00:00:00').toLocaleDateString('th-TH',{month:'long',year:'numeric'});
 
 async function loadMaster(){
-  const [l,j]=await Promise.all([sb.from('lines').select('id,name'),sb.from('jigs').select('id,name,line_id,doc_no')]);
+  const [l,j]=await Promise.all([sb.from('lines').select('id,name'),sb.from('jigs').select('id,name,line_id')]);
   if(j.error){$('warn').innerHTML='<div class="warn">โหลดรายการ Part ไม่สำเร็จ: '+esc(j.error.message)+'</div>';return}
   const ln={};(l.data||[]).forEach(x=>ln[x.id]=x.name);
-  parts=(j.data||[]).map(p=>({id:p.id,name:p.name,no:(p.doc_no||'').trim()||p.id,model:ln[p.line_id]||'ไม่ระบุ Model'}))
+  parts=(j.data||[]).map(p=>({id:p.id,name:p.name,no:String(p.id),model:ln[p.line_id]||'ไม่ระบุ Model'}))
     .sort((a,b)=>a.model.localeCompare(b.model,'th')||a.no.localeCompare(b.no,'th',{numeric:true})||a.name.localeCompare(b.name,'th',{numeric:true}));
   const by={};parts.forEach(p=>(by[p.model]=by[p.model]||[]).push(p));
   $('f-part').innerHTML='<option value="">— เลือก Part Number —</option>'+Object.entries(by).map(([m,a])=>'<optgroup label="Model: '+esc(m)+'">'+a.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.no)+' · '+esc(p.name)+'</option>').join('')+'</optgroup>').join('');
