@@ -2750,7 +2750,14 @@ h1, h2, h3, h4, label, button, input, select, textarea, p, span, div {
   gap: 2px;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
+  /* ซ่อนแถบเลื่อน (ยังเลื่อนด้วยล้อเมาส์/นิ้วได้) + จางขอบบน-ล่างบอกใบ้ว่ายังมีเมนูต่อ */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%);
 }
+.sidebar-nav::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .sidebar-nav-label {
   font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
   color: hsla(0, 0%, 100%, 0.35);
