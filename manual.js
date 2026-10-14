@@ -3,6 +3,7 @@
    ใช้ร่วมกันใน index.html (Sidebar + Admin Panel) และ documents.html
    ---------------------------------------------------------------------
    • คู่มือ 4 ฉบับ: inspector / approver / admin / docs
+   • 🆕 กลุ่ม "คู่มือหน้าระบบ" (Dashboard / Layout S M E / SPC + ที่ Admin เพิ่มเอง) แสดงใน Sidebar — เก็บที่ตาราง app_guides
    • เนื้อหา default ฝังอยู่ในไฟล์นี้ (ใช้ได้ทันทีแม้ยังไม่ได้รัน SQL)
    • ถ้า Admin แก้ไขแล้วบันทึก → เก็บที่ตาราง app_manuals (Supabase) ทุกเครื่องเห็นฉบับเดียวกัน
    • เปิดอ่าน:  FCManual.open('inspector')  หรือใส่ data-manual="inspector" ที่ปุ่มใดก็ได้
@@ -262,6 +263,274 @@
     docs:      { label: 'คู่มือควบคุมเอกสาร', where: 'แสดงในหน้าควบคุมเอกสาร (ปุ่ม "คู่มือ" ที่มุมขวาบน)' }
   };
 
+  /* ═════════════════════════════════════════════════════════════════════
+     🆕 กลุ่ม "คู่มือหน้าระบบ" (Dashboard / Layout S M E / SPC + ที่ Admin เพิ่มเอง)
+     • แสดงเป็นกลุ่มใน Sidebar (#fcm-guide-nav) — สร้างจากรายการที่เก็บในตาราง app_guides (แถว id = 'main')
+     • Admin เพิ่ม / ลบ / แก้ไข / เรียงลำดับได้ที่ Admin Panel › จัดการคู่มือ
+     • ใช้ key แบบ "g:<id>" กับ FCManual.open() และ data-manual
+     ═════════════════════════════════════════════════════════════════════ */
+  var GP = 'g:';
+  var GUIDES_TABLE = 'app_guides', GUIDES_ROW = 'main', GUIDES_CACHE = 'fc_guides_v1';
+  var DEFAULT_GUIDES = [
+ {
+  "id": "dashboard",
+  "label": "คู่มือ Dashboard",
+  "icon": "dashboard",
+  "title": "คู่มือการใช้งาน Dashboard (ภาพรวมการตรวจ)",
+  "sections": [
+   {
+    "id": "gd1",
+    "title": "Dashboard คืออะไร และเปิดอย่างไร",
+    "body": "หน้า **Dashboard** แสดงภาพรวมผลการตรวจคุณภาพของวันนี้และย้อนหลัง ให้หัวหน้างานและผู้บริหารดูได้ในหน้าเดียว ไม่ต้องไล่เปิดประวัติทีละใบ\n\n## วิธีเปิด\n1. เข้าสู่ระบบ\n2. กด [[Dashboard]] ที่เมนูด้านข้าง (Sidebar)\n\n## หน้านี้ประกอบด้วย (เรียงจากบนลงล่าง)\n- **สถานะ Line / Model วันนี้** ดูว่าวันนี้ตรวจไปถึงไหนแล้ว\n- **NG วันนี้** รายการที่ตรวจพบความผิดปกติ\n- **ตัวกรอง** เลือกเดือนและ Model\n- **ตัวเลข KPI** 4 ช่อง\n- **กราฟ** แนวโน้ม และ NG แยกตาม Model\n- **AI วิเคราะห์ข้อมูล** สรุป pattern ของ NG\n\n> ข้อมูลทั้งหมดมาจากผลที่ผู้ตรวจกดส่งในหน้า [[ตรวจสอบ]] ถ้ายังไม่มีใครส่งผล ตัวเลขจะเป็น 0"
+   },
+   {
+    "id": "gd2",
+    "title": "สถานะ Line / Model วันนี้",
+    "body": "การ์ดนี้จัดกลุ่มตาม **Line** และแสดงแต่ละ **Model** พร้อมจำนวน Part ที่ตรวจแล้ว เช่น \"ตรวจแล้ว 3/5 Part\"\n\n## ความหมายของสี\n- **ยังไม่ตรวจ** วันนี้ยังไม่มีการส่งผลเลย\n- **กำลังตรวจ (ยังไม่ครบ)** ตรวจแล้วบางชิ้น แต่ S / M / E ยังไม่ครบ\n- **ตรวจครบ ปกติ** ตรวจครบทุกชิ้นและไม่พบ NG\n- **พบ NG** มีอย่างน้อย 1 จุดที่ไม่ผ่าน\n\n## ดูรายละเอียดของ Model\nกดการ์ด Model เพื่อดูว่า Part ไหน **ตรวจแล้ว / ยังไม่ตรวจ / ไม่ได้ผลิตวันนี้**\n\n> Part ที่ผู้ตรวจมาร์คว่า \"ไม่ได้ผลิตวันนี้\" จะไม่ถูกนับว่าขาดตรวจ และไม่ถูกนับเป็นตัวหาร\n> ใช้การ์ดนี้เป็นจุดเริ่มต้นตอนเช้า เพื่อดูว่ามี Model ไหนที่ยังไม่เริ่มตรวจ"
+   },
+   {
+    "id": "gd3",
+    "title": "NG วันนี้",
+    "body": "การ์ด **NG วันนี้** รวมรายการที่พบความผิดปกติในวันนี้ไว้ในที่เดียว แต่ละรายการบอก Model / Part จุดตรวจที่ NG ผู้ตรวจ และรายละเอียดที่ผู้ตรวจบันทึก\n\n- เมื่อมี NG จะมีป้าย **URGENT** ที่หัวการ์ดเพื่อเตือนให้รีบติดตาม\n- ถ้ายังไม่มี NG ในวันนี้ การ์ดจะแสดงว่าไม่พบรายการ\n\n## แนะนำการใช้งาน\n1. เปิดการ์ดนี้ก่อนเริ่มประชุมเช้า\n2. ดูว่า NG อยู่ที่ Model / จุดตรวจเดิมซ้ำหรือไม่\n3. ถ้าซ้ำ ให้ดูกราฟ \"จุดตรวจที่พบ NG บ่อยที่สุด\" ประกอบ (หัวข้อ \"กราฟ\" ด้านล่าง)\n\n!> การแก้ไขผลตรวจที่ส่งแล้วทำไม่ได้จากหน้านี้ หน้านี้ใช้ดูข้อมูลเท่านั้น"
+   },
+   {
+    "id": "gd4",
+    "title": "ตัวกรอง: เดือน และ Model",
+    "body": "ในหน้ามีตัวกรอง 2 ตัว ใช้เลือกช่วงข้อมูลของ **ตัวเลข KPI และกราฟ**\n\n- **ดูข้อมูลเดือน** เลือกเดือนที่ต้องการ หรือ \"ทั้งหมด (All)\"\n- **Model** เลือก Model ที่สนใจ หรือ \"ทุก Model (All)\"\n\n## ตัวอย่าง\nต้องการดูว่า Model RG14 ใน 1 เดือนที่ผ่านมามีอัตราผ่านเท่าไร\n1. เลือกเดือนที่ต้องการ\n2. เลือก Model เป็น RG14\n3. อ่านค่า **อัตราผ่าน (Pass Rate)** ที่การ์ด KPI"
+   },
+   {
+    "id": "gd5",
+    "title": "ตัวเลข KPI 4 ช่อง",
+    "body": "- **จำนวนครั้งที่ตรวจสอบ** จำนวนรายงานที่ส่งตามตัวกรองที่เลือก\n- **รายการ NG ทั้งหมด** จำนวนจุดตรวจที่ไม่ผ่านรวมกัน\n- **อัตราผ่าน (Pass Rate)** เปอร์เซ็นต์ของจุดตรวจที่ผ่าน\n- **Part ที่ตรวจแล้ว** จำนวน Part ที่มีผลตรวจในช่วงนั้น\n\n## วิธีอ่านค่า\n- อัตราผ่านลดลงต่อเนื่องหลายวัน แปลว่ากระบวนการเริ่มมีปัญหา ควรดูกราฟแนวโน้มประกอบ\n- จำนวน NG สูงแต่จำนวนครั้งที่ตรวจต่ำ อาจเกิดจากมีการตรวจน้อยในช่วงนั้น ไม่ได้แปลว่ามีของเสียเพิ่มขึ้นเสมอไป\n\n> ตัวเลขเหล่านี้จะเปลี่ยนทันทีเมื่อเปลี่ยนตัวกรอง เดือน / Model"
+   },
+   {
+    "id": "gd6",
+    "title": "กราฟต่าง ๆ",
+    "body": "## แนวโน้มการตรวจสอบ (30 วัน)\nแสดงจำนวน **ผ่าน** และ **NG** รายวัน ใช้ดูว่ามีวันไหนที่ NG พุ่งสูงผิดปกติ\n\n## NG ตาม Model\nเปรียบเทียบจำนวน NG ของแต่ละ Model ใช้หา Model ที่ต้องให้ความสำคัญก่อน\n\n## อัตราผ่านตาม Model\nเปรียบเทียบอัตราผ่านของแต่ละ Model Model ที่อัตราผ่านต่ำควรได้รับการตรวจสอบกระบวนการ\n\n## จุดตรวจที่พบ NG บ่อยที่สุด\nจัดอันดับจุดตรวจที่ NG ซ้ำ ๆ จุดที่อยู่อันดับบนมักเป็นต้นเหตุที่ควรแก้ก่อน"
+   },
+   {
+    "id": "gd7",
+    "title": "จัดตำแหน่งการ์ดตามต้องการ",
+    "body": "การ์ดต่าง ๆ ใน Dashboard จัดลำดับใหม่ได้\n1. จับที่ไอคอน **⠿** มุมของการ์ด\n2. ลากไปวางตำแหน่งที่ต้องการ\n\nต้องการกลับไปใช้ลำดับเดิม กดปุ่ม [[รีเซ็ตลำดับการ์ด]]"
+   },
+   {
+    "id": "gd8",
+    "title": "AI วิเคราะห์ข้อมูล",
+    "body": "ส่วนท้ายของหน้ามีการ์ด **AI วิเคราะห์ข้อมูล** ช่วยสรุป pattern ของ NG แนวโน้ม และคำแนะนำเชิงป้องกัน\n\n## วิธีใช้\n1. เลือกช่วงข้อมูลที่ต้องการวิเคราะห์ (เช่น \"ทั้งหมด\")\n2. กดปุ่ม [[วิเคราะห์ด้วย AI]]\n3. รอสักครู่ ระบบจะแสดงรายงานสรุป\n\n## ตั้งค่า Gemini API Key (ไม่บังคับ)\n- กดปุ่ม [[ตั้งค่า Gemini API Key]] แล้ววาง Key กด [[บันทึก]]\n- ถ้า **ไม่ใส่ Key** ระบบจะใช้ **Smart Analysis** แทน ซึ่งไม่ต้องใช้อินเทอร์เน็ตภายนอก\n\n!> API Key ถูกเก็บในเบราว์เซอร์เครื่องนั้นแบบไม่เข้ารหัส ห้ามใช้บนเครื่องสาธารณะหรือเครื่องที่ใช้ร่วมกัน และห้ามแชร์ Key ให้ผู้อื่น"
+   },
+   {
+    "id": "gd9",
+    "title": "ปัญหาที่พบบ่อยและวิธีแก้",
+    "body": "## ตัวเลขเป็น 0 ทั้งหมด\n- ตรวจว่าตัวกรอง **เดือน / Model** ไม่ได้เลือกเดือนที่ยังไม่มีข้อมูล\n- ถ้าวันนี้ยังไม่มีใครส่งผลตรวจ การ์ด \"วันนี้\" จะเป็น 0 เป็นเรื่องปกติ\n\n## ตัวเลขไม่ตรงกับที่คาด\n- ตรวจตัวกรอง **เดือน / Model** ก่อนว่าเลือกไว้ตรงกับที่ต้องการหรือไม่\n- Part ที่ถูกมาร์ค \"ไม่ได้ผลิตวันนี้\" จะไม่ถูกนับ\n\n## ข้อมูลไม่อัปเดต\nรีเฟรชหน้าเว็บ ถ้าใช้งานแบบออฟไลน์ ข้อมูลที่ยังไม่ส่งจะอยู่ในเครื่องผู้ตรวจและยังไม่ขึ้นใน Dashboard จนกว่าจะออนไลน์\n\n## หา Model / Part ไม่เจอ\nแปลว่ายังไม่ได้เพิ่มในระบบ ให้แจ้ง Admin"
+   }
+  ]
+ },
+ {
+  "id": "layout",
+  "label": "คู่มือ Layout S M E",
+  "icon": "layout",
+  "title": "คู่มือการใช้งาน Layout S M E (แผนผังฝ่ายผลิต)",
+  "sections": [
+   {
+    "id": "gl1",
+    "title": "Layout S M E คืออะไร",
+    "body": "**Layout S M E** คือแผนผังฝ่ายผลิตที่แสดงสถานะการตรวจ **S / M / E** แบบเรียลไทม์ ตามตำแหน่งจริงของแต่ละ Line บนพื้นที่โรงงาน ช่วยให้เห็นภาพรวมว่า Line ไหนตรวจครบ กำลังตรวจ หรือพบ NG\n\n## วิธีเปิด\nกด [[Layout S M E]] ที่เมนูด้านข้าง หน้านี้จะเปิดในแท็บใหม่ กดปุ่ม [[กลับแอปหลัก]] มุมซ้ายบนเพื่อกลับ\n\n## หลักการแสดงผล\n- **1 จุด = 1 Line** (รวมทุก Model / Part ใน Line นั้น)\n- สีของจุดสรุปจากทุก Part ที่ผลิตใน Line ถ้ามี Part ใด NG จุดนั้นจะเป็น **NG**\n- หน้าจอรีเฟรชอัตโนมัติทุก 1 นาที และกดปุ่ม ↻ เพื่อรีเฟรชเองได้"
+   },
+   {
+    "id": "gl2",
+    "title": "แถบสรุปด้านบน",
+    "body": "แถบด้านบนสรุปจำนวน Line แยกตามสถานะ\n\n- **ครบ** Line ที่ตรวจครบ S / M / E และไม่พบ NG\n- **กำลังตรวจ** Line ที่ตรวจแล้วบางส่วน\n- **NG** Line ที่พบความผิดปกติ\n- **ยังไม่ตรวจ** Line ที่ยังไม่มีผลตรวจวันนี้\n- **ไม่ผลิตวันนี้** Line ที่ไม่ได้ผลิตวันนี้\n\nถัดไปคือ **ความคืบหน้า (Line ที่ตรวจครบ)** เป็นเปอร์เซ็นต์ และมีเวลาที่อัปเดตล่าสุดแสดงไว้\n\n> ถ้าต้องการพื้นที่ดูผังมากขึ้น กด [[ย่อแถบด้านบน]] ระบบจะเก็บแถบสรุปแบบย่อไว้ให้"
+   },
+   {
+    "id": "gl3",
+    "title": "อ่านสีและสัญลักษณ์ของจุด",
+    "body": "กดปุ่ม **ⓘ สัญลักษณ์** เพื่อเปิด/ย่อกล่องคำอธิบายสี\n\n- **ยังไม่ตรวจ** ยังไม่มีผลตรวจใน Line นี้\n- **ตรวจยังไม่ครบ** ตรวจแล้วบางชิ้น (S / M / E ยังไม่ครบ)\n- **ผ่าน** ตรวจครบและไม่พบ NG\n- **NG** พบจุดตรวจที่ไม่ผ่าน\n\n> สถานะ S / M / E ที่เห็นบนจุดเป็นการ **สรุปทุก Part ที่ผลิตใน Line** ถ้ามี Part ใด NG ถือเป็น NG ทั้ง Line"
+   },
+   {
+    "id": "gl4",
+    "title": "ปุ่มซูมและเต็มหน้าจอ",
+    "body": "ปุ่มควบคุมการมองผัง\n\n- **−** ซูมออก\n- **⤢** ปรับให้พอดีจอ\n- **+** ซูมเข้า\n- **↻** รีเฟรชข้อมูลล่าสุด\n- **⛶** เต็มหน้าจอ (เหมาะกับแสดงบนจอทีวี)\n\n## เคล็ดลับ\nกด [[⤢]] เมื่อผังหลุดจอ เพื่อกลับมาแสดงพอดีหน้าจอ"
+   },
+   {
+    "id": "gl5",
+    "title": "กดจุดเพื่อดูรายละเอียดของ Line",
+    "body": "คลิก (หรือแตะ) จุดของ Line ที่ต้องการ จะเปิดหน้ารายละเอียด ซึ่งดูได้ว่า\n- **Part ไหน** ตรวจชิ้นไหน (S / M / E) ไปแล้ว\n- ตรวจ **เวลาใด** และ **ใครเป็นผู้ตรวจ**\n- Part ไหนพบ NG\n\n## กรองข้อมูล\nเลือกกรองตาม **วันที่ / แผนก / Line / Model / Part** ได้ที่ด้านบนของหน้ารายละเอียด\n\n> ใช้หน้านี้ตามหา NG ว่าเกิดที่ Part ใดของ Line ที่จุดเป็นสีแดง"
+   },
+   {
+    "id": "gl6",
+    "title": "[Admin] แก้ไข Layout และวางจุด Line",
+    "body": "ส่วนนี้สำหรับผู้ดูแลระบบ (Admin) เท่านั้น\n\n## เข้าโหมดแก้ไข\n1. เปิดหน้า Layout S M E\n2. กดปุ่ม **✎** (แก้ไข Layout)\n3. เข้าสู่ระบบ Admin ในหน้าต่างที่ขึ้นมา\n\n## อัปโหลดรูปผัง\nกด [[อัปโหลดรูป Layout]] แล้วเลือกรูปผังโรงงาน\n\n## วางจุดของ Line\n1. เลือก Line ที่ต้องการวาง\n2. กด [[เพิ่มจุด]]\n3. **ลากจุด** ไปวางตามตำแหน่งจริงบนผัง\n4. กดจุดเพื่อเลือก แล้วปรับ **ขนาด / สีพื้นหลัง / สีเส้น** ได้ในกล่อง \"จุดที่เลือก\" (กด [[ใช้กับทุกจุด]] เพื่อใช้ค่าเดียวกันทั้งหมด หรือ [[รีเซ็ต]])\n5. ลบจุดที่วางผิด ด้วยปุ่ม [[ลบจุดที่เลือก]]\n6. กด [[บันทึก]]\n\n!> อย่าลืมกด **บันทึก** ก่อนออกจากโหมดแก้ไข ไม่เช่นนั้นตำแหน่งจุดจะไม่ถูกเก็บ\n\n> วางได้เฉพาะ Line ที่ยังไม่ถูกวางบนผัง และเมื่อบันทึกแล้วทุกเครื่องจะเห็นผังเดียวกัน\n> เสร็จแล้วกด [[ออกจากโหมดแก้ไข]]"
+   },
+   {
+    "id": "gl7",
+    "title": "ปัญหาที่พบบ่อยและวิธีแก้",
+    "body": "## ไม่เห็นจุดของ Line บนผัง\nAdmin ยังไม่ได้วางจุดของ Line นั้น ให้แจ้ง Admin เพื่อเข้าโหมดแก้ไขและเพิ่มจุด\n\n## สถานะไม่ตรงกับที่ผู้ตรวจบอกว่าส่งแล้ว\n- กด **↻** เพื่อรีเฟรช (ปกติรีเฟรชเองทุก 1 นาที)\n- ตรวจว่า Part นั้นถูกมาร์ค \"ไม่ผลิตวันนี้\" หรือไม่\n- ถ้าผู้ตรวจอยู่ในสถานะออฟไลน์ ผลจะขึ้นเมื่อกลับมาออนไลน์\n\n## จุดเป็นสี NG ทั้งที่ Part ส่วนใหญ่ผ่าน\nเป็นหลักการของผัง ถ้ามี Part ใด NG ทั้ง Line จะแสดงเป็น NG กดจุดเพื่อดูว่า Part ไหน\n\n## เข้าโหมดแก้ไขไม่ได้\nโหมดแก้ไขใช้ได้เฉพาะ Admin ตรวจชื่อผู้ใช้และรหัสผ่าน"
+   }
+  ]
+ },
+ {
+  "id": "spc",
+  "label": "คู่มือ SPC",
+  "icon": "spc",
+  "title": "คู่มือการใช้งาน SPC (กราฟควบคุมคุณภาพ)",
+  "sections": [
+   {
+    "id": "gs1",
+    "title": "SPC คืออะไร และเปิดอย่างไร",
+    "body": "**SPC (Statistical Process Control)** คือการใช้กราฟสถิติติดตามว่ากระบวนการผลิตยัง \"นิ่ง\" และอยู่ในเกณฑ์หรือไม่ ก่อนที่จะเกิดของเสียจริง\n\nหน้านี้แสดงกราฟ **X̄–R Chart** ของหัวข้อตรวจที่เป็น **ตัวเลข** โดยนับชิ้น **S / M / E เป็น 1 กลุ่มย่อย (1 ชุด)** แยกตาม Part Number และเดือน\n\n## วิธีเปิด\nกด [[SPC]] ที่เมนูด้านข้าง (เปิดในแท็บใหม่) กด [[กลับแอปหลัก]] เพื่อกลับ\n\n> ปุ่ม [[ธีม]] สลับโหมดสว่าง / มืด และปุ่ม [[รีเฟรช]] โหลดข้อมูลล่าสุด ส่วน [[รายละเอียด]] ขยายส่วนหัวเพื่ออ่านคำอธิบายเพิ่มเติม"
+   },
+   {
+    "id": "gs2",
+    "title": "เลือกข้อมูลที่จะดู",
+    "body": "เลือกจากช่องด้านบน 3 ช่อง ตามลำดับ\n1. **Part Number**\n2. **เดือน** (ค่าเริ่มต้นคือเดือนนี้)\n3. **หัวข้อตรวจ (ตัวเลข)**\n\nเมื่อเลือกครบ กราฟและสรุปผลจะแสดงทันที\n\n## หัวข้อที่เลือกได้\n- เฉพาะหัวข้อที่ตรวจแบบ **กรอกตัวเลข** และมีค่ามาตรฐาน (Min / Max)\n- Admin ต้องเปิดปุ่ม **SPC** ของหัวข้อนั้นในหน้าจัดการจุดตรวจ จึงจะถูกนำมาคิดกราฟ\n\n!> หัวข้อที่ตรวจแบบ ปกติ / ไม่ปกติ (Pass / Fail) จะไม่แสดงในหน้านี้ เพราะไม่มีค่าตัวเลขให้คำนวณ"
+   },
+   {
+    "id": "gs3",
+    "title": "อ่านสรุปผลด้านบน",
+    "body": "ระบบสรุปสถานะของหัวข้อที่เลือกให้เป็นข้อความ ดังนี้\n\n- **พบค่านอกเกณฑ์** มีชิ้นงานที่ค่าเกิน LSL / USL ต้องตรวจสอบและแจ้งหัวหน้างานทันที\n- **กระบวนการไม่นิ่ง** ค่ายังอยู่ในเกณฑ์ แต่หลุดเส้น UCL / LCL แปลว่ากระบวนการเริ่มเปลี่ยน ควรหาสาเหตุก่อนเกิดของเสีย\n- **ความสามารถกระบวนการต่ำ** ค่ากระจายกว้างหรือเบี่ยงจากกึ่งกลางเกณฑ์ ควรปรับกระบวนการ\n- **ผ่านเกณฑ์ แต่ Cpk ยังต่ำกว่า 1.33** กระบวนการนิ่ง แต่ยังปรับให้ค่าแคบลงและตรงกลางเกณฑ์ได้อีก\n- **กระบวนการนิ่งและอยู่ในเกณฑ์** ไม่พบจุดนอกเส้นควบคุมหรือค่านอกเกณฑ์ และ Cpk ผ่าน (≥ 1.33)\n\n## ตัวเลขสรุป\nระบบแสดง จำนวนชุดที่ใช้, ค่าเฉลี่ยรวม X̿, เกณฑ์ LSL – USL และจำนวนค่านอกเกณฑ์ (NG)"
+   },
+   {
+    "id": "gs4",
+    "title": "X̄ Chart และ R Chart",
+    "body": "## X̄ Chart — ค่าเฉลี่ยต่อชุด\nแต่ละจุดคือค่าเฉลี่ยของ S / M / E ในหนึ่งชุด\n- **เส้นกลาง** คือค่าเฉลี่ยรวม X̿\n- **UCL / LCL** คือเส้นควบคุมบน / ล่าง คำนวณจากข้อมูลจริงของกระบวนการ\n- **USL / LSL** คือเกณฑ์ของลูกค้า / ข้อกำหนด (คนละอย่างกับ UCL / LCL)\n- จุดที่หลุดเส้นควบคุมจะถูกไฮไลต์\n\n## R Chart — ช่วงกว้างต่อชุด\nR = ค่ามากสุด − ค่าน้อยสุด ของ S / M / E ในชุดเดียวกัน ใช้ดูความผันแปรภายในชุด\n\n> ถ้า **R สูงผิดปกติ** แปลว่าชิ้นงานในชุดเดียวกันต่างกันมาก เช่น ค่าเปลี่ยนตั้งแต่ต้นงานถึงท้ายงาน ควรตรวจเครื่องจักร / jig / วิธีวัด\n\n## ข้อแตกต่างที่ควรรู้\nUCL / LCL มาจากข้อมูลจริงของกระบวนการ ส่วน USL / LSL มาจากข้อกำหนดของชิ้นงาน ค่าอาจอยู่ในเกณฑ์ (USL / LSL) แต่ยังหลุดเส้นควบคุมได้"
+   },
+   {
+    "id": "gs5",
+    "title": "Capability Histogram และ Cpk",
+    "body": "กราฟแท่ง **Capability Histogram** รวมทุกค่า S / M / E เทียบกับเกณฑ์ LSL – USL\n- **แท่ง** = จำนวนชิ้นที่วัดได้ในช่วงนั้น\n- **เส้นโค้ง** = Normal Distribution ที่คาดไว้\n\n## ค่าที่แสดง\n- **Cpk (ระยะสั้น)** ความสามารถของกระบวนการจากการกระจายภายในชุด\n- **คาดว่านอกเกณฑ์ ตามเส้นโค้งปกติ** ประมาณการสัดส่วนที่อาจหลุดเกณฑ์\n- **นอกเกณฑ์จริง** จำนวนค่าที่หลุดเกณฑ์จริงในข้อมูล\n\n## เกณฑ์อ่านค่า Cpk\n- **≥ 1.33** ถือว่าผ่าน กระบวนการมีความสามารถเพียงพอ\n- **ต่ำกว่า 1.33** ควรปรับกระบวนการให้ค่าแคบลงและตรงกลางเกณฑ์มากขึ้น\n\n> Cpk ใช้ความผันแปรภายในชุด (ระยะสั้น) ส่วน Histogram ใช้ S.D. รวมของทุกค่า (ระยะยาว) จึงอาจให้ภาพต่างกันเล็กน้อย เป็นเรื่องปกติ"
+   },
+   {
+    "id": "gs6",
+    "title": "ต้องมีข้อมูลกี่ชุดจึงเชื่อถือได้",
+    "body": "- ต้องมีข้อมูลอย่างน้อย **2 ชุด** จึงเริ่มคำนวณเส้นควบคุมและ Cpk ได้\n- ถ้ายังไม่ถึง **20–25 ชุด** เส้น UCL / LCL ยังเป็นค่าประมาณ (ระบบจะเตือนและแสดงจำนวนชุดที่ใช้ เช่น \"x / 20 ชุด\")\n- Histogram ควรมีอย่างน้อย **100 ค่า (ประมาณ 25 ชุด)** ก่อนนำไปตัดสินใจ\n- ควรมีข้อมูลอย่างน้อย 25 ชุดและกระบวนการนิ่ง ก่อนเชื่อถือค่า Cpk\n\n## \"ชุด\" นับอย่างไร\n1 ชุด = ผู้ตรวจกรอกค่าครบ **S, M และ E** ของหัวข้อนั้น ชุดที่ยังกรอกไม่ครบทั้ง 3 ชิ้นจะยังไม่ถูกนำมาคำนวณ\n\n!> ถ้าขึ้นว่า \"หัวข้อนี้ยังไม่มีชุดที่กรอกค่าครบ S / M / E ในเดือนนี้\" ให้รอผู้ตรวจส่งครบทั้ง 3 ชิ้นก่อน หรือลองเปลี่ยนเดือน"
+   },
+   {
+    "id": "gs7",
+    "title": "เมื่อกราฟผิดปกติ ควรทำอย่างไร",
+    "body": "## พบค่านอกเกณฑ์ (เกิน LSL / USL)\n1. แจ้งหัวหน้างานทันที\n2. กันชิ้นงานที่เกี่ยวข้องไว้ตรวจซ้ำ\n3. เปิด [[ประวัติ]] ดูรายงานและรูปประกอบของชุดนั้น\n\n## จุดหลุดเส้น UCL / LCL แต่ยังอยู่ในเกณฑ์\n- ยังไม่ใช่ของเสีย แต่เป็นสัญญาณเตือน\n- ตรวจปัจจัยที่เปลี่ยนไป เช่น วัตถุดิบ ล็อตใหม่ การตั้งเครื่อง เครื่องมือวัด ผู้ปฏิบัติงาน\n\n## R Chart สูง\nตรวจความสม่ำเสมอระหว่างต้นงาน กลางงาน ท้ายงาน เช่น เครื่องร้อนขึ้นระหว่างผลิต jig สึกหรอ\n\n## Cpk ต่ำ\nปรับค่าเฉลี่ยให้เข้าใกล้กึ่งกลางเกณฑ์ และลดความผันแปรของกระบวนการ"
+   },
+   {
+    "id": "gs8",
+    "title": "ปัญหาที่พบบ่อยและวิธีแก้",
+    "body": "## ไม่เห็น Part หรือหัวข้อที่ต้องการ\n- หัวข้อต้องเป็นแบบตัวเลขที่มี Min / Max\n- ให้ Admin ตรวจว่าเปิดปุ่ม **SPC** ของหัวข้อนั้นแล้ว\n\n## กราฟไม่ขึ้น / ขึ้นว่าข้อมูลไม่พอ\nเลือกเดือนที่มีข้อมูล และรอให้มีอย่างน้อย 2 ชุดที่กรอกครบ S / M / E\n\n## ข้อมูลไม่ล่าสุด\nกด [[รีเฟรช]] เพื่อโหลดข้อมูลล่าสุด"
+   }
+  ]
+ }
+];
+  var GICON = {
+    book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+    dashboard: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+    layout: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>',
+    spc: '<path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-6"/>'
+  };
+  var GD = { items: null, meta: { source: 'default' } };   /* ฉบับที่ Sidebar / Viewer ใช้ */
+
+  function isGuide(a) { return typeof a === 'string' && a.indexOf(GP) === 0; }
+  function gid(a) { return String(a).slice(GP.length); }
+  function defGuideById(id) {
+    for (var i = 0; i < DEFAULT_GUIDES.length; i++) if (DEFAULT_GUIDES[i].id === id) return DEFAULT_GUIDES[i];
+    return null;
+  }
+  function defOf(aud) {
+    if (isGuide(aud)) { var g = defGuideById(gid(aud)); return g ? { title: g.title, sections: g.sections } : { title: '', sections: [] }; }
+    return DEFAULTS[aud];
+  }
+  function metaOf(aud) {
+    if (META[aud]) return META[aud];
+    if (isGuide(aud)) {
+      var g = guideInList(GD.items, gid(aud)) || (ED && ED.G ? guideInList(ED.G.items, gid(aud)) : null);
+      return { label: g ? g.label : 'คู่มือ', where: 'แสดงที่เมนูด้านข้าง (Sidebar) กลุ่ม "คู่มือหน้าระบบ" — ทุกคนที่เข้าสู่ระบบเห็น' };
+    }
+    return null;
+  }
+  function guideInList(list, id) {
+    if (!list) return null;
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+  function cleanId(s) { return String(s || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40); }
+
+  function normGuideItem(x, i) {
+    var secs = Array.isArray(x.sections) ? x.sections : [];
+    return {
+      id: cleanId(x.id) || ('g' + i),
+      label: String(x.label || x.title || 'คู่มือ').slice(0, 60),
+      icon: GICON[x.icon] ? x.icon : 'book',
+      title: String(x.title || x.label || '').slice(0, 200),
+      sections: secs.filter(function (s) { return s && typeof s === 'object'; }).map(function (s, k) {
+        return { id: String(s.id || ('s' + k)).slice(0, 40), title: String(s.title || '').slice(0, 200), body: String(s.body || '').slice(0, 20000) };
+      })
+    };
+  }
+  function normGuides(c) {
+    if (!c || typeof c !== 'object' || !Array.isArray(c.items)) return null;
+    var seen = {}, out = [];
+    c.items.slice(0, 30).forEach(function (x, i) {
+      if (!x || typeof x !== 'object') return;
+      var it = normGuideItem(x, i);
+      if (seen[it.id]) return;
+      seen[it.id] = 1; out.push(it);
+    });
+    return out;
+  }
+  function readGuidesCache() { try { return JSON.parse(localStorage.getItem(GUIDES_CACHE) || 'null'); } catch (e) { return null; } }
+  function writeGuidesCache(row) {
+    try { if (row) localStorage.setItem(GUIDES_CACHE, JSON.stringify(row)); else localStorage.removeItem(GUIDES_CACHE); } catch (e) { /* ไม่เป็นไร */ }
+  }
+  function localGuides() {
+    var row = readGuidesCache(), items = row && normGuides(row.content);
+    if (items) return { items: items, meta: { source: 'cache', updated_at: row.updated_at, updated_by: row.updated_by } };
+    return { items: clone(DEFAULT_GUIDES).map(normGuideItem), meta: { source: 'default' } };
+  }
+  function fetchGuides() {
+    var c = client();
+    if (!c) return Promise.resolve(localGuides());
+    return Promise.resolve(c.from(GUIDES_TABLE).select('content, updated_at, updated_by').eq('id', GUIDES_ROW).maybeSingle()).then(function (r) {
+      if (r.error) throw r.error;
+      var items = r.data && normGuides(r.data.content);
+      if (items) {
+        writeGuidesCache({ content: r.data.content, updated_at: r.data.updated_at, updated_by: r.data.updated_by });
+        return { items: items, meta: { source: 'db', updated_at: r.data.updated_at, updated_by: r.data.updated_by } };
+      }
+      writeGuidesCache(null);
+      return { items: clone(DEFAULT_GUIDES).map(normGuideItem), meta: { source: 'default' } };
+    }).catch(function (e) {
+      var l = localGuides();
+      l.meta.error = (e && (e.message || e.code)) || 'โหลดไม่สำเร็จ';
+      return l;
+    });
+  }
+  function guideResult(r, aud) {
+    var it = guideInList(r.items, gid(aud));
+    if (!it) return { data: { title: 'ไม่พบคู่มือนี้', sections: [] }, meta: r.meta };
+    return { data: { title: it.title || it.label, sections: it.sections }, meta: r.meta };
+  }
+  function localGuide(aud) { return guideResult(localGuides(), aud); }
+  function fetchGuide(aud) { return fetchGuides().then(function (r) { applyGuides(r); return guideResult(r, aud); }); }
+
+  /* ── Sidebar ── */
+  function renderGuideNav() {
+    var host = document.getElementById('fcm-guide-nav');
+    if (!host) return;
+    var items = GD.items || [];
+    host.innerHTML = items.map(function (it) {
+      return '<button type="button" class="side-nav-item fcm-nav" data-manual="' + GP + esc(it.id) + '" title="' + esc(it.label) + '">' +
+        svg(GICON[it.icon] || GICON.book, 18) + '<span class="sidebar-link-text">' + esc(it.label) + '</span></button>';
+    }).join('');
+    var grp = document.getElementById('fcm-guide-group');
+    if (grp) grp.hidden = !items.length;
+  }
+  function applyGuides(r) { GD.items = r.items; GD.meta = r.meta; renderGuideNav(); }
+  function bootGuideNav() {
+    if (!document.getElementById('fcm-guide-nav')) return;
+    applyGuides(localGuides());              /* แสดงทันทีจาก cache / ค่าเริ่มต้น */
+    var tries = 0;
+    (function go() {
+      if (!client() && tries++ < 20) { setTimeout(go, 700); return; }   /* รอ Supabase client พร้อมก่อน */
+      fetchGuides().then(applyGuides);
+    })();
+  }
+
   /* คู่มือ Admin Panel ห้ามอธิบายเมนู "ผู้ใช้และความปลอดภัย" — ตรวจก่อนบันทึก */
   var ADMIN_BLOCK = [
     { re: /ผู้ใช้และความปลอดภัย/, label: 'ผู้ใช้และความปลอดภัย' },
@@ -406,7 +675,7 @@
     } catch (e) { /* ไม่เป็นไร */ }
   }
   function normalize(c, aud) {
-    var d = DEFAULTS[aud];
+    var d = defOf(aud);
     if (!c || typeof c !== 'object' || !Array.isArray(c.sections)) return clone(d);
     return {
       title: String(c.title || d.title).slice(0, 200),
@@ -416,11 +685,13 @@
     };
   }
   function localManual(aud) {
+    if (isGuide(aud)) return localGuide(aud);
     var row = readCache()[aud];
     if (row && row.content) return { data: normalize(row.content, aud), meta: { source: 'cache', updated_at: row.updated_at, updated_by: row.updated_by } };
-    return { data: clone(DEFAULTS[aud]), meta: { source: 'default' } };
+    return { data: clone(defOf(aud)), meta: { source: 'default' } };
   }
   function fetchManual(aud) {
+    if (isGuide(aud)) return fetchGuide(aud);
     var c = client();
     if (!c) return Promise.resolve(localManual(aud));
     return Promise.resolve(c.from(TABLE).select('content, updated_at, updated_by').eq('audience', aud).maybeSingle()).then(function (r) {
@@ -430,7 +701,7 @@
         return { data: normalize(r.data.content, aud), meta: { source: 'db', updated_at: r.data.updated_at, updated_by: r.data.updated_by } };
       }
       writeCache(aud, null);
-      return { data: clone(DEFAULTS[aud]), meta: { source: 'default' } };
+      return { data: clone(defOf(aud)), meta: { source: 'default' } };
     }).catch(function (e) {
       var l = localManual(aud);
       l.meta.error = (e && (e.message || e.code)) || 'โหลดไม่สำเร็จ';
@@ -691,8 +962,8 @@
   }
 
   function open(aud, opts) {
-    if (!META[aud]) return;
     opts = opts || {};
+    if (!META[aud] && !(isGuide(aud) && (opts.draft || guideInList(GD.items, gid(aud))))) return;
     var v = ensureView();
     S.aud = aud;
     S.q = '';
@@ -749,6 +1020,7 @@
   function withId(s) { return { id: s.id || uid(), title: s.title || '', body: s.body || '' }; }
 
   function loadDraft(aud, force) {
+    if (isGuide(aud)) return loadGuideDraft(force);
     var d = ED.drafts[aud];
     if (d && d.dirty && !force) return Promise.resolve(d);
     ED.loading[aud] = true; paintEditor();
@@ -763,6 +1035,7 @@
   }
 
   function statusLine(d) {
+    if (d && d.isGuide) return guideStatus();
     var m = d.meta || {}, txt;
     if (d.reset) txt = 'กำลังจะคืนค่าเริ่มต้น — กด "บันทึก" เพื่อให้มีผลกับทุกเครื่อง';
     else if (m.source === 'db') txt = 'บันทึกล่าสุด ' + thDate(m.updated_at, true) + (m.updated_by ? ' โดย ' + m.updated_by : '');
@@ -775,7 +1048,8 @@
   function paintEditor() {
     var root = ED.root;
     if (!root) return;
-    var d = ED.drafts[ED.aud];
+    guardAud();
+    var d = curDraft();
     var tabs = ORDER.map(function (a) {
       var dd = ED.drafts[a];
       return '<button type="button" role="tab" class="fcm-tab' + (a === ED.aud ? ' is-on' : '') + '" data-act="tab" data-aud="' + a + '" aria-selected="' + (a === ED.aud) + '">' +
@@ -804,14 +1078,14 @@
       }).join('');
 
       body =
-        statusLine(d) +
+        statusLine(d) + guideFields(d) +
         '<label class="fcm-fld"><span>ชื่อคู่มือ</span><input type="text" data-f="mtitle" maxlength="200" value="' + esc(d.title) + '"></label>' +
         '<div class="fcm-ed-secs">' + (secs || '<div class="fcm-ed-load">ยังไม่มีหัวข้อ — กด "+ เพิ่มหัวข้อ"</div>') + '</div>' +
         '<div class="fcm-ed-bar">' +
           '<button type="button" class="fcm-btn" data-act="add">' + svg(IC.plus, 14) + ' เพิ่มหัวข้อ</button>' +
           '<button type="button" class="fcm-btn" data-act="preview">' + svg(IC.eye, 14) + ' ดูตัวอย่าง</button>' +
-          '<button type="button" class="fcm-btn" data-act="reset">' + svg(IC.undo, 14) + ' คืนค่าเริ่มต้น</button>' +
-          '<span class="fcm-sp"></span>' +
+          resetBtn(d) +
+          '<span class="fcm-sp"></span>' + delGuideBtn(d) +
           '<button type="button" class="fcm-btn primary" data-act="save"' + (ED.saving ? ' disabled' : '') + '>' + svg(IC.save, 14) + ' ' + (ED.saving ? 'กำลังบันทึก…' : 'บันทึก') + '</button>' +
         '</div>' +
         '<details class="fcm-ed-help"><summary>รูปแบบข้อความที่ใช้ได้</summary>' +
@@ -833,8 +1107,8 @@
 
     root.innerHTML =
       '<div class="fcm-ed">' +
-        '<div class="fcm-ed-tabs" role="tablist" aria-label="เลือกคู่มือที่จะแก้ไข">' + tabs + '</div>' +
-        '<div class="fcm-ed-where">ตำแหน่งที่แสดง: ' + esc(META[ED.aud].where) + '</div>' +
+        '<div class="fcm-ed-tabs" role="tablist" aria-label="เลือกคู่มือที่จะแก้ไข">' + tabs + '</div>' + guideRow() +
+        '<div class="fcm-ed-where">ตำแหน่งที่แสดง: ' + esc(metaOf(ED.aud).where) + '</div>' +
         body +
       '</div>';
 
@@ -847,6 +1121,7 @@
 
   function markDirty(d) {
     d.dirty = true;
+    if (d.isGuide && ED.G) ED.G.dirty = true;
     if (d.reset) { d.reset = false; }
     var tab = ED.root.querySelector('.fcm-tab.is-on');
     if (tab && !tab.querySelector('.fcm-dot')) tab.insertAdjacentHTML('beforeend', '<i class="fcm-dot" title="มีการแก้ไขที่ยังไม่บันทึก"></i>');
@@ -868,8 +1143,14 @@
   function onEdInput(e) {
     var t = e.target, f = t.getAttribute && t.getAttribute('data-f');
     if (!f) return;
-    var d = ED.drafts[ED.aud];
+    var d = curDraft();
     if (!d) return;
+    if (f === 'glabel') {
+      d.label = t.value; markDirty(d);
+      var gt = ED.root.querySelector('.fcm-tab.is-on');
+      if (gt && gt.firstChild && gt.firstChild.nodeType === 3) gt.firstChild.nodeValue = t.value || '(ไม่มีชื่อ)';
+      return;
+    }
     if (f === 'mtitle') { d.title = t.value; markDirty(d); return; }
     var card = t.closest('.fcm-sc');
     if (!card) return;
@@ -884,14 +1165,16 @@
     var btn = e.target.closest('[data-act]');
     if (!btn || !ED.root.contains(btn)) return;
     var act = btn.getAttribute('data-act');
-    var d = ED.drafts[ED.aud];
+    if (handleGuideAct(act, btn)) return;
+    var d = curDraft();
 
     if (act === 'tab') {
       var a = btn.getAttribute('data-aud');
       if (a === ED.aud) return;
       ED.aud = a;
       paintEditor();
-      if (!ED.drafts[a]) loadDraft(a, false);
+      if (isGuide(a)) loadGuideDraft(false);
+      else if (!ED.drafts[a]) loadDraft(a, false);
       return;
     }
     if (!d) return;
@@ -936,7 +1219,7 @@
       if (!t) { err = err || ('หัวข้อที่ ' + (i + 1) + ' ยังไม่มีชื่อ'); return; }
       secs.push({ id: s.id, title: t, body: b });
     });
-    var title = (d.title || '').trim() || DEFAULTS[ED.aud].title;
+    var title = (d.title || '').trim() || defOf(ED.aud).title || d.label || '';
     return { err: err, content: { title: title, sections: secs } };
   }
 
@@ -949,6 +1232,7 @@
 
   function saveDraft() {
     if (ED.saving) return;
+    if (isGuide(ED.aud)) { saveGuides(); return; }
     var aud = ED.aud, d = ED.drafts[aud];
     if (!d) return;
     var c = client(), bridge = window.fcManualBridge;
@@ -1005,14 +1289,186 @@
     }).then(function () { ED.saving = false; paintEditor(); });
   }
 
+  /* ───────────── 🆕 Editor: กลุ่ม "คู่มือหน้าระบบ" (เพิ่ม / ลบ / แก้ไข / เรียงลำดับ) ───────────── */
+  function markGuide(it) {
+    return { id: it.id, label: it.label, icon: it.icon || 'book', title: it.title, sections: it.sections.map(withId), isGuide: true };
+  }
+  function guideIndex(aud) {
+    if (!ED.G || !isGuide(aud)) return -1;
+    for (var i = 0; i < ED.G.items.length; i++) if (ED.G.items[i].id === gid(aud)) return i;
+    return -1;
+  }
+  function guideDraft(aud) { var i = guideIndex(aud); return i >= 0 ? ED.G.items[i] : null; }
+  function curDraft() { return isGuide(ED.aud) ? guideDraft(ED.aud) : ED.drafts[ED.aud]; }
+  function guardAud() {                       /* คู่มือที่ถูกลบไปแล้ว → กลับไปแท็บแรก */
+    if (isGuide(ED.aud) && !guideDraft(ED.aud)) {
+      ED.aud = 'inspector';
+      if (!ED.drafts[ED.aud]) setTimeout(function () { loadDraft(ED.aud, false); }, 0);
+    }
+  }
+  function loadGuideDraft(force) {
+    if (!ED.G) return Promise.resolve();
+    if (ED.G.dirty && !force) return Promise.resolve();
+    return fetchGuides().then(function (r) {
+      if (ED.G.dirty && !force) return;
+      ED.G.items = r.items.map(markGuide);
+      ED.G.meta = r.meta; ED.G.loaded = true;
+      paintEditor();
+    });
+  }
+  function guideStatus() {
+    var G = ED.G, m = G.meta || {}, txt;
+    if (G.dirty) txt = 'มีการแก้ไขที่ยังไม่บันทึก — กด "บันทึก" เพื่อให้ทุกเครื่องเห็นคู่มือกลุ่มนี้';
+    else if (m.source === 'db') txt = 'บันทึกล่าสุด ' + thDate(m.updated_at, true) + (m.updated_by ? ' โดย ' + m.updated_by : '');
+    else if (m.source === 'cache') txt = 'โหลดจากเครื่องนี้ — อาจไม่ใช่ฉบับล่าสุดในระบบ';
+    else txt = 'กำลังใช้ฉบับเริ่มต้นของระบบ (ยังไม่เคยแก้ไข)';
+    var warn = m.error ? '<div class="fcm-ed-warn">อ่านจากฐานข้อมูลไม่ได้ (' + esc(m.error) + ') — ตรวจสอบว่ารันไฟล์ add_guides.sql ใน Supabase แล้ว</div>' : '';
+    return '<div class="fcm-ed-status">' + esc(txt) + '</div>' + warn;
+  }
+  function guideRow() {
+    var G = ED.G;
+    if (!G) return '';
+    var tabs = G.items.map(function (it) {
+      var a = GP + it.id;
+      return '<button type="button" role="tab" class="fcm-tab' + (a === ED.aud ? ' is-on' : '') + '" data-act="tab" data-aud="' + esc(a) + '" aria-selected="' + (a === ED.aud) + '">' +
+        esc(it.label || '(ไม่มีชื่อ)') + (G.dirty ? '<i class="fcm-dot" title="มีการแก้ไขที่ยังไม่บันทึก"></i>' : '') + '</button>';
+    }).join('');
+    var missing = DEFAULT_GUIDES.some(function (g) { return !guideInList(G.items, g.id); });
+    return '<div class="fcm-ed-grp">' +
+      '<div class="fcm-ed-grp-t">กลุ่ม "คู่มือหน้าระบบ" ใน Sidebar <small>' + G.items.length + ' ฉบับ</small></div>' +
+      '<div class="fcm-ed-tabs" role="tablist" aria-label="คู่มือหน้าระบบ">' + tabs +
+        '<button type="button" class="fcm-tab fcm-tab-add" data-act="addguide">' + svg(IC.plus, 13) + ' เพิ่มคู่มือ</button>' +
+        (missing ? '<button type="button" class="fcm-tab fcm-tab-add" data-act="gdefaults" title="นำคู่มือเริ่มต้นที่ถูกลบกลับมา">' + svg(IC.undo, 13) + ' กู้คืนคู่มือเริ่มต้น</button>' : '') +
+      '</div>' +
+      (G.items.length ? '' : '<div class="fcm-ed-load">ยังไม่มีคู่มือในกลุ่มนี้ — กลุ่มจะไม่แสดงใน Sidebar</div>') +
+    '</div>';
+  }
+  function guideFields(d) {
+    if (!d || !d.isGuide) return '';
+    var i = guideIndex(ED.aud), n = ED.G.items.length;
+    return '<div class="fcm-ed-gf">' +
+      '<label class="fcm-fld"><span>ชื่อเมนูใน Sidebar</span><input type="text" data-f="glabel" maxlength="60" value="' + esc(d.label) + '"></label>' +
+      '<div class="fcm-ed-gmove"><span>ลำดับในเมนู</span>' +
+        '<button type="button" class="fcm-mini" data-act="gleft" title="เลื่อนขึ้น" aria-label="เลื่อนคู่มือขึ้น"' + (i <= 0 ? ' disabled' : '') + '>↑</button>' +
+        '<button type="button" class="fcm-mini" data-act="gright" title="เลื่อนลง" aria-label="เลื่อนคู่มือลง"' + (i >= n - 1 ? ' disabled' : '') + '>↓</button>' +
+      '</div></div>';
+  }
+  function resetBtn(d) {
+    if (d && d.isGuide && !defGuideById(d.id)) return '';
+    return '<button type="button" class="fcm-btn" data-act="reset">' + svg(IC.undo, 14) + ' คืนค่าเริ่มต้น</button>';
+  }
+  function delGuideBtn(d) {
+    return d && d.isGuide ? '<button type="button" class="fcm-btn danger" data-act="delguide" title="ลบคู่มือนี้ออกจาก Sidebar (กดซ้ำเพื่อยืนยัน)">' + svg(IC.trash, 14) + ' ลบคู่มือนี้</button>' : '';
+  }
+  function handleGuideAct(act, btn) {
+    var G = ED.G;
+    if (!G) return false;
+    if (act === 'addguide') {
+      var id = 'g' + uid().slice(1);
+      G.items.push({ id: id, label: 'คู่มือใหม่', icon: 'book', title: '', sections: [{ id: uid(), title: 'หัวข้อที่ 1', body: '' }], isGuide: true });
+      G.dirty = true; ED.aud = GP + id; paintEditor();
+      var f = ED.root.querySelector('[data-f="glabel"]');
+      if (f) { f.focus(); f.select(); }
+      return true;
+    }
+    if (act === 'gdefaults') {
+      DEFAULT_GUIDES.forEach(function (g) { if (!guideInList(G.items, g.id)) G.items.push(markGuide(normGuideItem(clone(g), 0))); });
+      G.dirty = true; paintEditor();
+      toast('นำคู่มือเริ่มต้นกลับมาแล้ว — กด "บันทึก" เพื่อให้มีผลกับทุกเครื่อง', 'ok');
+      return true;
+    }
+    if (!isGuide(ED.aud)) return false;
+    var i = guideIndex(ED.aud), d = G.items[i];
+    if (!d) return false;
+    if (act === 'delguide') {
+      arm(btn, function () {
+        G.items.splice(i, 1); G.dirty = true;
+        var next = G.items[Math.min(i, G.items.length - 1)];
+        ED.aud = next ? GP + next.id : 'inspector';
+        paintEditor();
+        if (!isGuide(ED.aud) && !ED.drafts[ED.aud]) loadDraft(ED.aud, false);
+      }, 'ลบ?');
+      return true;
+    }
+    if ((act === 'gleft' && i > 0) || (act === 'gright' && i < G.items.length - 1)) {
+      var j = act === 'gleft' ? i - 1 : i + 1, t = G.items[i]; G.items[i] = G.items[j]; G.items[j] = t;
+      G.dirty = true; paintEditor();
+      return true;
+    }
+    if (act === 'reset') {
+      arm(btn, function () {
+        var def = defGuideById(d.id);
+        if (!def) return;
+        var n = markGuide(normGuideItem(clone(def), 0));
+        d.label = n.label; d.title = n.title; d.sections = n.sections;
+        G.dirty = true; paintEditor();
+        toast('คืนค่าเริ่มต้นในหน้าจอแล้ว — กด "บันทึก" เพื่อให้มีผลกับทุกเครื่อง', 'ok');
+      });
+      return true;
+    }
+    return false;
+  }
+  function saveGuides() {
+    if (ED.saving) return;
+    var G = ED.G, c = client(), bridge = window.fcManualBridge;
+    if (!G) return;
+    if (!c) { toast('ไม่ได้เชื่อมต่อ Supabase — บันทึกคู่มือไม่ได้', 'ng'); return; }
+    if (!bridge || typeof bridge.getAdminCreds !== 'function') { toast('บันทึกได้เฉพาะจากหน้า Admin Panel ของแอปหลัก', 'ng'); return; }
+
+    var err = null, items = [];
+    G.items.forEach(function (it, gi) {
+      var label = (it.label || '').trim();
+      if (!label) { err = err || ('คู่มือลำดับที่ ' + (gi + 1) + ' ยังไม่มีชื่อเมนู'); return; }
+      var secs = [];
+      it.sections.forEach(function (s, i) {
+        var t = (s.title || '').trim(), b = (s.body || '').replace(/\s+$/, '');
+        if (!t && !b.trim()) return;
+        if (!t) { err = err || ('คู่มือ "' + label + '" หัวข้อที่ ' + (i + 1) + ' ยังไม่มีชื่อ'); return; }
+        secs.push({ id: s.id, title: t, body: b });
+      });
+      items.push({ id: it.id, label: label.slice(0, 60), icon: it.icon || 'book', title: (it.title || '').trim() || label, sections: secs });
+    });
+    if (err) { toast(err, 'ng'); return; }
+    var creds = bridge.getAdminCreds();
+    if (!creds) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อบันทึก', 'ng'); return; }
+
+    ED.saving = true; paintEditor();
+    var content = { items: items };
+    Promise.resolve(c.rpc('save_guides', { p_username: creds.username, p_password: creds.password, p_content: content })).then(function (r) {
+      if (r.error) throw r.error;
+      if (!r.data) {
+        if (bridge.clearAdminPass) bridge.clearAdminPass();
+        toast('รหัสผ่าน Admin ไม่ถูกต้อง — บันทึกคู่มือไม่สำเร็จ', 'ng');
+        return;
+      }
+      var now = new Date().toISOString();
+      writeGuidesCache({ content: content, updated_at: now, updated_by: creds.username });
+      G.items = normGuides(content).map(markGuide);
+      G.meta = { source: 'db', updated_at: now, updated_by: creds.username };
+      G.dirty = false;
+      applyGuides({ items: normGuides(content), meta: G.meta });      /* อัปเดต Sidebar ทันที */
+      toast('บันทึกกลุ่ม "คู่มือหน้าระบบ" แล้ว — ทุกเครื่องเห็นฉบับใหม่ทันที', 'ok');
+    }).catch(function (e) {
+      var msg = (e && (e.message || e.code)) || '';
+      if (/could not find|does not exist|schema cache|function|relation/i.test(msg)) {
+        toast('ยังไม่ได้สร้างตาราง/ฟังก์ชันคู่มือหน้าระบบใน Supabase — ให้รันไฟล์ add_guides.sql ก่อน', 'ng');
+      } else {
+        toast('บันทึกคู่มือไม่สำเร็จ: ' + (msg || 'ดู Console (F12)'), 'ng');
+      }
+      try { console.error('save guides error:', e); } catch (e2) { /* ignore */ }
+    }).then(function () { ED.saving = false; paintEditor(); });
+  }
+
   function initEditor() {
     var root = document.getElementById('adm-manual-editor');
     if (!root || ED.root) return;
     ED.root = root;
+    var lg = localGuides();
+    ED.G = { items: lg.items.map(markGuide), dirty: false, loaded: false, meta: lg.meta };
     root.addEventListener('click', onEdClick);
     root.addEventListener('input', onEdInput);
     paintEditor();
-    function onShow() { loadDraft(ED.aud, false); }
+    function onShow() { loadDraft(ED.aud, false); if (!isGuide(ED.aud)) loadGuideDraft(false); }
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (entries) {
         entries.forEach(function (en) { if (en.isIntersecting) onShow(); });
@@ -1030,8 +1486,9 @@
     open(el.getAttribute('data-manual'), { from: el });
   });
 
-  window.FCManual = { open: open, close: close, version: 1 };
+  window.FCManual = { open: open, close: close, version: 2, refreshGuides: bootGuideNav };
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initEditor);
-  else initEditor();
+  function initAll() { initEditor(); bootGuideNav(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAll);
+  else initAll();
 })();

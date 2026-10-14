@@ -339,3 +339,18 @@ body.sidebar-collapsed .sidebar-nav button.side-nav-item.fcm-nav { justify-conte
   body.fcm-printing .fcm-modal { position: static !important; left: auto !important; top: auto !important; width: 100% !important; height: auto !important; }
   body.fcm-printing .fcm-resize { display: none !important; }
 }
+
+
+/* ───────────────────────── 🆕 กลุ่ม "คู่มือหน้าระบบ" (Sidebar + ตัวแก้ไขใน Admin Panel) ───────────────────────── */
+#fcm-guide-group, #fcm-guide-nav { display: contents; }
+#fcm-guide-group[hidden] { display: none; }
+.fcm-ed-grp { display: grid; gap: 6px; padding: 10px 12px; border: 1px dashed var(--fcm-line, #d5dbe5); border-radius: 12px; }
+.fcm-ed-grp-t { font-size: 12px; font-weight: 700; color: var(--fcm-heading, #1e3a5f); }
+.fcm-ed-grp-t small { font-weight: 500; color: var(--fcm-muted, #6b7280); margin-left: 6px; }
+.fcm-tab-add { border-style: dashed; display: inline-flex; align-items: center; gap: 4px; }
+.fcm-ed-gf { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.fcm-ed-gf .fcm-fld { flex: 1 1 220px; }
+.fcm-ed-gmove { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--fcm-muted, #6b7280); }
+.fcm-btn.danger { color: var(--fcm-ng, #dc2626); }
+.fcm-btn.danger:hover:not(:disabled) { color: var(--fcm-ng, #dc2626); border-color: var(--fcm-ng, #dc2626); }
+.fcm-btn.danger.is-armed { color: #fff; }
