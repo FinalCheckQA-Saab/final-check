@@ -71,7 +71,7 @@ main{padding:12px 20px 14px}
 .legend.min{padding:5px}.legend.min .lgb{display:none}
 .legend span{display:inline-flex;align-items:center;gap:5px}.legend i{width:11px;height:11px;border-radius:50%;display:inline-block}
 /* ── Markers ── */
-.mk{position:absolute;transform:translate(-50%,-50%) scale(var(--sc,1));background:var(--bg,#fff);color:var(--tx,#1f2937);border:2.5px solid var(--bd,#16324f);border-radius:12px;padding:4px 8px 5px;box-shadow:0 6px 16px rgba(15,33,55,.3);text-align:center;min-width:70px;max-width:130px;cursor:pointer;transition:box-shadow .3s,filter .3s}
+.mk{position:absolute;transform:translate(-50%,-50%) scale(var(--sc,1));background:color-mix(in srgb,var(--bg,#fff) var(--bgo,100%),transparent);color:var(--tx,#1f2937);border:2.5px solid var(--bd,#16324f);border-radius:12px;padding:4px 8px 5px;box-shadow:0 6px 16px rgba(15,33,55,.3);text-align:center;min-width:70px;max-width:130px;cursor:pointer;transition:box-shadow .3s,filter .3s}
 .mk::after{content:'';position:absolute;inset:-5px;border-radius:16px;border:2px solid var(--ring,transparent);opacity:0;pointer-events:none}
 .mk.ok{--ring:var(--ok);box-shadow:0 0 0 3px rgba(34,197,94,.4),0 6px 16px rgba(15,33,55,.3)}
 .mk.part{--ring:var(--part);box-shadow:0 0 0 3px rgba(245,158,11,.45),0 6px 16px rgba(15,33,55,.3)}
@@ -324,6 +324,7 @@ html[data-theme="light"] .tp-seg button[aria-pressed="true"]{color:#fff}
       <span class="chip">🎨 จุดที่เลือก</span>
       <label>ขนาด <input type="range" id="st-s" min="0.6" max="3" step="0.1" style="width:120px;padding:0"> <b id="st-sv"></b></label>
       <label>สีพื้นหลัง <input type="color" id="st-bg" style="padding:0;width:42px;height:30px"></label>
+      <label>โปร่งใส <input type="range" id="st-bo" min="0" max="100" step="5" style="width:110px;padding:0"> <b id="st-bov"></b></label>
       <label>สีเส้น <input type="color" id="st-bd" style="padding:0;width:42px;height:30px"></label>
       <button id="st-all" type="button">ใช้กับทุกจุด</button><button id="st-reset" type="button">รีเซ็ต</button>
     </div>
@@ -484,12 +485,13 @@ function lineStates(deptId){
   return STAGES.map((_,i)=>aggStage(rows.map(r=>r[i])));
 }
 const overall=s=>s&&s.every(x=>x==='off')?'off':!s||s.every(x=>x==='none')?'none':s.includes('ng')?'ng':s.every(x=>x==='ok')?'ok':'part';
-const DEF={s:1,bg:'#ffffff',bd:'#16324f'};
+const DEF={s:1,bg:'#ffffff',bd:'#16324f',bo:100};
 const lum=h=>{const n=parseInt(h.slice(1),16);return .299*(n>>16)+.587*((n>>8)&255)+.114*(n&255)};
-const mkCss=m=>{const bg=m.bg||DEF.bg;return 'left:'+m.x+'%;top:'+m.y+'%;--sc:'+(m.s||1)+';--bg:'+bg+';--bd:'+(m.bd||DEF.bd)+';--tx:'+(lum(bg)>150?'#1f2937':'#fff')};
+const mkCss=m=>{const bg=m.bg||DEF.bg;return 'left:'+m.x+'%;top:'+m.y+'%;--sc:'+(m.s||1)+';--bg:'+bg+';--bgo:'+(m.bo==null?DEF.bo:m.bo)+'%;--bd:'+(m.bd||DEF.bd)+';--tx:'+(lum(bg)>150?'#1f2937':'#fff')};
 function syncStyleBar(){
   const m=cfg.markers.find(x=>x.id===sel);$('stbar').style.display=(edit&&m)?'':'none';if(!m)return;
   $('st-s').value=m.s||1;$('st-sv').textContent=(m.s||1)+'x';$('st-bg').value=m.bg||DEF.bg;$('st-bd').value=m.bd||DEF.bd;
+  const bo=m.bo==null?DEF.bo:m.bo;$('st-bo').value=bo;$('st-bov').textContent=bo+'%';
 }
 function applyStyle(patch,all){
   const m=cfg.markers.find(x=>x.id===sel);if(!m)return;
@@ -549,14 +551,15 @@ $('e-exit').onclick=()=>{edit=false;$('info').style.display='none';$('editbar').
 $('e-add').onclick=()=>{
   const id=$('e-part').value;if(!id){toast('กรุณาเลือก Line ที่จะวางก่อน','warn');return}
   if(!cfg.image){toast('กรุณาอัปโหลดรูป Layout ก่อน','warn');return}
-  const last=cfg.markers[cfg.markers.length-1],m={id:'m'+Date.now(),lineId:id,x:50,y:50};if(last)Object.assign(m,{s:last.s,bg:last.bg,bd:last.bd});
+  const last=cfg.markers[cfg.markers.length-1],m={id:'m'+Date.now(),lineId:id,x:50,y:50};if(last)Object.assign(m,{s:last.s,bg:last.bg,bd:last.bd,bo:last.bo});
   cfg.markers.push(m);sel=m.id;render();
 };
 $('st-s').oninput=e=>applyStyle({s:+e.target.value});
 $('st-bg').oninput=e=>applyStyle({bg:e.target.value});
 $('st-bd').oninput=e=>applyStyle({bd:e.target.value});
-$('st-all').onclick=()=>{const m=cfg.markers.find(x=>x.id===sel);if(m)applyStyle({s:m.s||1,bg:m.bg||DEF.bg,bd:m.bd||DEF.bd},true)};
-$('st-reset').onclick=()=>applyStyle({s:1,bg:DEF.bg,bd:DEF.bd});
+$('st-bo').oninput=e=>applyStyle({bo:+e.target.value});
+$('st-all').onclick=()=>{const m=cfg.markers.find(x=>x.id===sel);if(m)applyStyle({s:m.s||1,bg:m.bg||DEF.bg,bd:m.bd||DEF.bd,bo:m.bo==null?DEF.bo:m.bo},true)};
+$('st-reset').onclick=()=>applyStyle({s:1,bg:DEF.bg,bd:DEF.bd,bo:DEF.bo});
 $('e-del').onclick=()=>{if(!sel)return;cfg.markers=cfg.markers.filter(m=>m.id!==sel);sel=null;render()};
 // ปรับรูปอัตโนมัติ: เริ่มจาก 3000px แบบไม่สูญเสียคุณภาพ (PNG) ถ้าไฟล์ใหญ่เกินงบค่อยใช้ WebP 92% แล้วลดขนาดทีละขั้น
 function optimizeImage(img){
