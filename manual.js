@@ -1488,7 +1488,34 @@
 
   window.FCManual = { open: open, close: close, version: 2, refreshGuides: bootGuideNav };
 
-  function initAll() { initEditor(); bootGuideNav(); }
+  /* 🆕 หัวกลุ่มคู่มือใน Sidebar กดยุบ / ขยายได้ — จำสถานะไว้ในเครื่อง (ครั้งแรกเริ่มที่ "ยุบ") */
+  function initGroupToggles() {
+    var KEY = 'fc_manual_groups_v1', st = {};
+    try { st = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { st = {}; }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-fcm-toggle]'), function (lbl) {
+      var k = lbl.getAttribute('data-fcm-toggle');
+      var body = document.querySelector('[data-fcm-body="' + k + '"]');
+      if (!body) return;
+      function apply(collapsed) {
+        body.hidden = collapsed;
+        lbl.setAttribute('aria-expanded', String(!collapsed));
+        lbl.classList.toggle('is-collapsed', collapsed);
+      }
+      function toggle() {
+        var collapsed = !body.hidden;
+        apply(collapsed);
+        st[k] = collapsed;
+        try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* ไม่เป็นไร */ }
+      }
+      apply(k in st ? !!st[k] : true);
+      lbl.addEventListener('click', toggle);
+      lbl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+    });
+  }
+
+  function initAll() { initEditor(); bootGuideNav(); initGroupToggles(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAll);
   else initAll();
 })();
