@@ -454,6 +454,7 @@
             '<button type="button" class="fcm-ibtn" data-fcm="close" title="ปิด (Esc)" aria-label="ปิด">' + svg(IC.close, 18) + '</button>' +
           '</div>' +
         '</header>' +
+        '<div class="fcm-progress" aria-hidden="true"><i></i></div>' +
         '<div class="fcm-tools">' +
           '<label class="fcm-searchwrap">' + svg(IC.search, 15) + '<input type="search" class="fcm-search" placeholder="ค้นหาในคู่มือ…" aria-label="ค้นหาในคู่มือ" autocomplete="off"></label>' +
           '<span class="fcm-count" aria-live="polite"></span>' +
@@ -473,7 +474,8 @@
       search: back.querySelector('.fcm-search'),
       count: back.querySelector('.fcm-count'),
       toc: back.querySelector('.fcm-toc'),
-      main: back.querySelector('.fcm-main')
+      main: back.querySelector('.fcm-main'),
+      bar: back.querySelector('.fcm-progress i')
     };
 
     back.addEventListener('mousedown', function (e) { if (e.target === back) close(); });
@@ -532,6 +534,8 @@
     var top = V.main.scrollTop + 40, cur = secs[0].id.replace('fcm-s-', '');
     Array.prototype.forEach.call(secs, function (s) { if (s.offsetTop <= top) cur = s.id.replace('fcm-s-', ''); });
     setActive(cur);
+    var max = V.main.scrollHeight - V.main.clientHeight;
+    V.bar.style.width = (max > 0 ? Math.min(100, Math.round(V.main.scrollTop / max * 100)) : 0) + '%';
   }
 
   function subText() {
