@@ -3184,8 +3184,13 @@ html[data-palette="coffee"][data-theme="dark"] {
   --chip-active-bg: hsla(28, 58%, 55%, 0.2); --chip-active-bdr: #d29056;
 }
 
+/* ขาว–เทา คลีน (clean) — โทนกลาง เรียบ สะอาดตา */
+html[data-palette="clean"] { --brand-navy-900: #262a30; --brand-navy-800: #353a41; --brand-navy-700: #444a52; --brand-navy-600: #656c76; --brand-gold: #b9c0ca; --brand-gold-dim: hsla(215, 14%, 76%, 0.18); }
+html[data-palette="clean"][data-theme="light"] { --accent: #4a5360; --accent-hover: #363d47; --accent-dim: hsla(215, 10%, 38%, 0.09); --chip-active-bg: hsla(215, 10%, 40%, 0.1); --chip-active-bdr: #4a5360; --text-heading: #2f343b; --bg-body: hsl(0, 0%, 96%); --bg-card: hsla(0, 0%, 100%, 0.86); --bg-card-solid: hsl(0, 0%, 100%); --bg-input: hsl(0, 0%, 97.5%); --border-card: hsla(0, 0%, 80%, 0.7); --border-input: hsl(0, 0%, 84%); --text-main: hsl(220, 8%, 20%); --text-muted: hsl(220, 4%, 48%); --chip-bg: hsl(0, 0%, 94%); --chip-hover: hsl(0, 0%, 89%); --svg-base-bg: hsla(0, 0%, 95%, 0.9); --svg-border: hsla(0, 0%, 78%, 0.7); --svg-center-line: hsla(0, 0%, 72%, 0.5); --svg-metal-start: hsl(0, 0%, 84%); --svg-metal-end: hsl(0, 0%, 77%); --svg-metal-border: hsl(0, 0%, 66%); --svg-subplate: hsla(0, 0%, 89%, 0.7); --shadow-card: 0 4px 20px hsla(0, 0%, 50%, 0.12); --panel-bg: hsl(0, 0%, 98.5%); --overlay: hsla(0, 0%, 15%, 0.42); }
+html[data-palette="clean"][data-theme="dark"] { --accent: #9aa5b4; --accent-hover: #b9c2ce; --accent-dim: hsla(215, 14%, 66%, 0.16); --chip-active-bg: hsla(215, 14%, 60%, 0.2); --chip-active-bdr: #8f9aa8; --bg-body: hsl(220, 4%, 9%); --bg-card: hsla(220, 3%, 15%, 0.72); --bg-card-solid: hsl(220, 3%, 15%); --bg-input: hsl(220, 3%, 12%); --border-card: hsla(220, 3%, 32%, 0.5); --border-input: hsl(220, 3%, 26%); --text-main: hsl(220, 5%, 90%); --text-muted: hsl(220, 3%, 55%); --text-heading: hsl(220, 8%, 84%); --panel-bg: hsl(220, 4%, 11%); --chip-bg: hsla(220, 3%, 22%, 0.8); --chip-hover: hsla(220, 3%, 32%, 0.6); }
+
 /* ── ตัวเลือกสีใน Admin Panel (วงกลมสี — Color Chips) ── */
-.palette-chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px 8px; justify-items: center; padding: 6px 2px 2px; }
+.palette-chips { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px 8px; justify-items: center; padding: 6px 2px 2px; }
 .palette-chip {
   --chip-size: 42px;
   position: relative; width: var(--chip-size); height: var(--chip-size); padding: 0; border: 0; border-radius: 50%;
