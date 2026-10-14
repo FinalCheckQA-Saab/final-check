@@ -264,50 +264,22 @@ body.fcm-lock { overflow: hidden; }
   body.fcm-printing .fcm-no { background: #eee !important; color: #000 !important; }
 }
 
-/* ───────────────────────── ปุ่มคู่มือใน Sidebar (สไตล์เดียวกับเมนูหลัก) ───────────────────────── */
-.sidebar-nav .side-nav-item.fcm-nav {
-  position: relative; display: flex; align-items: center; justify-content: flex-start; gap: 12px;
-  width: 100%; flex: none; margin: 0; padding: 8px 10px; box-sizing: border-box;
+/* ───────────────────────── ปุ่มคู่มือใน Sidebar — หน้าตาเหมือนเมนูอื่น (ไอคอนเส้นสีเดียวกับตัวอักษร) ───────────────────────── */
+.sidebar-nav button.side-nav-item.fcm-nav {
+  display: flex; align-items: center; justify-content: flex-start; gap: 12px;
+  width: 100%; flex: none; padding: 10px 12px; margin: 0; box-sizing: border-box;
   -webkit-appearance: none; appearance: none;
-  border: 0; border-radius: 12px; background: transparent;
-  color: hsla(0, 0%, 100%, .78);
+  border: none; border-radius: 9px; background: transparent;
+  color: hsla(0, 0%, 100%, 0.68);
   font-family: var(--font-thai, 'Noto Sans Thai', 'Sarabun', Tahoma, sans-serif);
-  font-size: 13px; font-weight: 600; line-height: 1.3; letter-spacing: .2px; text-align: left; text-decoration: none;
-  cursor: pointer; overflow: hidden;
-  transition: background .18s ease, color .18s ease;
+  font-size: 13px; font-weight: 600; letter-spacing: 0.2px; text-align: left; text-decoration: none;
+  cursor: pointer; transition: all 0.2s;
 }
-.sidebar-nav .side-nav-item.fcm-nav .sidebar-link-text {
-  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.fcm-nav-ico {
-  display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 10px;
-  color: #ecc873;
-  background: linear-gradient(150deg, hsla(42, 75%, 62%, .26), hsla(42, 75%, 62%, .07));
-  border: 1px solid hsla(42, 75%, 68%, .32);
-  box-shadow: inset 0 1px 0 hsla(0, 0%, 100%, .12), 0 2px 6px hsla(0, 0%, 0%, .18);
-  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
-}
-.fcm-nav-ico svg { width: 16px; height: 16px; display: block; }
-.sidebar-nav .side-nav-item.fcm-nav .fcm-nav-chev {
-  width: 14px; height: 14px; flex: none; opacity: 0; color: hsla(0, 0%, 100%, .7);
-  transform: translateX(-4px); transition: opacity .18s ease, transform .18s ease;
-}
-.sidebar-nav .side-nav-item.fcm-nav:hover { background: hsla(0, 0%, 100%, .09); color: #fff; }
-.sidebar-nav .side-nav-item.fcm-nav:hover .fcm-nav-ico {
-  transform: translateY(-1px) scale(1.06);
-  background: linear-gradient(150deg, hsla(42, 80%, 66%, .4), hsla(42, 80%, 66%, .12));
-  box-shadow: inset 0 1px 0 hsla(0, 0%, 100%, .2), 0 4px 12px hsla(42, 80%, 50%, .28);
-}
-.sidebar-nav .side-nav-item.fcm-nav:hover .fcm-nav-chev { opacity: 1; transform: none; }
-.sidebar-nav .side-nav-item.fcm-nav:active { background: hsla(0, 0%, 100%, .14); }
-.sidebar-nav .side-nav-item.fcm-nav:focus-visible { outline: 2px solid #ecc873; outline-offset: -2px; }
-/* ย่อเมนู (desktop): เหลือเฉพาะไอคอน */
-body.sidebar-collapsed .sidebar-nav .side-nav-item.fcm-nav { justify-content: center; padding: 8px 0; }
-body.sidebar-collapsed .sidebar-nav .side-nav-item.fcm-nav .fcm-nav-chev { display: none; }
-@media (prefers-reduced-motion: reduce) {
-  .sidebar-nav .side-nav-item.fcm-nav, .fcm-nav-ico, .fcm-nav-chev { transition: none; }
-  .sidebar-nav .side-nav-item.fcm-nav:hover .fcm-nav-ico { transform: none; }
-}
+.sidebar-nav button.side-nav-item.fcm-nav svg { width: 18px; height: 18px; flex-shrink: 0; }
+.sidebar-nav button.side-nav-item.fcm-nav .sidebar-link-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-nav button.side-nav-item.fcm-nav:hover { background: hsla(0, 0%, 100%, 0.08); color: #fff; }
+.sidebar-nav button.side-nav-item.fcm-nav:focus-visible { outline: 2px solid var(--brand-gold, #b8903a); outline-offset: -2px; }
+body.sidebar-collapsed .sidebar-nav button.side-nav-item.fcm-nav { justify-content: center; padding: 10px 0; }
 
 /* ───────────────────────── Viewer: รายละเอียดเพิ่มความพรีเมียม ───────────────────────── */
 .fcm-head { border-bottom: 2px solid var(--fcm-gold); }
