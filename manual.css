@@ -325,7 +325,7 @@ body.sidebar-collapsed .sidebar-nav button.side-nav-item.fcm-nav { justify-conte
   box-shadow: 0 14px 40px rgba(8, 18, 34, .45);
 }
 .fcm-modal.is-min .fcm-progress, .fcm-modal.is-min .fcm-tools, .fcm-modal.is-min .fcm-layout,
-.fcm-modal.is-min .fcm-sub, .fcm-modal.is-min [data-fcm="max"], .fcm-modal.is-min [data-fcm="print"] { display: none; }
+.fcm-modal.is-min .fcm-sub, .fcm-modal.is-min [data-fcm="max"], .fcm-modal.is-min [data-fcm="print"], .fcm-modal.is-min [data-fcm="pdf"] { display: none; }
 .fcm-modal.is-min .fcm-head { padding: 10px 12px; border-bottom: 0; cursor: pointer; }
 .fcm-modal.is-min .fcm-head-ico { width: 34px; height: 34px; }
 .fcm-modal.is-min .fcm-head-t h2 { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -371,3 +371,10 @@ body.sidebar-collapsed [data-fcm-body][hidden] { display: contents; }   /* โ�
   transform: rotate(45deg) translateY(-2px); transition: transform .2s;
 }
 .sidebar-nav-label[data-fcm-toggle].is-collapsed::after { transform: rotate(-45deg); }
+
+/* ───────────────────────── ปุ่ม "บันทึก PDF" ───────────────────────── */
+.fcm-ibtn.is-busy { opacity: .6; cursor: progress; }
+.fcm-ibtn.is-busy svg { animation: fcm-pulse 0.9s ease-in-out infinite; }
+@keyframes fcm-pulse { 0%, 100% { transform: translateY(-1px); } 50% { transform: translateY(2px); } }
+.fcm-pdfhost { pointer-events: none; }
+@media print { .fcm-pdfhost { display: none !important; } }

@@ -556,6 +556,7 @@
   var IC = {
     book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
     print: '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+    download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
     close: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
     trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
     plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
@@ -726,7 +727,8 @@
           '<div class="fcm-head-act">' +
             '<button type="button" class="fcm-ibtn" data-fcm="min" title="ยุบหน้าต่าง" aria-label="ยุบหน้าต่าง">' + svg(IC.minus, 18) + '</button>' +
             '<button type="button" class="fcm-ibtn" data-fcm="max" title="ขยายเต็มจอ" aria-label="ขยายเต็มจอ">' + svg(IC.maximize, 16) + '</button>' +
-            '<button type="button" class="fcm-ibtn" data-fcm="print" title="พิมพ์ / บันทึกเป็น PDF" aria-label="พิมพ์">' + svg(IC.print, 17) + '</button>' +
+            '<button type="button" class="fcm-ibtn" data-fcm="pdf" title="บันทึกเป็นไฟล์ PDF" aria-label="บันทึกเป็น PDF">' + svg(IC.download, 17) + '</button>' +
+            '<button type="button" class="fcm-ibtn" data-fcm="print" title="พิมพ์" aria-label="พิมพ์">' + svg(IC.print, 17) + '</button>' +
             '<button type="button" class="fcm-ibtn" data-fcm="close" title="ปิด (Esc)" aria-label="ปิด">' + svg(IC.close, 18) + '</button>' +
           '</div>' +
         '</header>' +
@@ -762,6 +764,7 @@
     back.addEventListener('mousedown', function (e) { if (e.target === back && !W.free && !W.max) close(); });
     back.querySelector('[data-fcm="close"]').addEventListener('click', close);
     back.querySelector('[data-fcm="print"]').addEventListener('click', doPrint);
+    back.querySelector('[data-fcm="pdf"]').addEventListener('click', savePdf);
 
     var t = null;
     V.search.addEventListener('input', function () {
@@ -1012,6 +1015,126 @@
   function doPrint() {
     document.body.classList.add('fcm-printing');
     setTimeout(function () { window.print(); }, 50);
+  }
+
+  /* ───────────── บันทึกคู่มือเป็นไฟล์ PDF (ดาวน์โหลดตรง ไม่ผ่านหน้าต่างพิมพ์) ─────────────
+     ใช้ html2canvas + jsPDF (index.html โหลดไว้แล้ว / documents.html จะโหลดให้เองเมื่อกดครั้งแรก)
+     เรนเดอร์เป็นภาพ จึงแสดงฟอนต์ไทยถูกต้องเสมอ และบันทึกทุกหัวข้อ (ไม่ขึ้นกับคำค้นหาที่พิมพ์ไว้) */
+  var PDF_BUSY = false;
+  function loadScript(src, test) {
+    return new Promise(function (resolve, reject) {
+      if (test()) { resolve(); return; }
+      var s = document.createElement('script');
+      s.src = src; s.async = true;
+      s.onload = function () { if (test()) resolve(); else reject(new Error('lib')); };
+      s.onerror = function () { reject(new Error('โหลดไลบรารี PDF ไม่สำเร็จ')); };
+      document.head.appendChild(s);
+    });
+  }
+  function ensurePdfLibs() {
+    return loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+      function () { return !!window.html2canvas; })
+      .then(function () {
+        return loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+          function () { return !!(window.jspdf && window.jspdf.jsPDF); });
+      });
+  }
+  function buildPdfHost(data, sub) {
+    var host = document.createElement('div');
+    host.className = 'fcm-back fcm-pdfhost';
+    host.setAttribute('aria-hidden', 'true');
+    /* บังคับโทนสว่างเสมอ (แม้ผู้ใช้เปิดธีมมืด) เพื่อให้ PDF อ่านง่ายและประหยัดหมึกเวลาพิมพ์ */
+    host.style.cssText = 'position:fixed;left:-10000px;top:0;width:720px;padding:0;display:block;opacity:1;' +
+      'background:#fff;color:#1d2433;z-index:-1;pointer-events:none;backdrop-filter:none;' +
+      '--fcm-bg:#fff;--fcm-card:#fff;--fcm-input:#f1f4f9;--fcm-text:#1d2433;--fcm-muted:#6b7280;' +
+      '--fcm-border:#dbe2ec;--fcm-heading:#16324f;';
+    var now = new Date();
+    var head = '<div class="fcm-pdf-head" style="background:#16324f;color:#fff;padding:18px 22px;border-radius:14px;border-bottom:4px solid #b8903a;">' +
+      '<div style="font-size:20px;font-weight:700;line-height:1.4;color:#fff;">' + esc(data.title) + '</div>' +
+      '<div style="margin-top:4px;font-size:12px;color:rgba(255,255,255,.75);">' + esc(sub) + ' • พิมพ์เมื่อ ' + esc(thDate(now.toISOString(), true)) + '</div>' +
+      '</div>';
+    host.innerHTML = head + data.sections.map(function (s, i) {
+      return '<section class="fcm-sec" style="margin:0;box-shadow:none;">' +
+        '<h3><span class="fcm-no">' + (i + 1) + '</span>' + esc(s.title) + '</h3>' +
+        '<div class="fcm-body">' + renderBody(s.body) + '</div></section>';
+    }).join('');
+    return host;
+  }
+  function savePdf() {
+    if (PDF_BUSY || !S.data || !S.data.sections || !S.data.sections.length) return;
+    PDF_BUSY = true;
+    var btn = V.back.querySelector('[data-fcm="pdf"]');
+    btn.classList.add('is-busy'); btn.disabled = true;
+    toast('กำลังสร้างไฟล์ PDF… อาจใช้เวลาสักครู่', 'ok');
+    var host = null, data = S.data, sub = subText();
+
+    function done() {
+      if (host && host.parentNode) host.parentNode.removeChild(host);
+      PDF_BUSY = false;
+      btn.classList.remove('is-busy'); btn.disabled = false;
+    }
+
+    ensurePdfLibs().then(function () {
+      return (document.fonts && document.fonts.ready) ? document.fonts.ready : null;
+    }).then(function () {
+      host = buildPdfHost(data, sub);
+      document.body.appendChild(host);
+
+      var JsPDF = window.jspdf.jsPDF;
+      var pdf = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
+      var PW = 210, PH = 297, M = 10, CW = PW - 2 * M, TOP = M, BOT = PH - M - 5, GAP = 3.5;
+      var y = TOP;
+      var els = Array.prototype.slice.call(host.children);
+      var chain = Promise.resolve();
+
+      els.forEach(function (el) {
+        chain = chain.then(function () {
+          return window.html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false, windowWidth: 720 })
+            .then(function (cv) {
+              var perMm = cv.width / CW;            /* px ต่อ mm */
+              var hmm = cv.height / perMm;
+              if (hmm <= BOT - TOP) {               /* หัวข้อพอดีในหน้าเดียว → ไม่ตัดกลางหัวข้อ */
+                if (y + hmm > BOT) { pdf.addPage(); y = TOP; }
+                pdf.addImage(cv.toDataURL('image/jpeg', 0.95), 'JPEG', M, y, CW, hmm);
+                y += hmm + GAP;
+                return;
+              }
+              /* หัวข้อยาวเกิน 1 หน้า → แบ่งเป็นช่วงๆ ต่อกัน */
+              var off = 0;
+              while (off < cv.height) {
+                var avail = BOT - y;
+                if (avail < 25) { pdf.addPage(); y = TOP; avail = BOT - TOP; }
+                var slice = Math.min(cv.height - off, Math.floor(avail * perMm));
+                var sc = document.createElement('canvas');
+                sc.width = cv.width; sc.height = slice;
+                var ctx = sc.getContext('2d');
+                ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, sc.width, sc.height);
+                ctx.drawImage(cv, 0, off, cv.width, slice, 0, 0, cv.width, slice);
+                pdf.addImage(sc.toDataURL('image/jpeg', 0.95), 'JPEG', M, y, CW, slice / perMm);
+                off += slice; y += slice / perMm;
+                if (off < cv.height) { pdf.addPage(); y = TOP; }
+              }
+              y += GAP;
+            });
+        });
+      });
+
+      return chain.then(function () {
+        var n = pdf.getNumberOfPages();
+        for (var i = 1; i <= n; i++) {
+          pdf.setPage(i); pdf.setFontSize(8); pdf.setTextColor(130);
+          pdf.text(i + ' / ' + n, PW / 2, PH - 6, { align: 'center' });
+        }
+        var d = new Date(), p2 = function (x) { return (x < 10 ? '0' : '') + x; };
+        var stamp = d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+        var name = String(data.title || 'คู่มือการใช้งาน').replace(/[\\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+        pdf.save(name + '_' + stamp + '.pdf');
+        toast('บันทึกคู่มือเป็น PDF เรียบร้อยแล้ว', 'ok');
+      });
+    }).catch(function (e) {
+      try { console.error('[manual] PDF error', e); } catch (x) { /* ignore */ }
+      toast('สร้าง PDF ไม่สำเร็จ (' + ((e && e.message) || 'ไม่ทราบสาเหตุ') + ') — ลองกดปุ่มพิมพ์แล้วเลือก "บันทึกเป็น PDF" แทน', 'ng');
+    }).then(done, done);
   }
 
   /* ───────────────────────── Editor (Admin Panel › จัดการคู่มือ) ───────────────────────── */
