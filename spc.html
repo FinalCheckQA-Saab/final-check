@@ -373,6 +373,10 @@ tbody tr:hover{background:var(--accent-dim)}th{font-weight:600}
   <div id="body"><div class="card msg">เลือก Part Number และเดือน เพื่อดูกราฟ</div></div>
 </main>
 <script>
+// วิธีคำนวณ: ย่อ/ขยายได้ และจำค่าที่เลือกไว้ในเบราว์เซอร์นี้ (ค่าเริ่มต้น = ขยาย)
+function howOpen(){try{return localStorage.getItem('spc_how_open')!=='0'}catch(e){return true}}
+document.addEventListener('toggle',e=>{if(e.target&&e.target.id==='how-calc'){try{localStorage.setItem('spc_how_open',e.target.open?'1':'0')}catch(x){}}},true);
+
 const SB_URL='https://knzzmurumqrhwotyrooj.supabase.co', SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU';
 const sb=supabase.createClient(SB_URL,SB_KEY);
 const $=id=>document.getElementById(id);
@@ -697,7 +701,7 @@ function draw(){
       +STAGES.map((s,i)=>{const v=g.vals[i];const bad=v!=null&&((it.min!=null&&v<it.min)||(it.max!=null&&v>it.max));return '<td class="'+(bad?'bad':'')+'">'+(v==null?'—':fmt(v))+(bad?' ✖':'')+'</td>'}).join('')
       +'<td class="'+(g.oocX?'bad':'')+'">'+fmt(g.mean)+(g.oocX?' ▲':'')+'</td><td class="'+(g.oocR?'bad':'')+'">'+fmt(g.range)+(g.oocR?' ▲':'')+'</td><td>'+(g.oos?'ค่านอกเกณฑ์':g.oocX||g.oocR?'นอกเส้นควบคุม':'ปกติ')+'</td></tr>').join('')
     +'</tbody></table></div></details></div>';
-  h+='<div class="card note"><b>วิธีคำนวณ</b> · X̄ = ค่าเฉลี่ยของ S/M/E ในแต่ละชุด, R = ค่ามากสุด − น้อยสุด · <code>UCL/LCL = X̿ ± A₂·R̄</code> (n='+n+', A₂='+K[n].A2+') · R chart: <code>UCL = D₄·R̄</code> (D₄='+K[n].D4+'), LCL = 0 · Cpk ใช้ σ = R̄/d₂ (d₂='+K[n].d2+') เทียบกับเกณฑ์ LSL/USL ที่ตั้งไว้ · <b>UCL/LCL</b> (เส้นควบคุม) มาจากข้อมูลจริงของกระบวนการ ต่างจาก <b>USL/LSL</b> (เกณฑ์ที่ตั้งไว้ในระบบ) · <b>Cpk</b> = ความสามารถระยะสั้น (σ ภายในชุด) ส่วน <b>Ppk</b> ใน Capability Histogram ใช้ S.D. รวมของทุกค่า (ระยะยาว) · ควรมีข้อมูลอย่างน้อย 25 ชุดและกระบวนการนิ่งก่อนเชื่อถือค่า Cpk/Ppk</div>';
+  h+='<div class="card note"><details id="how-calc"'+(howOpen()?' open':'')+'><summary>วิธีคำนวณ <span class="note" style="font-weight:400">(กดเพื่อย่อ/ขยาย)</span></summary><div style="margin-top:8px">X̄ = ค่าเฉลี่ยของ S/M/E ในแต่ละชุด, R = ค่ามากสุด − น้อยสุด · <code>UCL/LCL = X̿ ± A₂·R̄</code> (n='+n+', A₂='+K[n].A2+') · R chart: <code>UCL = D₄·R̄</code> (D₄='+K[n].D4+'), LCL = 0 · Cpk ใช้ σ = R̄/d₂ (d₂='+K[n].d2+') เทียบกับเกณฑ์ LSL/USL ที่ตั้งไว้ · <b>UCL/LCL</b> (เส้นควบคุม) มาจากข้อมูลจริงของกระบวนการ ต่างจาก <b>USL/LSL</b> (เกณฑ์ที่ตั้งไว้ในระบบ) · <b>Cpk</b> = ความสามารถระยะสั้น (σ ภายในชุด) ส่วน <b>Ppk</b> ใน Capability Histogram ใช้ S.D. รวมของทุกค่า (ระยะยาว) · ควรมีข้อมูลอย่างน้อย 25 ชุดและกระบวนการนิ่งก่อนเชื่อถือค่า Cpk/Ppk</div></details></div>';
   body.innerHTML=h;
   if($('c-h'))hist($('c-h'),hs,u);
   const cap=g=>'<b>'+esc(dt(g))+'</b>'+(g.r.production_order?'<div class="r"><span>Production Order</span><span>'+esc(g.r.production_order)+'</span></div>':'');
