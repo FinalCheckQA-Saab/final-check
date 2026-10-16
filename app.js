@@ -5219,9 +5219,9 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       if (getSections().includes(cur)) secSel.value = cur;
     }
 
-    /* Dept list */
-    $('adm-dept-list').innerHTML = catalog.depts.length
-      ? catalog.depts.map(d => `
+    /* Dept list — 🆕 จัดกลุ่มตามแผนก */
+    const grpHead = (name, n) => `<div class="adm-dept-header is-static"><span class="adm-dept-name">${escHtml(name)}</span><span class="adm-group-count">${n}</span></div>`;
+    const deptRow = d => `
           <div class="adm-item">
             <div class="adm-item-info">
               <div>${escHtml(d.name)}</div>
@@ -5229,12 +5229,21 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
             </div>
             <button class="adm-item-edit" data-etype="dept" data-id="${escHtml(d.id)}" title="แก้ไข">${ico(ICO_EDIT_P)}</button>
             <button class="adm-item-del" data-dtype="dept" data-id="${escHtml(d.id)}" title="ลบ">${ico(ICO_TRASH_P)}</button>
-          </div>`).join('')
-      : '<div class="adm-item" style="color:var(--text-muted);font-style:italic">ยังไม่มี Line</div>';
+          </div>`;
+    if (!catalog.depts.length) {
+      $('adm-dept-list').innerHTML = '<div class="adm-item" style="color:var(--text-muted);font-style:italic">ยังไม่มี Line</div>';
+    } else {
+      const secNames = getSections();
+      const extra = [...new Set(catalog.depts.map(deptSection))].filter(n => !secNames.includes(n)); // แผนกที่ไม่อยู่ในรายการแผนก
+      $('adm-dept-list').innerHTML = [...secNames, ...extra].map(sn => {
+        const ds = catalog.depts.filter(d => deptSection(d) === sn);
+        return ds.length ? grpHead(sn, ds.length + ' Line') + ds.map(deptRow).join('') : '';
+      }).join('');
+    }
 
-    /* Model list */
-    $('adm-line-list').innerHTML = catalog.lines.length
-      ? catalog.lines.map(l => {
+    /* Model list — 🆕 จัดกลุ่มตาม Line */
+    {
+      const modelRow = l => {
           const dept = catalog.depts.find(d => d.id === l.deptId);
           const sib = catalog.lines.filter(x => x.deptId === l.deptId);
           const si = sib.findIndex(x => x.id === l.id);
@@ -5249,8 +5258,18 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
             </div>
             <button class="adm-item-edit" data-etype="line" data-id="${escHtml(l.id)}" title="แก้ไข">${ico(ICO_EDIT_P)}</button>
             <button class="adm-item-del" data-dtype="line" data-id="${escHtml(l.id)}" title="ลบ">${ico(ICO_TRASH_P)}</button>
-          </div>`;}).join('')
-      : '<div class="adm-item" style="color:var(--text-muted);font-style:italic">ยังไม่มี Model</div>';
+          </div>`;
+      };
+      if (!catalog.lines.length) {
+        $('adm-line-list').innerHTML = '<div class="adm-item" style="color:var(--text-muted);font-style:italic">ยังไม่มี Model</div>';
+      } else {
+        const known = catalog.depts.map(d => d.id);
+        const groups = catalog.depts.map(d => ({ name: d.name, items: catalog.lines.filter(l => l.deptId === d.id) }));
+        groups.push({ name: 'ไม่ระบุ Line', items: catalog.lines.filter(l => !known.includes(l.deptId)) });
+        $('adm-line-list').innerHTML = groups.filter(g => g.items.length)
+          .map(g => grpHead(g.name, g.items.length + ' Model') + g.items.map(modelRow).join('')).join('');
+      }
+    }
 
     /* Part list — จัดกลุ่มตาม Model และรองรับค้นหา (จำเป็นเมื่อมี Part หลายร้อยตัว) */
     if (!catalog.jigs.length) {

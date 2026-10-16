@@ -4081,3 +4081,7 @@ html[data-palette="clean"][data-theme="light"] .sidebar-logout:hover { backgroun
 .adm-seg button.is-on:hover { color: #fff; background: var(--accent); filter: brightness(1.06); }
 .adm-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (max-width: 480px) { .adm-fold-info { display: none; } .adm-fold-bar { justify-content: flex-end; } }
+.adm-dept-header.is-static { cursor: default; }
+.adm-dept-header.is-static:hover { filter: none; }
+#adm-line-list .adm-dept-header, #adm-dept-list .adm-dept-header { margin-top: 16px; }
+#adm-line-list .adm-dept-header:first-child, #adm-dept-list .adm-dept-header:first-child { margin-top: 0; }
