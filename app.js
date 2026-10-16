@@ -1740,6 +1740,7 @@
     renderFilter();
     dbgLog('renderFilter() เสร็จแล้ว — ควรเห็นรายการ Line บนจอแล้ว ✅');
     hideBootLoading(); // 🆕 เนื้อหาหลักพร้อมแสดงแล้ว — ซ่อน boot loading screen (fade out)
+    setTimeout(applyDeepLinkTab, 300); // 🆕 เปิดแท็บตาม #hash เช่น index.html#dashboard / #history (ลิงก์จาก Sidebar หน้าอื่น)
     bindJigSearch();
     bindThemeToggle();
     bindAdminPanel();
@@ -6817,6 +6818,13 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   /* ══════════════════════════════════════
      TAB NAVIGATION
   ══════════════════════════════════════ */
+  function applyDeepLinkTab() {
+    const key = (location.hash || '').replace('#', '').toLowerCase();
+    const el = key === 'dashboard' ? document.querySelector('.tab-btn[data-tab="dashboard"]')
+             : key === 'history'   ? $('tab-history') : null;
+    if (el) el.click();
+  }
+
   function bindTabNav() {
     const HEADER_BY_TAB = {
       inspect:   { title: 'รายงานตรวจสอบคุณภาพประจำวัน (Daily Quality Inspection Report)', sub: 'เลือกแผนก &rarr; Line &rarr; Model &rarr; Part เพื่อเริ่มตรวจสอบ' },
