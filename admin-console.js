@@ -96,7 +96,8 @@
       ov.className = 'adm-sys-back';
       ov.innerHTML =
         '<form class="adm-sys-box" role="dialog" aria-modal="true" aria-labelledby="adm-sys-title" autocomplete="off">' +
-          '<h2 id="adm-sys-title">🔒 เข้าสู่ระบบผู้ดูแลระบบ</h2>' +
+          '<div class="adm-sys-ico" aria-hidden="true">' + ico('<path d="M12 3 4.5 6v5.5c0 4.6 3.1 8.1 7.5 9.5 4.4-1.4 7.5-4.9 7.5-9.5V6z"/><rect x="9" y="11" width="6" height="4.5" rx="1"/><path d="M10 11V9.6a2 2 0 0 1 4 0V11"/>') + '</div>' +
+          '<h2 id="adm-sys-title">เข้าสู่ระบบผู้ดูแลระบบ</h2>' +
           '<p>เมนูกลุ่ม "ผู้ใช้และความปลอดภัย" เปิดได้เฉพาะผู้ดูแลระบบ</p>' +
           '<label>ชื่อผู้ดูแลระบบ<input type="text" name="sysu" autocomplete="off" autocapitalize="off" spellcheck="false"></label>' +
           '<label>รหัสผ่าน<input type="password" name="sysp" autocomplete="new-password"></label>' +
@@ -116,7 +117,7 @@
         e.preventDefault();
         var un = u.value.trim();
         if (!un || !p.value) { err.hidden = false; err.textContent = 'กรอกชื่อและรหัสผ่านให้ครบ'; return; }
-        okBtn.disabled = true; okBtn.textContent = '🔄 กำลังตรวจสอบ...'; err.hidden = true;
+        okBtn.disabled = true; okBtn.textContent = 'กำลังตรวจสอบ...'; err.hidden = true;
         Promise.resolve(window.fcSysAdminLogin && window.fcSysAdminLogin(un, p.value)).then(function (ok) {
           if (ok) { done(true); return; }
           err.hidden = false; err.textContent = 'ชื่อหรือรหัสผ่านผู้ดูแลระบบไม่ถูกต้อง';
@@ -152,7 +153,7 @@
     var h = document.createElement('h3'); h.textContent = g; box.appendChild(h);
     if (g === SECURE_GRP) {
       sysBar = document.createElement('div'); sysBar.className = 'adm-sysbar'; sysBar.hidden = true;
-      sysBar.innerHTML = '<span>🔓 ผู้ดูแลระบบ: <b class="adm-sysbar-name"></b></span><button type="button" class="btn-sec adm-sysbar-out">ออกจากระบบผู้ดูแลระบบ</button>';
+      sysBar.innerHTML = '<span><i class="adm-sysbar-ico">' + ico('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/>') + '</i>ผู้ดูแลระบบ: <b class="adm-sysbar-name"></b></span><button type="button" class="btn-sec adm-sysbar-out">ออกจากระบบผู้ดูแลระบบ</button>';
       sysBar.querySelector('.adm-sysbar-out').addEventListener('click', function () {
         Promise.resolve(window.fcSysAdminLogout && window.fcSysAdminLogout()).then(function () { refreshLocks(); });
       });
@@ -166,7 +167,7 @@
       el.innerHTML = '<span class="adm-tile-ico">' + it.icon + '</span>' +
         '<span class="adm-tile-name"></span><span class="adm-tile-desc"></span>' +
         (it.href ? '<span class="adm-tile-ext" title="เปิดในแท็บใหม่">↗</span>' : '') +
-        (it.grp === SECURE_GRP ? '<span class="adm-tile-lock" title="เฉพาะผู้ดูแลระบบ" aria-hidden="true">🔒</span>' : '');
+        (it.grp === SECURE_GRP ? '<span class="adm-tile-lock" title="เฉพาะผู้ดูแลระบบ" aria-hidden="true">' + ico('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>') + '</span>' : '');
       el.querySelector('.adm-tile-name').textContent = it.name;
       el.querySelector('.adm-tile-desc').textContent = it.desc;
       if (!it.href) el.addEventListener('click', function () {
