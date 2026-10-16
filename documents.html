@@ -304,6 +304,17 @@
   .btn-fold-all { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); background: #fff; color: var(--navy); border-radius: 999px; padding: 3px 11px; font-family: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: background .15s ease; }
   .btn-fold-all:hover { background: #f3f6fb; }
   @media (prefers-reduced-motion: reduce) { .lg-chev { transition: none; } }
+  /* สรุปบนหัวกลุ่มตอนพับ — โชว์เฉพาะตอนกลุ่มพับอยู่ */
+  .lg-right { display: inline-flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px 8px; }
+  .lg-badges { display: none; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .line-group.collapsed .lg-badges { display: inline-flex; }
+  .lg-badge { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .lg-badge.warn { background: var(--pending-bg); color: #b45309; }
+  .lg-badge.mute { background: var(--obsolete-bg); color: var(--obsolete); }
+  /* ตัวกรองติดบนหน้าจอ — เลื่อนรายการแล้วตัวกรอง/ช่องค้นหายังอยู่ด้านบน (ตอนติดจะซ่อนปุ่มเพิ่ม/ดึงเอกสารเพื่อประหยัดที่) */
+  .filter-card { position: sticky; top: 0; z-index: 20; transition: box-shadow .15s ease; }
+  .filter-card.is-stuck { padding: 12px 14px; border-radius: 0 0 16px 16px; box-shadow: 0 10px 26px -12px rgba(15,33,55,.4); }
+  .filter-card.is-stuck .action-row { display: none; }
 
   .doc-row { align-items: center; gap: 14px; padding: 14px 10px; margin: 0 -10px; border-bottom: 1px solid #edf0f5; border-radius: 12px; transition: background .15s ease; }
   .doc-row:hover { background: #f5f8fd; }
@@ -741,6 +752,8 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
   let filters = { company: params.get('company') || '', section: '', line: '', model: '', q: '' };
   let currentDocId = params.get('doc') || null;
   const collapsedLines = new Set(); // ชื่อ Line ที่พับกลุ่มไว้ (จำไว้ตลอดที่เปิดหน้านี้ แม้กรอง/ค้นหา)
+  let filterIO = null;              // IntersectionObserver ตรวจว่าการ์ดตัวกรองติดขอบบนอยู่หรือไม่
+  let filterStuck = false;
   let lastSearchQ = '';             // คำค้นล่าสุดที่ใช้ขยายกลุ่มอัตโนมัติ
   const seenLines = new Set();      // Line ที่เคยแสดงแล้ว — Line ที่เพิ่งเจอครั้งแรกจะเริ่มต้นแบบพับไว้ ส่วนที่ผู้ใช้กดขยายแล้วจะคงสถานะเดิม
   let editingRevDocId = null;   // ← document_id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายการ"
@@ -965,7 +978,8 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
         <div class="stat${stat.obsolete ? ' mute' : ''}"><b>${stat.obsolete}</b><span>ยกเลิกใช้</span></div>
       </div>
 
-      <div class="card">
+      <div id="filter-sentinel" aria-hidden="true" style="height:1px;margin-bottom:-1px;"></div>
+      <div class="card filter-card${filterStuck ? ' is-stuck' : ''}">
         <div class="filter-grid">
           <select id="f-company" aria-label="บริษัท">
             <option value="">ทุกบริษัท</option>
@@ -1006,7 +1020,12 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
           <div class="line-group${collapsedLines.has(g.line) ? ' collapsed' : ''}">
             <div class="line-group-header" role="button" tabindex="0" data-line="${escAttr(g.line)}" aria-expanded="${!collapsedLines.has(g.line)}" title="กดเพื่อพับ/ขยาย">
               <span class="lg-name"><span class="lg-chev">${dIco('chevD', 14)}</span>${dIco('layers', 14)}LINE: ${esc(g.line)}</span>
-              <span class="line-group-count">${g.docs.length}</span>
+              <span class="lg-right">
+                <span class="lg-badges">
+                  ${(() => { const nh = g.docs.filter(d => !latestRevByDoc[d.id]).length, ob = g.docs.filter(d => d.status === 'obsolete').length; return (nh ? `<span class="lg-badge warn">${nh} ยังไม่มีประวัติแก้ไข</span>` : '') + (ob ? `<span class="lg-badge mute">${ob} ยกเลิกใช้</span>` : ''); })()}
+                </span>
+                <span class="line-group-count">${g.docs.length}</span>
+              </span>
             </div>
             ${g.docs.map(d => renderDocRow(d)).join('')}
           </div>
@@ -1014,6 +1033,18 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
       </div>
     `;
 
+
+    // ── ตัวกรองติดบนหน้าจอ: สังเกต sentinel เหนือการ์ด ถ้าเลื่อนพ้นขอบบนแปลว่าการ์ดกำลังติดอยู่ ──
+    if (filterIO) filterIO.disconnect();
+    const filterSentinel = document.getElementById('filter-sentinel');
+    if (filterSentinel && 'IntersectionObserver' in window) {
+      filterIO = new IntersectionObserver(([en]) => {
+        filterStuck = !en.isIntersecting && en.boundingClientRect.top < 0;
+        const c = document.querySelector('.filter-card');
+        if (c) c.classList.toggle('is-stuck', filterStuck);
+      });
+      filterIO.observe(filterSentinel);
+    }
 
     document.getElementById('f-company').addEventListener('change', e => {
       filters.company = e.target.value;
