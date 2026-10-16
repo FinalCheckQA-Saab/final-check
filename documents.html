@@ -740,7 +740,9 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
   let docInfoById = {}; // doc.id -> { section: แผนก, line: Line, model: Model } หาจากการจับคู่กลับไปที่ Part ในระบบ (อ่านสดทุกครั้งที่โหลดหน้า)
   let filters = { company: params.get('company') || '', section: '', line: '', model: '', q: '' };
   let currentDocId = params.get('doc') || null;
-  const collapsedLines = new Set(); // ชื่อ Line ที่ผู้ใช้พับกลุ่มไว้ (จำไว้ตลอดที่เปิดหน้านี้ แม้กรอง/ค้นหา)
+  const collapsedLines = new Set(); // ชื่อ Line ที่พับกลุ่มไว้ (จำไว้ตลอดที่เปิดหน้านี้ แม้กรอง/ค้นหา)
+  let lastSearchQ = '';             // คำค้นล่าสุดที่ใช้ขยายกลุ่มอัตโนมัติ
+  const seenLines = new Set();      // Line ที่เคยแสดงแล้ว — Line ที่เพิ่งเจอครั้งแรกจะเริ่มต้นแบบพับไว้ ส่วนที่ผู้ใช้กดขยายแล้วจะคงสถานะเดิม
   let editingRevDocId = null;   // ← document_id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายการ"
   let editingDocId = null;       // ← id ของเอกสารที่กำลังเปิดฟอร์ม "แก้ไขข้อมูลเอกสาร" (เลขที่/ชื่อ/ประเภท/บริษัท/Line)
   let editingRevIdDetail = null; // ← revision id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายละเอียด"
@@ -941,6 +943,11 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
       return true;
     });
     const grouped = groupByLine(filtered);
+    grouped.forEach(g => { if (!seenLines.has(g.line)) { seenLines.add(g.line); if (!filters.q) collapsedLines.add(g.line); } }); // เริ่มต้นพับทุกกลุ่ม (ยกเว้นตอนกำลังค้นหา)
+    if (filters.q !== lastSearchQ) { // คำค้นเปลี่ยน → ขยายทุกกลุ่มที่มีผลค้นหาให้อัตโนมัติ (ทำเฉพาะตอนคำค้นเปลี่ยน เพื่อไม่ทับตอนผู้ใช้กดพับเอง)
+      if (filters.q) grouped.forEach(g => collapsedLines.delete(g.line));
+      lastSearchQ = filters.q;
+    }
 
     const stat = {
       total: filtered.length,
