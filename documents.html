@@ -566,6 +566,69 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
 #doc-confirm-overlay.hidden{display:none}
 </style>
 </head>
+<style id="fc-sidebar-style">
+/* ═══════════ Sidebar — แถบเรียกดู/กรองเอกสาร (หน้าควบคุมเอกสาร) ═══════════ */
+.header-brand{max-width:1168px}
+.docs-shell{max-width:1200px;margin:0 auto;padding:0 16px;display:flex;align-items:flex-start;gap:18px}
+.docs-shell .wrap{flex:1 1 0;min-width:0;max-width:none;margin:0;padding:18px 0}
+.docs-sidebar{flex:0 0 268px;width:268px;position:sticky;top:14px;margin-top:18px;max-height:calc(100vh - 28px);display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 1px 2px rgba(15,33,55,.04),0 10px 28px -16px rgba(15,33,55,.18);overflow:hidden;transition:width .2s ease,flex-basis .2s ease}
+.docs-sidebar:empty{display:none}
+.sb-head{display:flex;align-items:center;gap:8px;padding:13px 12px 12px 16px;border-bottom:1px solid var(--line);position:relative}
+.sb-head::after{content:"";position:absolute;left:16px;bottom:-1px;width:40px;height:2px;background:var(--gold)}
+.sb-title{flex:1;display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:var(--navy);min-width:0}
+.sb-icon-btn{width:30px;height:30px;flex:0 0 auto;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--muted);display:grid;place-items:center;cursor:pointer;padding:0;transition:background .15s,color .15s}
+.sb-icon-btn:hover{background:#f3f6fb;color:var(--navy)}
+.sb-icon-btn .di{transition:transform .2s ease}
+.sb-close-btn{display:none}
+.sb-scroll{flex:1;min-height:0;overflow-y:auto;padding:4px 10px 10px;overscroll-behavior:contain}
+.sb-glabel{font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#94a3b8;text-transform:uppercase;padding:14px 8px 6px}
+.sb-item{width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;border:0;background:none;border-radius:10px;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;text-align:left;transition:background .15s ease}
+.sb-item .di{color:#94a3b8}
+.sb-item:hover{background:#f3f6fb}
+.sb-item.active{background:#e8eef9;color:var(--navy);font-weight:700;box-shadow:inset 3px 0 0 var(--gold)}
+.sb-item.active .di{color:var(--navy)}
+.sb-item.zero{opacity:.5}
+.sb-item:focus-visible,.sb-chev:focus-visible,.sb-icon-btn:focus-visible,.sb-clear:focus-visible,#sb-fab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sb-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-count{font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:#eef2f8;color:var(--navy);font-variant-numeric:tabular-nums}
+.sb-item.active .sb-count{background:var(--navy);color:#fff}
+.sb-sec-row{display:flex;align-items:center;gap:2px}
+.sb-chev{flex:0 0 24px;height:24px;border:0;background:none;color:#94a3b8;border-radius:7px;display:grid;place-items:center;cursor:pointer;padding:0}
+.sb-chev:hover{background:#f3f6fb;color:var(--navy)}
+.sb-chev .di{transition:transform .18s ease}
+.sb-sec.folded .sb-chev .di{transform:rotate(-90deg)}
+.sb-lines{margin:2px 0 6px 12px;padding-left:8px;border-left:1px solid var(--line)}
+.sb-sec.folded .sb-lines{display:none}
+.sb-lines .sb-item{font-size:12.5px;padding:7px 10px}
+.sb-foot{padding:10px;border-top:1px solid var(--line)}
+.sb-clear{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 12px;border-radius:10px;border:1px solid #cfd8e6;background:#fff;color:var(--navy);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .15s}
+.sb-clear:hover{background:#f3f6fb}
+.sb-clear:disabled{opacity:.45;cursor:default}
+/* ย่อเหลือแถบแคบ (เดสก์ท็อป) */
+.docs-shell.sb-collapsed .docs-sidebar{flex-basis:54px;width:54px}
+.docs-shell.sb-collapsed .sb-title,.docs-shell.sb-collapsed .sb-scroll,.docs-shell.sb-collapsed .sb-foot,.docs-shell.sb-collapsed .sb-head::after{display:none}
+.docs-shell.sb-collapsed .sb-head{justify-content:center;padding:12px 0;border-bottom:0}
+.docs-shell.sb-collapsed .sb-collapse-btn .di{transform:rotate(180deg)}
+#sb-backdrop,#sb-fab{display:none}
+/* มือถือ/แท็บเล็ต — แถบเลื่อนออกมาจากซ้าย */
+@media (max-width:960px){
+  .docs-shell{display:block;padding:0 16px}
+  .docs-shell .wrap{max-width:860px;margin:0 auto}
+  .docs-sidebar,.docs-shell.sb-collapsed .docs-sidebar{position:fixed;left:0;top:0;bottom:0;width:min(310px,86vw);max-height:none;margin:0;border-radius:0 18px 18px 0;z-index:950;transform:translateX(-105%);transition:transform .25s ease;box-shadow:none}
+  .docs-sidebar.open{transform:none;box-shadow:0 0 40px rgba(15,33,55,.35)}
+  .docs-shell.sb-collapsed .sb-title,.docs-shell.sb-collapsed .sb-scroll,.docs-shell.sb-collapsed .sb-foot{display:revert}
+  .docs-shell.sb-collapsed .sb-title{display:flex}
+  .docs-shell.sb-collapsed .sb-head{justify-content:flex-start;padding:13px 12px 12px 16px;border-bottom:1px solid var(--line)}
+  .sb-collapse-btn{display:none}
+  .sb-close-btn{display:grid}
+  #sb-backdrop{display:block;position:fixed;inset:0;background:rgba(15,33,55,.45);z-index:940;opacity:0;pointer-events:none;transition:opacity .25s ease}
+  #sb-backdrop.show{opacity:1;pointer-events:auto}
+  .docs-shell.has-sb #sb-fab{display:inline-flex;align-items:center;gap:8px;position:fixed;left:14px;bottom:16px;z-index:900;padding:11px 16px;border:0;border-radius:999px;background:var(--navy);color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 10px 24px -8px rgba(15,33,55,.6)}
+  #sb-fab b{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--gold);color:#fff;font-size:11px;line-height:18px;text-align:center}
+}
+@media (prefers-reduced-motion:reduce){.docs-sidebar,.sb-icon-btn .di,.sb-chev .di,#sb-backdrop{transition:none}}
+</style>
+
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
     <defs>
@@ -642,11 +705,16 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
     </div>
   </header>
 
-  <div class="wrap">
-    <div id="app">
-      <div class="center-msg"><div class="spinner"></div>กำลังโหลดข้อมูล...</div>
+  <div class="docs-shell" id="docs-shell">
+    <aside id="docs-sidebar" class="docs-sidebar" aria-label="เรียกดูและกรองเอกสาร"></aside>
+    <div class="wrap">
+      <div id="app">
+        <div class="center-msg"><div class="spinner"></div>กำลังโหลดข้อมูล...</div>
+      </div>
     </div>
   </div>
+  <div id="sb-backdrop" aria-hidden="true"></div>
+  <button type="button" id="sb-fab" aria-label="เปิดแถบเรียกดูเอกสาร"></button>
 
 <script>
   const SUPABASE_URL = 'https://knzzmurumqrhwotyrooj.supabase.co'; // ⚠️ ใส่ URL ของ Supabase project ใหม่ (Final Check) — ห้ามใช้ของ Check Jig
@@ -727,7 +795,7 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
   let allDocs = [];
   let latestRevByDoc = {}; // document_id -> แถวประวัติแก้ไขล่าสุด (rev_no สูงสุด) — ใช้โชว์สรุปในหน้ารายการ
   let docInfoById = {}; // doc.id -> { section: แผนก, line: Line, model: Model } หาจากการจับคู่กลับไปที่ Part ในระบบ (อ่านสดทุกครั้งที่โหลดหน้า)
-  let filters = { company: params.get('company') || '', section: '', line: '', model: '', q: '' };
+  let filters = { company: params.get('company') || '', section: '', line: '', model: '', q: '', flag: '' }; // flag = ตัวกรองด่วนจาก Sidebar ('nohist' | 'obsolete')
   let currentDocId = params.get('doc') || null;
   let editingRevDocId = null;   // ← document_id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายการ"
   let editingDocId = null;       // ← id ของเอกสารที่กำลังเปิดฟอร์ม "แก้ไขข้อมูลเอกสาร" (เลขที่/ชื่อ/ประเภท/บริษัท/Line)
@@ -801,6 +869,7 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
   }
 
   function render() {
+    renderSidebar(); // 🆕 อัปเดตแถบ Sidebar ให้ตรงกับตัวกรองปัจจุบันทุกครั้งที่วาดหน้าใหม่
     if (currentDocId) {
       renderDetail(currentDocId);
     } else {
@@ -921,6 +990,8 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
       if (filters.section && i.section !== filters.section) return false;
       if (filters.line && i.line !== filters.line) return false;
       if (filters.model && i.model !== filters.model) return false;
+      if (filters.flag === 'nohist' && latestRevByDoc[d.id]) return false;
+      if (filters.flag === 'obsolete' && d.status !== 'obsolete') return false;
       if (filters.q) {
         const q = filters.q.toLowerCase();
         if (!(d.doc_no || '').toLowerCase().includes(q) && !(d.doc_name || '').toLowerCase().includes(q)) return false;
@@ -1858,6 +1929,144 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
     currentDocId = p.get('doc') || null;
     render();
   });
+
+  // ═══════════ Sidebar — แถบเรียกดู/กรองเอกสาร (บริษัท · แผนก → Line · สถานะ) ═══════════
+  // อ่านข้อมูลจาก allDocs / infoFor() / filters เดิม และตั้งค่า filters ตัวเดิมเท่านั้น — ไม่ยุ่งกับโค้ดส่วนอื่น
+  Object.assign(DI, {
+    filter: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
+    chevL:  '<polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/>',
+    chevD:  '<polyline points="6 9 12 15 18 9"/>',
+    close:  '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  });
+  const SB_KEY = 'fc_docs_sb_collapsed';
+  const sbShell = document.getElementById('docs-shell');
+  const sbAside = document.getElementById('docs-sidebar');
+  const sbBackdrop = document.getElementById('sb-backdrop');
+  const sbFab = document.getElementById('sb-fab');
+  const sbFolded = new Set(); // แผนกที่ผู้ใช้พับไว้
+  try { if (localStorage.getItem(SB_KEY) === '1') sbShell.classList.add('sb-collapsed'); } catch (_) {}
+
+  function openSb() { sbAside.classList.add('open'); sbBackdrop.classList.add('show'); }
+  function closeSb() { sbAside.classList.remove('open'); sbBackdrop.classList.remove('show'); }
+
+  const sbItem = (attrs, icon, label, count, active) =>
+    `<button type="button" class="sb-item${active ? ' active' : ''}${count === 0 ? ' zero' : ''}" ${attrs} aria-pressed="${active}" title="${escAttr(label)}">${icon}<span class="sb-label">${esc(label)}</span><span class="sb-count">${count}</span></button>`;
+
+  function renderSidebar() {
+    if (!sbAside) return;
+    const f = filters;
+    const collapsed = sbShell.classList.contains('sb-collapsed');
+
+    // นับเอกสารต่อบริษัท (ทุกเอกสาร) และสร้างต้นไม้ แผนก → Line จากเอกสารที่ผ่านตัวกรองบริษัท
+    const compCount = {};
+    allDocs.forEach(d => { compCount[d.company] = (compCount[d.company] || 0) + 1; });
+    const companies = [...new Set([...COMPANIES, ...Object.keys(compCount)])].filter(Boolean);
+    const scoped = allDocs.filter(d => !f.company || d.company === f.company);
+    const tree = {};
+    scoped.forEach(d => {
+      const i = infoFor(d);
+      const sec = tree[i.section] = tree[i.section] || { count: 0, lines: {} };
+      sec.count++;
+      sec.lines[i.line] = (sec.lines[i.line] || 0) + 1;
+    });
+    const sections = sortLabels(Object.keys(tree), NO_SECTION_LABEL);
+    const nNoHist = scoped.filter(d => !latestRevByDoc[d.id]).length;
+    const nObsolete = scoped.filter(d => d.status === 'obsolete').length;
+    const activeN = [f.company, f.section, f.line, f.model, f.flag, f.q].filter(Boolean).length;
+
+    const prevScroll = sbAside.querySelector('.sb-scroll');
+    const st = prevScroll ? prevScroll.scrollTop : 0;
+
+    sbAside.innerHTML = `
+      <div class="sb-head">
+        <span class="sb-title">${dIco('layers', 16)}<span>เรียกดูเอกสาร</span></span>
+        <button type="button" class="sb-icon-btn sb-collapse-btn" data-sb-collapse title="${collapsed ? 'ขยายแถบด้านข้าง' : 'ย่อแถบด้านข้าง'}" aria-label="${collapsed ? 'ขยายแถบด้านข้าง' : 'ย่อแถบด้านข้าง'}">${dIco('chevL', 16)}</button>
+        <button type="button" class="sb-icon-btn sb-close-btn" data-sb-close title="ปิด" aria-label="ปิดแถบด้านข้าง">${dIco('close', 16)}</button>
+      </div>
+      <nav class="sb-scroll">
+        ${sbItem('data-sb-all', dIco('file', 15), 'เอกสารทั้งหมด', scoped.length, !f.section && !f.line && !f.model && !f.flag)}
+
+        <div class="sb-glabel">บริษัท</div>
+        ${sbItem('data-sb-company=""', dIco('company', 15), 'ทุกบริษัท', allDocs.length, !f.company)}
+        ${companies.map(c => sbItem(`data-sb-company="${escAttr(c)}"`, dIco('company', 15), c.replace(/^บริษัท\s*/, ''), compCount[c] || 0, f.company === c)).join('')}
+
+        <div class="sb-glabel">แผนก / Line</div>
+        ${sections.length ? sections.map(sec => {
+          const folded = sbFolded.has(sec);
+          const lines = sortLabels(Object.keys(tree[sec].lines), NO_LINE_LABEL);
+          return `
+            <div class="sb-sec${folded ? ' folded' : ''}">
+              <div class="sb-sec-row">
+                <button type="button" class="sb-chev" data-sb-chev="${escAttr(sec)}" aria-expanded="${!folded}" aria-label="พับ/ขยาย ${escAttr(sec)}">${dIco('chevD', 14)}</button>
+                ${sbItem(`data-sb-section="${escAttr(sec)}"`, dIco('dept', 15), sec, tree[sec].count, f.section === sec && !f.line)}
+              </div>
+              <div class="sb-lines">
+                ${lines.map(l => sbItem(`data-sb-line="${escAttr(l)}" data-sb-in="${escAttr(sec)}"`, dIco('layers', 14), l, tree[sec].lines[l], f.line === l && (!f.section || f.section === sec))).join('')}
+              </div>
+            </div>`;
+        }).join('') : `<div class="center-msg" style="padding:10px 8px;font-size:12px;">ยังไม่มีข้อมูล</div>`}
+
+        <div class="sb-glabel">สถานะ</div>
+        ${sbItem('data-sb-flag="nohist"', dIco('info', 15), 'ยังไม่มีประวัติแก้ไข', nNoHist, f.flag === 'nohist')}
+        ${sbItem('data-sb-flag="obsolete"', dIco('ban', 15), 'ยกเลิกใช้', nObsolete, f.flag === 'obsolete')}
+      </nav>
+      <div class="sb-foot">
+        <button type="button" class="sb-clear" data-sb-clear ${activeN ? '' : 'disabled'}>${dIco('undo', 14)}ล้างตัวกรองทั้งหมด</button>
+      </div>`;
+    const nv = sbAside.querySelector('.sb-scroll');
+    if (nv) nv.scrollTop = st;
+
+    sbFab.innerHTML = `${dIco('filter', 16)}<span>เรียกดู / กรอง</span>${activeN ? `<b>${activeN}</b>` : ''}`;
+    sbShell.classList.add('has-sb');
+  }
+
+  // เปลี่ยนตัวกรองจาก Sidebar แล้ววาดหน้าใหม่ — ถ้าอยู่หน้ารายละเอียดจะกลับไปหน้ารายการให้
+  function sbApply() {
+    const wasDrawer = sbAside.classList.contains('open');
+    if (currentDocId) {
+      currentDocId = null; editingDocId = null;
+      const p = new URLSearchParams(window.location.search);
+      p.delete('doc');
+      history.pushState({}, '', '?' + p.toString());
+    }
+    closeSb();
+    render();
+    if (wasDrawer) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  sbAside.addEventListener('click', e => {
+    const t = e.target.closest('button');
+    if (!t || !sbAside.contains(t)) return;
+    const ds = t.dataset;
+    if ('sbCollapse' in ds) {
+      const c = sbShell.classList.toggle('sb-collapsed');
+      try { localStorage.setItem(SB_KEY, c ? '1' : '0'); } catch (_) {}
+      renderSidebar(); return;
+    }
+    if ('sbClose' in ds) { closeSb(); return; }
+    if ('sbChev' in ds) { sbFolded.has(ds.sbChev) ? sbFolded.delete(ds.sbChev) : sbFolded.add(ds.sbChev); renderSidebar(); return; }
+    if ('sbCompany' in ds) {
+      filters.company = (filters.company === ds.sbCompany) ? '' : ds.sbCompany;
+      filters.section = ''; filters.line = ''; filters.model = ''; // เหมือนตอนเปลี่ยนบริษัทจาก dropdown
+    } else if ('sbAll' in ds) {
+      filters.section = ''; filters.line = ''; filters.model = ''; filters.flag = '';
+    } else if ('sbSection' in ds) {
+      const on = filters.section === ds.sbSection && !filters.line;
+      filters.section = on ? '' : ds.sbSection; filters.line = ''; filters.model = '';
+    } else if ('sbLine' in ds) {
+      const on = filters.section === ds.sbIn && filters.line === ds.sbLine;
+      filters.section = ds.sbIn; filters.line = on ? '' : ds.sbLine; filters.model = '';
+    } else if ('sbFlag' in ds) {
+      filters.flag = (filters.flag === ds.sbFlag) ? '' : ds.sbFlag;
+    } else if ('sbClear' in ds) {
+      filters = { company: '', section: '', line: '', model: '', q: '', flag: '' };
+    } else return;
+    sbApply();
+  });
+  sbFab.addEventListener('click', openSb);
+  sbBackdrop.addEventListener('click', closeSb);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSb(); });
+  window.addEventListener('resize', () => { if (window.innerWidth > 960) closeSb(); });
 
   // ─── Login Gate ───
   // เข้าสู่ระบบผ่าน RPC 'verify_docs_login' — DB ตรวจสอบ username/password และตอบกลับแค่ true/false
