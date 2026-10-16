@@ -944,8 +944,9 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
     });
     const grouped = groupByLine(filtered);
     grouped.forEach(g => { if (!seenLines.has(g.line)) { seenLines.add(g.line); if (!filters.q) collapsedLines.add(g.line); } }); // เริ่มต้นพับทุกกลุ่ม (ยกเว้นตอนกำลังค้นหา)
-    if (filters.q !== lastSearchQ) { // คำค้นเปลี่ยน → ขยายทุกกลุ่มที่มีผลค้นหาให้อัตโนมัติ (ทำเฉพาะตอนคำค้นเปลี่ยน เพื่อไม่ทับตอนผู้ใช้กดพับเอง)
+    if (filters.q !== lastSearchQ) { // คำค้นเปลี่ยน → ขยายกลุ่มที่มีผลค้นหาให้อัตโนมัติ / ล้างคำค้นแล้วพับกลับ (ทำเฉพาะตอนคำค้นเปลี่ยน เพื่อไม่ทับตอนผู้ใช้กดพับเอง)
       if (filters.q) grouped.forEach(g => collapsedLines.delete(g.line));
+      else grouped.forEach(g => collapsedLines.add(g.line)); // ล้างคำค้น → กลับเป็นค่าเริ่มต้น (พับทุกกลุ่ม)
       lastSearchQ = filters.q;
     }
 
