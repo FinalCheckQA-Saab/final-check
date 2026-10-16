@@ -373,8 +373,8 @@ tbody tr:hover{background:var(--accent-dim)}th{font-weight:600}
   <div id="body"><div class="card msg">เลือก Part Number และเดือน เพื่อดูกราฟ</div></div>
 </main>
 <script>
-// วิธีคำนวณ: ย่อ/ขยายได้ และจำค่าที่เลือกไว้ในเบราว์เซอร์นี้ (ค่าเริ่มต้น = ขยาย)
-function howOpen(){try{return localStorage.getItem('spc_how_open')!=='0'}catch(e){return true}}
+// วิธีคำนวณ: ย่อ/ขยายได้ และจำค่าที่เลือกไว้ในเบราว์เซอร์นี้ (ค่าเริ่มต้น = ย่อ)
+function howOpen(){try{return localStorage.getItem('spc_how_open')==='1'}catch(e){return false}}
 document.addEventListener('toggle',e=>{if(e.target&&e.target.id==='how-calc'){try{localStorage.setItem('spc_how_open',e.target.open?'1':'0')}catch(x){}}},true);
 
 const SB_URL='https://knzzmurumqrhwotyrooj.supabase.co', SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU';
