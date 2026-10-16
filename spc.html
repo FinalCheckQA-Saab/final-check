@@ -336,6 +336,34 @@ h2{font-size:18px}.sub{font-size:13px}
 .msg::before{content:"";display:block;width:64px;height:64px;margin:0 auto 14px;border-radius:20px;background:var(--accent-dim) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232f6fd1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 3v18h18'/%3E%3Cpath d='m7 15 4-5 3 3 5-7'/%3E%3C/svg%3E") center/32px no-repeat}
 details summary{list-style:none}details summary::before{content:"▸";display:inline-block;margin-right:8px;color:var(--accent);transition:transform .2s}details[open] summary::before{transform:rotate(90deg)}
 tbody tr:hover{background:var(--accent-dim)}th{font-weight:600}
+
+/* ── 🆕 นาฬิกา วันที่-เวลา (รูปแบบเดียวกับ Dashboard หลัก) — ใช้บนหัวสีกรมท่า ── */
+.lsc-clock{--lsc-a:#6fa8ee;display:inline-flex;align-items:center;gap:11px;padding:6px 16px 6px 7px;border-radius:999px;position:relative;overflow:hidden;flex:none;color:#fff;
+  background:linear-gradient(135deg,rgba(255,255,255,.13),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 8px 20px -12px rgba(0,0,0,.6)}
+.lsc-clock::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.14) 50%,transparent 65%);transform:translateX(-120%);animation:lscShine 6s ease-in-out infinite}
+.lsc-sky{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:18px;line-height:1;flex:none;background:radial-gradient(circle at 30% 30%,rgba(245,197,66,.45),rgba(255,255,255,.08));animation:lscFloat 3.6s ease-in-out infinite}
+.lsc-sky.night{background:radial-gradient(circle at 30% 30%,rgba(111,168,238,.5),rgba(255,255,255,.08))}
+.lsc-date-col{display:flex;flex-direction:column;line-height:1.2;text-align:left}
+.lsc-day{font-size:13px;font-weight:700;color:#fff}
+.lsc-date{font-size:11px;color:#c5d3e2}
+.lsc-time{display:inline-flex;align-items:baseline;gap:3px;font-family:'Outfit','Noto Sans Thai',sans-serif;font-variant-numeric:tabular-nums;font-size:25px;font-weight:700;letter-spacing:1px;color:#fff;padding-left:12px;border-left:1px solid rgba(255,255,255,.2)}
+.lsc-time small{font-size:13px;font-weight:600;color:var(--lsc-a);min-width:1.4em;letter-spacing:0}
+.lsc-colon{font-style:normal;animation:lscBlink 1s steps(1) infinite}
+.lsc-live{width:8px;height:8px;border-radius:50%;background:#22c55e;flex:none;box-shadow:0 0 0 0 rgba(34,197,94,.7);animation:lscLive 1.8s infinite}
+.lsc-ss-tick{display:inline-block;animation:lscTick .35s ease-out}
+.lsc-clock--sm{gap:8px;padding:3px 12px 3px 4px}
+.lsc-clock--sm .lsc-sky{width:26px;height:26px;font-size:14px}
+.lsc-clock--sm .lsc-day{font-size:12px}.lsc-clock--sm .lsc-date{font-size:10px}
+.lsc-clock--sm .lsc-time{font-size:19px;padding-left:9px}.lsc-clock--sm .lsc-time small{font-size:11px}
+@keyframes lscBlink{50%{opacity:.15}}
+@keyframes lscFloat{50%{transform:translateY(-2px) rotate(-4deg)}}
+@keyframes lscTick{from{transform:translateY(-4px);opacity:.3}to{transform:none;opacity:1}}
+@keyframes lscShine{0%,70%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+@keyframes lscLive{0%{box-shadow:0 0 0 0 rgba(34,197,94,.7)}70%{box-shadow:0 0 0 7px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+@media (max-width:640px){.lsc-time{font-size:21px;padding-left:8px}.lsc-clock{gap:8px;padding-right:12px}}
+@media (max-width:560px){.lsc-date-col .lsc-date{display:none}}
+@media (prefers-reduced-motion:reduce){.lsc-clock::after,.lsc-sky,.lsc-colon,.lsc-live,.lsc-ss-tick{animation:none}}
+header .lsc-clock{margin-right:2px}
 </style>
 </head>
 <body>
@@ -345,6 +373,7 @@ tbody tr:hover{background:var(--accent-dim)}th{font-weight:600}
     <div class="hd-more" id="hd-more"><div class="hd-more-in"><small>X̄–R Chart ของหัวข้อที่ตรวจเป็นตัวเลข (ชิ้น S / M / E เป็น 1 กลุ่มย่อย) แยกตาม Part Number และเดือน</small></div></div>
   </div>
   <div class="hactions">
+    <div class="lsc-clock lsc-clock--sm" role="timer" aria-live="off" title="วันที่และเวลาปัจจุบัน"><span class="lsc-sky" aria-hidden="true"></span><span class="lsc-date-col"><span class="lsc-day"></span><span class="lsc-date"></span></span><span class="lsc-time"><span class="lsc-hm">--<i class="lsc-colon">:</i>--</span><small class="lsc-ss">00</small></span><span class="lsc-live" aria-hidden="true"></span></div>
     <button class="hbtn hbtn-icon" id="btn-hdr" type="button" aria-expanded="false" aria-controls="hd-more" title="ขยายส่วนหัว (ดูรายละเอียด)" aria-label="ขยายส่วนหัว">
       <span class="ico" aria-hidden="true"><svg class="ico-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span><span class="hbtn-txt">รายละเอียด</span>
     </button>
@@ -750,6 +779,27 @@ let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>
   if(q.get('part')){$('f-part').value=q.get('part')}
   loadData();
 })();
+</script>
+<script>
+function lscStart(){
+  const clocks=[...document.querySelectorAll('.lsc-clock')].map(el=>({d:el.querySelector('.lsc-day'),dt:el.querySelector('.lsc-date'),hm:el.querySelector('.lsc-hm'),ss:el.querySelector('.lsc-ss'),sky:el.querySelector('.lsc-sky'),last:''}));
+  if(!clocks.length)return;
+  const p2=n=>String(n).padStart(2,'0');
+  function tick(){
+    const n=new Date(),h=n.getHours();
+    const day=n.toLocaleDateString('th-TH',{weekday:'long'});
+    const date=n.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'});
+    const sky=h<5?['🌙','ดึก',1]:h<12?['🌤️','เช้า',0]:h<17?['☀️','บ่าย',0]:h<19?['🌇','เย็น',0]:['🌙','ค่ำ',1];
+    clocks.forEach(c=>{
+      c.d.textContent=day;c.dt.textContent=date;
+      c.hm.innerHTML=p2(h)+'<i class="lsc-colon">:</i>'+p2(n.getMinutes());
+      c.ss.textContent=p2(n.getSeconds());c.ss.classList.remove('lsc-ss-tick');void c.ss.offsetWidth;c.ss.classList.add('lsc-ss-tick');
+      if(sky[0]+sky[1]!==c.last){c.last=sky[0]+sky[1];c.sky.textContent=sky[0];c.sky.title='ช่วง'+sky[1];c.sky.classList.toggle('night',!!sky[2]);}
+    });
+  }
+  tick();setInterval(tick,1000);
+}
+lscStart();
 </script>
 </body>
 </html>
