@@ -3802,7 +3802,7 @@ html[data-palette="clean"][data-theme="light"] .sidebar-logout:hover { backgroun
    🎨 รายการ Admin (แผนก / Model / Part) — Redesign
    เอารูปพื้นหลังจิ๋ว (อ่านไม่รู้เรื่อง) ออก → ใช้ลำดับ + Part No. + สถานะรูปแทน
    ═══════════════════════════════════════════════════════════════ */
-.adm-item.hidden, .adm-group-header.hidden { display: none !important; }
+.adm-item.hidden, .adm-group-header.hidden, .adm-dept-header.hidden { display: none !important; }
 .admin-list { gap: 6px; }
 .adm-modal-body #adm-jig-list.admin-list-scroll { max-height: min(62vh, 600px) !important; }
 
@@ -4042,3 +4042,13 @@ html[data-palette="clean"][data-theme="light"] .sidebar-logout:hover { backgroun
 .dashvis-row:has(input:not(:checked)) .dashvis-txt { opacity: .55; }
 .dashvis-quick { margin-top: 8px; font-size: 11px; color: var(--text-muted); }
 @media (prefers-reduced-motion: reduce) { .dashvis-switch, .dashvis-switch::after { transition: none; } }
+
+/* 🆕 หัวข้อ Line (ระดับบนของ Model) ในรายการ Part Number */
+.adm-dept-header {
+  display: flex; align-items: center; gap: 8px; margin: 20px 0 6px; padding: 8px 12px;
+  font-size: 13.5px; font-weight: 800; color: var(--text-heading);
+  background: var(--accent-dim); border-left: 4px solid var(--accent); border-radius: 10px;
+}
+.adm-dept-header:first-child { margin-top: 0; }
+.adm-dept-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-dept-header + .adm-group-header { margin-top: 6px; }

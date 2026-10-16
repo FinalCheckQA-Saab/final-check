@@ -5112,6 +5112,12 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         .some(row => !row.classList.contains('hidden'));
       header.classList.toggle('hidden', !hasVisible);
     });
+    document.querySelectorAll('#adm-jig-list .adm-dept-header').forEach(header => { // 🆕 หัวข้อ Line
+      const dk = header.dataset.dept;
+      const hasVisible = Array.from(document.querySelectorAll(`#adm-jig-list .adm-item[data-dept="${CSS.escape(dk)}"]`))
+        .some(row => !row.classList.contains('hidden'));
+      header.classList.toggle('hidden', !hasVisible);
+    });
     const countEl = $('adm-jig-count');
     if (countEl) {
       const visible = Array.from(rows).filter(r => !r.classList.contains('hidden')).length;
@@ -5188,23 +5194,34 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     if (!catalog.jigs.length) {
       $('adm-jig-list').innerHTML = '<div class="adm-item" style="color:var(--text-muted);font-style:italic">ยังไม่มี Part</div>';
     } else {
-      // ใช้ลำดับตาม catalog (Model ตามลำดับที่จัด → Part ตามลำดับที่จัด) แทนการเรียงตามตัวอักษร
-      const jigsSorted = [...catalog.jigs];
-      let html = '', lastLineId = '\u0000';
-      jigsSorted.forEach(j => {
-        const line = catalog.lines.find(l => l.id === j.lineId);
-        const groupKey = j.lineId || '__none__';
-        if (groupKey !== lastLineId) {
-          const grpCount = catalog.jigs.filter(x => x.lineId === j.lineId).length;
-          html += `<div class="adm-group-header" data-group="${escHtml(groupKey)}">${ico(ICO_PIN_P)}<span class="adm-group-name">${escHtml(line ? line.name : 'ไม่ระบุ Model')}</span><span class="adm-group-count">${grpCount} Part</span></div>`;
-          lastLineId = groupKey;
-        }
-        const jigSib = catalog.jigs.filter(x => x.lineId === j.lineId);
+      // 🆕 จัดกลุ่มเป็น 2 ชั้น: Line (หัวข้อใหญ่) → Model → Part  (ลำดับตาม catalog เดิม: Line → Model → Part)
+      const deptIds = catalog.depts.map(d => d.id);
+      const lineDeptKey = lid => { const l = catalog.lines.find(x => x.id === lid); return l && deptIds.includes(l.deptId) ? l.deptId : '__none__'; };
+      const deptOrder = [...deptIds, '__none__'];
+      let html = '';
+      deptOrder.forEach(deptKey => {
+        const dept = catalog.depts.find(d => d.id === deptKey);
+        const deptName = dept ? dept.name : 'ไม่ระบุ Line';
+        // Model ของ Line นี้ (ตามลำดับ catalog.lines) + Part ที่ไม่มี Model (ไปอยู่กลุ่ม "ไม่ระบุ")
+        const lineKeys = [];
+        catalog.lines.forEach(l => { if (lineDeptKey(l.id) === deptKey) lineKeys.push(l.id); });
+        if (deptKey === '__none__') catalog.jigs.forEach(j => { if (!catalog.lines.some(l => l.id === j.lineId) && !lineKeys.includes(j.lineId || '')) lineKeys.push(j.lineId || ''); });
+        const deptJigs = catalog.jigs.filter(j => lineKeys.includes(j.lineId || ''));
+        if (!deptJigs.length) return; // Line ที่ไม่มี Part ไม่ต้องโชว์หัวข้อ
+        html += `<div class="adm-dept-header" data-dept="${escHtml(deptKey)}"><span class="adm-dept-name">${escHtml(deptName)}</span><span class="adm-group-count">${deptJigs.length} Part</span></div>`;
+        lineKeys.forEach(lk => {
+          const jigsOfLine = catalog.jigs.filter(j => (j.lineId || '') === lk);
+          if (!jigsOfLine.length) return;
+          const line = catalog.lines.find(l => l.id === lk);
+          const groupKey = lk || '__none__';
+          html += `<div class="adm-group-header" data-group="${escHtml(groupKey)}" data-dept="${escHtml(deptKey)}">${ico(ICO_PIN_P)}<span class="adm-group-name">${escHtml(line ? line.name : 'ไม่ระบุ Model')}</span><span class="adm-group-count">${jigsOfLine.length} Part</span></div>`;
+          jigsOfLine.forEach(j => {
+            const jigSib = jigsOfLine;
         const jigPos = jigSib.findIndex(x => x.id === j.id);
-        const searchText = `${j.name} ${j.id} ${j.docNo || ''} ${line ? line.name : ''}`.toLowerCase();
+        const searchText = `${j.name} ${j.id} ${j.docNo || ''} ${line ? line.name : ''} ${deptName}`.toLowerCase();
         const hasImg = !!j.bgImage;
         const IMG_ICO = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
-        html += `<div class="adm-item adm-part-item" data-group="${escHtml(groupKey)}" data-search="${escHtml(searchText)}">
+        html += `<div class="adm-item adm-part-item" data-group="${escHtml(groupKey)}" data-dept="${escHtml(deptKey)}" data-search="${escHtml(searchText)}">
           <div class="adm-item-main">
             <div class="adm-part-no" aria-hidden="true">${String(jigPos + 1).padStart(2, '0')}</div>
             <div class="adm-item-info">
@@ -5226,6 +5243,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
             <button class="adm-item-del" data-dtype="jig" data-id="${escHtml(j.id)}" title="ลบ" aria-label="ลบ">${ico(ICO_TRASH_P)}</button>
           </div>
         </div>`;
+          });
+        });
       });
       $('adm-jig-list').innerHTML = html;
     }
