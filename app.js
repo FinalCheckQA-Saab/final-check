@@ -5102,6 +5102,14 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   let jigCollapsed = new Set();
   try { jigCollapsed = new Set(JSON.parse(localStorage.getItem('fc_jig_collapsed') || '[]')); } catch (e) {}
   function applyJigCollapse() {
+    const fold = $('adm-jig-fold');
+    if (fold) { // ไฮไลต์ปุ่มตามสถานะ + บอกจำนวน Line ที่ย่ออยู่
+      const hs = Array.from(document.querySelectorAll('#adm-jig-list .adm-dept-header'));
+      const nClosed = hs.filter(h => jigCollapsed.has(h.dataset.dept)).length;
+      fold.querySelector('[data-fold="collapse"]').classList.toggle('is-on', hs.length > 0 && nClosed === hs.length);
+      fold.querySelector('[data-fold="expand"]').classList.toggle('is-on', nClosed === 0);
+      fold.querySelector('.adm-fold-info').textContent = hs.length ? `${hs.length} Line · ย่อ ${nClosed}` : '';
+    }
     const searching = !!($('adm-jig-search') && $('adm-jig-search').value.trim());
     document.querySelectorAll('#adm-jig-list [data-dept]').forEach(el => {
       const dk = el.dataset.dept;
@@ -5133,7 +5141,12 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     if (!list || $('adm-jig-fold')) return;
     const bar = document.createElement('div');
     bar.id = 'adm-jig-fold'; bar.className = 'adm-fold-bar';
-    bar.innerHTML = '<button type="button" class="btn-sec" data-fold="collapse">ย่อทั้งหมด</button><button type="button" class="btn-sec" data-fold="expand">ขยายทั้งหมด</button>';
+    const FI = p => '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
+    bar.innerHTML = '<span class="adm-fold-info"></span>' +
+      '<div class="adm-seg" role="group" aria-label="ย่อ/ขยายทุก Line">' +
+        '<button type="button" data-fold="collapse" title="ย่อทุก Line">' + FI('<path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/>') + '<span>ย่อทั้งหมด</span></button>' +
+        '<button type="button" data-fold="expand" title="ขยายทุก Line">' + FI('<path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/>') + '<span>ขยายทั้งหมด</span></button>' +
+      '</div>';
     bar.addEventListener('click', e => {
       const b = e.target.closest('button[data-fold]');
       if (!b) return;

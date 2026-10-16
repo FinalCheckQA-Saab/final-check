@@ -4062,5 +4062,22 @@ html[data-palette="clean"][data-theme="light"] .sidebar-logout:hover { backgroun
 }
 .adm-dept-header.is-collapsed .adm-dept-caret { transform: rotate(-45deg); margin-bottom: 0; }
 #adm-jig-list .dept-collapsed { display: none !important; }
-.adm-fold-bar { display: flex; gap: 8px; justify-content: flex-end; margin: 0 0 8px; }
-.adm-fold-bar .btn-sec { padding: 5px 12px; font-size: 12px; }
+.adm-fold-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 10px; }
+.adm-fold-info { font-size: 12px; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.adm-seg {
+  display: inline-flex; padding: 3px; gap: 2px; border-radius: 12px;
+  background: var(--bg-input); border: 1px solid var(--border-card);
+}
+.adm-seg button {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px;
+  border: 0; border-radius: 9px; background: transparent; cursor: pointer;
+  font: 600 12.5px var(--font-thai); color: var(--text-muted);
+  transition: background .15s, color .15s, box-shadow .15s, transform .1s;
+}
+.adm-seg button svg { flex-shrink: 0; opacity: .9; }
+.adm-seg button:hover { color: var(--accent); background: var(--accent-dim); }
+.adm-seg button:active { transform: scale(.97); }
+.adm-seg button.is-on { color: #fff; background: var(--accent); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent); }
+.adm-seg button.is-on:hover { color: #fff; background: var(--accent); filter: brightness(1.06); }
+.adm-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 480px) { .adm-fold-info { display: none; } .adm-fold-bar { justify-content: flex-end; } }
