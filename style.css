@@ -4172,3 +4172,7 @@ html[data-palette="clean"][data-theme="light"] .sidebar-logout:hover { backgroun
   .btn-dash-reset-order:hover { transform: none; }
   .btn-dash-reset-order:hover svg { transform: none; }
 }
+
+/* นาฬิกาชิดขวาในหัวการ์ด "เลือก Part ที่ต้องการตรวจสอบ" */
+.lsc-clock--right { margin: 0 0 0 auto; }
+@media (max-width: 640px) { .lsc-clock--right { margin: 0; } }
