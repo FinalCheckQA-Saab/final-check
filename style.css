@@ -4062,3 +4062,5 @@ html[data-palette="clean"][data-theme="light"] .sidebar-logout:hover { backgroun
 }
 .adm-dept-header.is-collapsed .adm-dept-caret { transform: rotate(-45deg); margin-bottom: 0; }
 #adm-jig-list .dept-collapsed { display: none !important; }
+.adm-fold-bar { display: flex; gap: 8px; justify-content: flex-end; margin: 0 0 8px; }
+.adm-fold-bar .btn-sec { padding: 5px 12px; font-size: 12px; }

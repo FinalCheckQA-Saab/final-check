@@ -5127,7 +5127,26 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     if (h) { e.preventDefault(); toggleJigDept(h.dataset.dept); }
   });
 
+  // 🆕 ปุ่ม "ย่อทั้งหมด / ขยายทั้งหมด" — สร้างครั้งเดียวไว้เหนือรายการ Part (ไม่ต้องแก้ HTML)
+  function ensureJigFoldBar() {
+    const list = $('adm-jig-list');
+    if (!list || $('adm-jig-fold')) return;
+    const bar = document.createElement('div');
+    bar.id = 'adm-jig-fold'; bar.className = 'adm-fold-bar';
+    bar.innerHTML = '<button type="button" class="btn-sec" data-fold="collapse">ย่อทั้งหมด</button><button type="button" class="btn-sec" data-fold="expand">ขยายทั้งหมด</button>';
+    bar.addEventListener('click', e => {
+      const b = e.target.closest('button[data-fold]');
+      if (!b) return;
+      if (b.dataset.fold === 'collapse') jigCollapsed = new Set(Array.from(list.querySelectorAll('.adm-dept-header')).map(h => h.dataset.dept));
+      else jigCollapsed = new Set();
+      try { localStorage.setItem('fc_jig_collapsed', JSON.stringify([...jigCollapsed])); } catch (x) {}
+      applyJigCollapse();
+    });
+    list.parentNode.insertBefore(bar, list);
+  }
+
   function filterJigList() {
+    ensureJigFoldBar();
     const searchInput = $('adm-jig-search');
     if (!searchInput) return;
     const q = searchInput.value.trim().toLowerCase();
