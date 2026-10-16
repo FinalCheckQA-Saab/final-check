@@ -7826,9 +7826,15 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       const expandedLine = groups[deptId].find(l => l.id === expandedLineId);
       const detailPanel = expandedLine ? renderJigDetailPanel(expandedLine, statusMap[expandedLine.id]) : '';
 
+      // 🆕 ตัวเลขหลังชื่อ Line = (ตรวจแล้ว/ทั้งหมด) นับเป็น Part number — หักรายการที่ Mark "ไม่ได้ผลิต" ออกแล้ว
+      let deptChecked = 0, deptTotal = 0;
+      groups[deptId].forEach(l => {
+        const det = (statusMap[l.id] && statusMap[l.id].jigDetails) || [];
+        det.forEach(j => { if (j.status === 'skipped') return; deptTotal++; if (j.status === 'ok' || j.status === 'ng') deptChecked++; });
+      });
       return `
         <div class="line-status-dept-group">
-          <div class="line-status-dept-title">${escHtml(deptName)} <span style="opacity:.6">(${groups[deptId].length})</span></div>
+          <div class="line-status-dept-title">${escHtml(deptName)} <span style="opacity:.6" title="ตรวจแล้ว / Part ที่ต้องตรวจวันนี้ (ไม่นับที่ Mark ไม่ได้ผลิต)">(${deptChecked}/${deptTotal})</span></div>
           <div class="line-status-grid">${cards}</div>
           ${detailPanel}
         </div>`;
@@ -7928,7 +7934,10 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     $('byline-title-text').textContent   = 'NG ตาม Model' + lineSuffix;
     $('donut-title-text').textContent    = 'อัตราผ่านตาม Model' + lineSuffix;
     $('ng-rank-title-text').textContent  = 'จุดตรวจที่พบ NG บ่อยที่สุด' + lineSuffix;
-    $('ng-today-title-text').textContent = 'NG วันนี้' + lineSuffix;
+    // 🆕 หัวข้อ NG วันนี้ แสดงชื่อ "Line" (ระดับบนของ Model) แทนชื่อ Model — ข้อมูลในการ์ดยังกรองตาม Model ที่เลือกเหมือนเดิม
+    const ngLineObj = dashLineFilter !== 'all' ? catalog.lines.find(l => l.id === dashLineFilter) : null;
+    const ngDeptObj = ngLineObj ? catalog.depts.find(d => d.id === ngLineObj.deptId) : null;
+    $('ng-today-title-text').textContent = 'NG วันนี้' + (ngLineObj ? ` — ${ngDeptObj ? ngDeptObj.name : lineNameById(dashLineFilter)}` : '');
   }
 
   // ── สร้างรายการ NG แบบละเอียด (Part ไหน ข้อไหน ใครตรวจ วันไหน กี่โมง) จาก history subset ที่ส่งเข้ามา ──
