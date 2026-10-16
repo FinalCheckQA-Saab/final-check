@@ -6969,12 +6969,26 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   function showConfirmModal(message, opts = {}) {
     return new Promise((resolve) => {
       _genericConfirmResolve = resolve;
-      $('generic-confirm-message').textContent = message;
+      // บรรทัดแรก = หัวข้อ (ตัวหนา) · บรรทัดถัดไป = รายละเอียด (ตัวจาง) — ใช้แค่ textContent จึงปลอดภัยเหมือนเดิม
+      const msgEl = $('generic-confirm-message');
+      const text = String(message == null ? '' : message);
+      const nl = text.indexOf('\n');
+      msgEl.textContent = '';
+      const tEl = document.createElement('span'); tEl.className = 'gc-t';
+      tEl.textContent = (nl === -1 ? text : text.slice(0, nl)).trim();
+      msgEl.appendChild(tEl);
+      if (nl !== -1 && text.slice(nl).trim()) {
+        const dEl = document.createElement('span'); dEl.className = 'gc-d';
+        dEl.textContent = text.slice(nl).trim();
+        msgEl.appendChild(dEl);
+      }
       $('btn-generic-confirm-ok').textContent = opts.confirmLabel || 'ยืนยัน';
       $('btn-generic-confirm-cancel').textContent = opts.cancelLabel || 'ยกเลิก';
       // 🆕 โหมด danger (สีแดง) ใช้กับแอ็กชันที่ย้อนกลับไม่ได้ เช่น ลบข้อมูล
       $('btn-generic-confirm-ok').classList.toggle('danger', !!opts.danger);
       $('generic-confirm-icon').classList.toggle('danger', !!opts.danger);
+      // 🆕 ปุ่มยืนยันเป็น "ออกจากระบบ" → ใช้ไอคอนประตูออกแทนไอคอนเตือน
+      $('generic-confirm-icon').classList.toggle('logout', !opts.danger && /ออกจากระบบ/.test(opts.confirmLabel || ''));
       $('generic-confirm-modal').classList.remove('hidden');
       $('btn-generic-confirm-ok').focus();
     });

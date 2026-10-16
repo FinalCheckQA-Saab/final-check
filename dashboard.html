@@ -118,6 +118,43 @@ html[data-theme="dark"] :is(#app-login-gate,#admin-login-modal,#tv-pin-gate){--l
 #tv-pin-gate #tv-pin-input{padding:0 16px;margin-bottom:6px;text-align:center;letter-spacing:10px;font-size:22px;font-weight:600}
 #tv-pin-gate #tv-pin-input::placeholder{letter-spacing:8px}
 </style>
+<style id="fc-confirm-style">
+/* ═════ FC CONFIRM DIALOG — หน้าต่างยืนยัน (ออกจากระบบ / ลบ ฯลฯ) · สไตล์เดียวกับหน้า Login ═════ */
+#generic-confirm-modal{--cf-ac:var(--accent,#2f6fd1);--cf-ng:var(--ng,#dc2626);--cf-tone:var(--cf-ac);--cf-a:var(--brand-navy-700,#1d4a78);--cf-b:var(--brand-navy-600,#2a6199);padding:20px;overflow-y:auto;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(8px) saturate(1.15);backdrop-filter:blur(8px) saturate(1.15);background:radial-gradient(640px 380px at 50% 42%,color-mix(in srgb,var(--cf-ac) 20%,transparent),transparent 70%),var(--overlay,rgba(8,18,32,.6))}
+#generic-confirm-modal .generic-confirm-box,#generic-confirm-modal .generic-confirm-box *,#generic-confirm-modal .generic-confirm-box *::before,#generic-confirm-modal .generic-confirm-box *::after{box-sizing:border-box}
+#generic-confirm-modal .generic-confirm-box{position:relative;isolation:isolate;overflow:hidden;display:block;width:min(400px,92vw);max-width:400px;max-height:none;margin:auto;padding:34px 28px 22px;border-radius:26px;text-align:center;background:var(--panel-bg,#fff);border:1px solid var(--border-card,rgba(15,33,55,.1));box-shadow:0 44px 100px -28px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.08) inset;animation:fcc-pop .38s cubic-bezier(.2,.9,.25,1.15)}
+#generic-confirm-modal .generic-confirm-box:has(.generic-confirm-icon.danger){--cf-tone:var(--cf-ng)}
+@keyframes fcc-pop{from{opacity:0;transform:translateY(16px) scale(.94)}}
+#generic-confirm-modal .generic-confirm-box::before{content:'';position:absolute;z-index:-1;left:50%;top:-120px;width:360px;height:280px;margin-left:-180px;border-radius:50%;background:radial-gradient(closest-side,color-mix(in srgb,var(--cf-tone) 38%,transparent),transparent);filter:blur(22px);opacity:.8;animation:fcc-drift 7s ease-in-out infinite alternate;pointer-events:none}
+#generic-confirm-modal .generic-confirm-box::after{content:'';position:absolute;z-index:-1;left:14%;right:14%;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--cf-tone),transparent);opacity:.8;pointer-events:none}
+@keyframes fcc-drift{to{transform:translate(36px,14px) scale(1.12)}}
+#generic-confirm-modal .generic-confirm-icon{position:relative;width:68px;height:68px;margin:0 auto 20px;border-radius:50%;display:grid;place-items:center;color:var(--cf-tone);background:color-mix(in srgb,var(--cf-tone) 14%,transparent);border:1px solid color-mix(in srgb,var(--cf-tone) 32%,transparent);box-shadow:0 12px 30px -8px color-mix(in srgb,var(--cf-tone) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.25);animation:fcc-float 4s ease-in-out infinite}
+#generic-confirm-modal .generic-confirm-icon.danger{--cf-tone:var(--cf-ng);color:var(--cf-ng);background:color-mix(in srgb,var(--cf-ng) 14%,transparent)}
+#generic-confirm-modal .generic-confirm-icon::before,#generic-confirm-modal .generic-confirm-icon::after{content:'';position:absolute;inset:-1px;border-radius:50%;border:2px solid color-mix(in srgb,var(--cf-tone) 55%,transparent);animation:fcc-ring 2.8s ease-out infinite;pointer-events:none}
+#generic-confirm-modal .generic-confirm-icon::after{animation-delay:1.4s}
+@keyframes fcc-float{50%{transform:translateY(-4px)}}
+@keyframes fcc-ring{from{transform:scale(1);opacity:.9}to{transform:scale(1.7);opacity:0}}
+#generic-confirm-modal .generic-confirm-icon svg{width:30px;height:30px;stroke-width:1.9}
+#generic-confirm-modal .generic-confirm-icon .gc-i-out{display:none}
+#generic-confirm-modal .generic-confirm-icon.logout .gc-i-out{display:block}
+#generic-confirm-modal .generic-confirm-icon.logout .gc-i-warn{display:none}
+#generic-confirm-modal .generic-confirm-message{margin:0 0 26px;padding:0;line-height:1.6;text-align:center;white-space:normal}
+#generic-confirm-modal .generic-confirm-message .gc-t{display:block;font-size:17px;font-weight:700;line-height:1.45;color:var(--text-heading,#0f2137)}
+#generic-confirm-modal .generic-confirm-message .gc-d{display:block;margin-top:10px;font-size:13px;font-weight:400;line-height:1.65;color:var(--text-muted,#64748b);white-space:pre-line}
+#generic-confirm-modal .generic-confirm-actions{display:flex;gap:10px}
+#generic-confirm-modal .btn-modal-cancel,#generic-confirm-modal .btn-modal-confirm{position:relative;overflow:hidden;flex:1;height:48px;margin:0;padding:0 14px;border-radius:14px;font-family:inherit;font-size:14.5px;font-weight:700;letter-spacing:.2px;cursor:pointer;transition:transform .15s,filter .2s,background .2s,border-color .2s}
+#generic-confirm-modal .btn-modal-cancel{color:var(--text-main,#334155);background:transparent;border:1px solid var(--border-card,rgba(15,33,55,.16))}
+#generic-confirm-modal .btn-modal-cancel:hover{background:color-mix(in srgb,var(--text-main,#334155) 8%,transparent);border-color:color-mix(in srgb,var(--text-main,#334155) 30%,transparent)}
+#generic-confirm-modal .btn-modal-confirm{flex:1.15;border:0;color:#fff;background:linear-gradient(135deg,var(--cf-b),var(--cf-a));box-shadow:0 14px 28px -10px color-mix(in srgb,var(--cf-ac) 65%,transparent),0 1px 0 rgba(255,255,255,.28) inset}
+#generic-confirm-modal .btn-modal-confirm.danger{background:linear-gradient(135deg,color-mix(in srgb,var(--cf-ng) 100%,#fff),color-mix(in srgb,var(--cf-ng) 80%,#000));box-shadow:0 14px 28px -10px color-mix(in srgb,var(--cf-ng) 65%,transparent),0 1px 0 rgba(255,255,255,.28) inset}
+#generic-confirm-modal .btn-modal-confirm::before{content:'';position:absolute;top:0;left:-70%;width:50%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-20deg);transition:left .6s;pointer-events:none}
+#generic-confirm-modal .btn-modal-confirm:hover{transform:translateY(-1px);filter:brightness(1.08)}
+#generic-confirm-modal .btn-modal-confirm:hover::before{left:130%}
+#generic-confirm-modal .btn-modal-cancel:active,#generic-confirm-modal .btn-modal-confirm:active{transform:scale(.98)}
+#generic-confirm-modal .btn-modal-cancel:focus-visible,#generic-confirm-modal .btn-modal-confirm:focus-visible{outline:2px solid var(--cf-tone);outline-offset:2px}
+@media (max-width:480px){#generic-confirm-modal .generic-confirm-box{padding:28px 20px 18px;border-radius:22px}}
+@media (prefers-reduced-motion:reduce){#generic-confirm-modal .generic-confirm-box,#generic-confirm-modal .generic-confirm-box::before,#generic-confirm-modal .generic-confirm-icon,#generic-confirm-modal .generic-confirm-icon::before,#generic-confirm-modal .generic-confirm-icon::after{animation:none!important}}
+</style>
 </head>
 <body>
 
@@ -1242,7 +1279,7 @@ html[data-theme="dark"] :is(#app-login-gate,#admin-login-modal,#tv-pin-gate){--l
 <!-- 🆕 ใส่เลขเวอร์ชันต่อท้าย ?v=... เพื่อบังคับให้เบราว์เซอร์ (โดยเฉพาะ Safari บน iPhone ซึ่งแคชไฟล์ .js
      ค้างนานผิดปกติ) โหลด app.js ก้อนใหม่ทุกครั้งที่มีการอัปเดตโค้ด — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ app.js
      แล้ว push ขึ้นใหม่ ไม่งั้นเครื่องที่เคยเข้าเว็บมาก่อนจะยังใช้ไฟล์เก่าจากแคชอยู่ -->
-<script src="app.js?v=fc-clean2"></script>
+<script src="app.js?v=fc-clean3"></script>
 <script src="admin-console.js?v=2"></script>
 <script>
 (function () {
@@ -1343,7 +1380,8 @@ html[data-theme="dark"] :is(#app-login-gate,#admin-login-modal,#tv-pin-gate){--l
 <div id="generic-confirm-modal" class="modal-overlay hidden">
   <div class="modal-box generic-confirm-box">
     <div class="generic-confirm-icon" id="generic-confirm-icon">
-      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <svg class="gc-i-warn" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <svg class="gc-i-out" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
     </div>
     <p class="generic-confirm-message" id="generic-confirm-message"></p>
     <div class="generic-confirm-actions">

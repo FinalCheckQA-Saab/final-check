@@ -238,34 +238,7 @@
   .form-msg.ok { color: var(--ok); }
 
   /* 🆕 Generic Confirm Modal — แทนที่ confirm() ของเบราว์เซอร์ในหน้านี้ (Promise-based) */
-  .doc-confirm-overlay {
-    position: fixed; inset: 0; z-index: 1200;
-    background: rgba(15, 23, 42, 0.55);
-    display: flex; align-items: center; justify-content: center;
-    padding: 20px;
-  }
-  .doc-confirm-overlay.hidden { display: none; }
-  .doc-confirm-box {
-    background: #fff; border-radius: 16px; padding: 28px 24px 22px;
-    width: min(380px, 90vw); text-align: center;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
-  }
-  .doc-confirm-icon {
-    width: 52px; height: 52px; margin: 0 auto 14px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 50%; background: rgba(47,111,209,0.12); color: var(--accent);
-  }
-  .doc-confirm-message { font-size: 13.5px; color: var(--text); margin-bottom: 20px; line-height: 1.6; white-space: pre-line; }
-  .doc-confirm-actions { display: flex; gap: 10px; }
-  .doc-confirm-actions button {
-    flex: 1; padding: 10px 14px; border-radius: 10px;
-    font-size: 13.5px; font-weight: 600; font-family: inherit;
-    cursor: pointer; border: none;
-  }
-  .doc-confirm-cancel { background: #f1f5f9; color: var(--text); border: 1px solid var(--border) !important; }
-  .doc-confirm-cancel:hover { background: #e2e8f0; }
-  .doc-confirm-ok { background: var(--navy); color: #fff; }
-  .doc-confirm-ok:hover { filter: brightness(1.1); }
+  /* หน้าต่างยืนยัน — สไตล์อยู่ใน <style id="fc-confirm-style"> (ใช้ร่วมกับหน้า index/dashboard) */
 
   /* ═══════════ Redesign: หน้ารายการเอกสาร (override ต่อท้ายกฎเดิม) ═══════════ */
   :root { --bg: #eef1f6; --line: #e3e8f0; --navy-900: #0f2137; }
@@ -552,6 +525,46 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
 #docs-login-overlay{position:fixed;inset:0;z-index:999;display:flex}
 #docs-login-overlay.hidden{display:none}
 </style>
+<style id="fc-confirm-style">
+/* ═════ FC CONFIRM DIALOG — หน้าต่างยืนยัน (ออกจากระบบ / ลบ ฯลฯ) · สไตล์เดียวกับหน้า Login ═════ */
+#doc-confirm-overlay{--cf-ac:var(--accent,#2f6fd1);--cf-ng:var(--ng,#dc2626);--cf-tone:var(--cf-ac);--cf-a:var(--brand-navy-700,#1d4a78);--cf-b:var(--brand-navy-600,#2a6199);padding:20px;overflow-y:auto;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(8px) saturate(1.15);backdrop-filter:blur(8px) saturate(1.15);background:radial-gradient(640px 380px at 50% 42%,color-mix(in srgb,var(--cf-ac) 20%,transparent),transparent 70%),var(--overlay,rgba(8,18,32,.6))}
+#doc-confirm-overlay .generic-confirm-box,#doc-confirm-overlay .generic-confirm-box *,#doc-confirm-overlay .generic-confirm-box *::before,#doc-confirm-overlay .generic-confirm-box *::after{box-sizing:border-box}
+#doc-confirm-overlay .generic-confirm-box{position:relative;isolation:isolate;overflow:hidden;display:block;width:min(400px,92vw);max-width:400px;max-height:none;margin:auto;padding:34px 28px 22px;border-radius:26px;text-align:center;background:var(--panel-bg,#fff);border:1px solid var(--border-card,rgba(15,33,55,.1));box-shadow:0 44px 100px -28px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.08) inset;animation:fcc-pop .38s cubic-bezier(.2,.9,.25,1.15)}
+#doc-confirm-overlay .generic-confirm-box:has(.generic-confirm-icon.danger){--cf-tone:var(--cf-ng)}
+@keyframes fcc-pop{from{opacity:0;transform:translateY(16px) scale(.94)}}
+#doc-confirm-overlay .generic-confirm-box::before{content:'';position:absolute;z-index:-1;left:50%;top:-120px;width:360px;height:280px;margin-left:-180px;border-radius:50%;background:radial-gradient(closest-side,color-mix(in srgb,var(--cf-tone) 38%,transparent),transparent);filter:blur(22px);opacity:.8;animation:fcc-drift 7s ease-in-out infinite alternate;pointer-events:none}
+#doc-confirm-overlay .generic-confirm-box::after{content:'';position:absolute;z-index:-1;left:14%;right:14%;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--cf-tone),transparent);opacity:.8;pointer-events:none}
+@keyframes fcc-drift{to{transform:translate(36px,14px) scale(1.12)}}
+#doc-confirm-overlay .generic-confirm-icon{position:relative;width:68px;height:68px;margin:0 auto 20px;border-radius:50%;display:grid;place-items:center;color:var(--cf-tone);background:color-mix(in srgb,var(--cf-tone) 14%,transparent);border:1px solid color-mix(in srgb,var(--cf-tone) 32%,transparent);box-shadow:0 12px 30px -8px color-mix(in srgb,var(--cf-tone) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.25);animation:fcc-float 4s ease-in-out infinite}
+#doc-confirm-overlay .generic-confirm-icon.danger{--cf-tone:var(--cf-ng);color:var(--cf-ng);background:color-mix(in srgb,var(--cf-ng) 14%,transparent)}
+#doc-confirm-overlay .generic-confirm-icon::before,#doc-confirm-overlay .generic-confirm-icon::after{content:'';position:absolute;inset:-1px;border-radius:50%;border:2px solid color-mix(in srgb,var(--cf-tone) 55%,transparent);animation:fcc-ring 2.8s ease-out infinite;pointer-events:none}
+#doc-confirm-overlay .generic-confirm-icon::after{animation-delay:1.4s}
+@keyframes fcc-float{50%{transform:translateY(-4px)}}
+@keyframes fcc-ring{from{transform:scale(1);opacity:.9}to{transform:scale(1.7);opacity:0}}
+#doc-confirm-overlay .generic-confirm-icon svg{width:30px;height:30px;stroke-width:1.9}
+#doc-confirm-overlay .generic-confirm-icon .gc-i-out{display:none}
+#doc-confirm-overlay .generic-confirm-icon.logout .gc-i-out{display:block}
+#doc-confirm-overlay .generic-confirm-icon.logout .gc-i-warn{display:none}
+#doc-confirm-overlay .generic-confirm-message{margin:0 0 26px;padding:0;line-height:1.6;text-align:center;white-space:normal}
+#doc-confirm-overlay .generic-confirm-message .gc-t{display:block;font-size:17px;font-weight:700;line-height:1.45;color:var(--text-heading,#0f2137)}
+#doc-confirm-overlay .generic-confirm-message .gc-d{display:block;margin-top:10px;font-size:13px;font-weight:400;line-height:1.65;color:var(--text-muted,#64748b);white-space:pre-line}
+#doc-confirm-overlay .generic-confirm-actions{display:flex;gap:10px}
+#doc-confirm-overlay .btn-modal-cancel,#doc-confirm-overlay .btn-modal-confirm{position:relative;overflow:hidden;flex:1;height:48px;margin:0;padding:0 14px;border-radius:14px;font-family:inherit;font-size:14.5px;font-weight:700;letter-spacing:.2px;cursor:pointer;transition:transform .15s,filter .2s,background .2s,border-color .2s}
+#doc-confirm-overlay .btn-modal-cancel{color:var(--text-main,#334155);background:transparent;border:1px solid var(--border-card,rgba(15,33,55,.16))}
+#doc-confirm-overlay .btn-modal-cancel:hover{background:color-mix(in srgb,var(--text-main,#334155) 8%,transparent);border-color:color-mix(in srgb,var(--text-main,#334155) 30%,transparent)}
+#doc-confirm-overlay .btn-modal-confirm{flex:1.15;border:0;color:#fff;background:linear-gradient(135deg,var(--cf-b),var(--cf-a));box-shadow:0 14px 28px -10px color-mix(in srgb,var(--cf-ac) 65%,transparent),0 1px 0 rgba(255,255,255,.28) inset}
+#doc-confirm-overlay .btn-modal-confirm.danger{background:linear-gradient(135deg,color-mix(in srgb,var(--cf-ng) 100%,#fff),color-mix(in srgb,var(--cf-ng) 80%,#000));box-shadow:0 14px 28px -10px color-mix(in srgb,var(--cf-ng) 65%,transparent),0 1px 0 rgba(255,255,255,.28) inset}
+#doc-confirm-overlay .btn-modal-confirm::before{content:'';position:absolute;top:0;left:-70%;width:50%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-20deg);transition:left .6s;pointer-events:none}
+#doc-confirm-overlay .btn-modal-confirm:hover{transform:translateY(-1px);filter:brightness(1.08)}
+#doc-confirm-overlay .btn-modal-confirm:hover::before{left:130%}
+#doc-confirm-overlay .btn-modal-cancel:active,#doc-confirm-overlay .btn-modal-confirm:active{transform:scale(.98)}
+#doc-confirm-overlay .btn-modal-cancel:focus-visible,#doc-confirm-overlay .btn-modal-confirm:focus-visible{outline:2px solid var(--cf-tone);outline-offset:2px}
+@media (max-width:480px){#doc-confirm-overlay .generic-confirm-box{padding:28px 20px 18px;border-radius:22px}}
+@media (prefers-reduced-motion:reduce){#doc-confirm-overlay .generic-confirm-box,#doc-confirm-overlay .generic-confirm-box::before,#doc-confirm-overlay .generic-confirm-icon,#doc-confirm-overlay .generic-confirm-icon::before,#doc-confirm-overlay .generic-confirm-icon::after{animation:none!important}}
+
+#doc-confirm-overlay{position:fixed;inset:0;z-index:10000;display:flex}
+#doc-confirm-overlay.hidden{display:none}
+</style>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -563,14 +576,15 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
   </svg>
   <!-- 🆕 GENERIC CONFIRM MODAL — แทนที่ confirm() ของเบราว์เซอร์ในหน้านี้ (Promise-based ผ่าน showConfirmModal()) -->
   <div id="doc-confirm-overlay" class="doc-confirm-overlay hidden">
-    <div class="doc-confirm-box">
-      <div class="doc-confirm-icon">
-        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <div class="generic-confirm-box">
+      <div class="generic-confirm-icon" id="doc-confirm-icon">
+        <svg class="gc-i-warn" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <svg class="gc-i-out" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
       </div>
-      <p class="doc-confirm-message" id="doc-confirm-message"></p>
-      <div class="doc-confirm-actions">
-        <button id="btn-doc-confirm-cancel" class="doc-confirm-cancel">ยกเลิก</button>
-        <button id="btn-doc-confirm-ok" class="doc-confirm-ok">ยืนยัน</button>
+      <p class="generic-confirm-message" id="doc-confirm-message"></p>
+      <div class="generic-confirm-actions">
+        <button id="btn-doc-confirm-cancel" class="btn-modal-cancel">ยกเลิก</button>
+        <button id="btn-doc-confirm-ok" class="btn-modal-confirm">ยืนยัน</button>
       </div>
     </div>
   </div>
@@ -647,7 +661,19 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
   function showConfirmModal(message, opts = {}) {
     return new Promise((resolve) => {
       _docConfirmResolve = resolve;
-      document.getElementById('doc-confirm-message').textContent = message;
+      const msgEl = document.getElementById('doc-confirm-message');
+      const text = String(message == null ? '' : message);
+      const nl = text.indexOf('\n');
+      msgEl.textContent = '';
+      const tEl = document.createElement('span'); tEl.className = 'gc-t';
+      tEl.textContent = (nl === -1 ? text : text.slice(0, nl)).trim();
+      msgEl.appendChild(tEl);
+      if (nl !== -1 && text.slice(nl).trim()) {
+        const dEl = document.createElement('span'); dEl.className = 'gc-d';
+        dEl.textContent = text.slice(nl).trim();
+        msgEl.appendChild(dEl);
+      }
+      document.getElementById('doc-confirm-icon').classList.toggle('logout', /ออกจากระบบ/.test(opts.confirmLabel || ''));
       document.getElementById('btn-doc-confirm-ok').textContent = opts.confirmLabel || 'ยืนยัน';
       document.getElementById('btn-doc-confirm-cancel').textContent = opts.cancelLabel || 'ยกเลิก';
       document.getElementById('doc-confirm-overlay').classList.remove('hidden');
