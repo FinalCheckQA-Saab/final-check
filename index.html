@@ -647,6 +647,16 @@ html .adm-sys-act .adm-sys-ok:disabled::after{content:'';width:16px;height:16px;
     <div class="glass-card" style="margin-bottom:16px;">
       <div class="card-header-flex">
         <h2 class="card-title"><span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="7" r="4"/></svg></span> สถานะ Line วันนี้</h2>
+        <!-- 🆕 นาฬิกา/วันที่สด ๆ ของการ์ด "สถานะ Line วันนี้" -->
+        <div class="lsc-clock" id="lsc-clock" role="timer" aria-live="off" title="วันที่และเวลาปัจจุบัน">
+          <span class="lsc-sky" id="lsc-sky" aria-hidden="true"></span>
+          <span class="lsc-date-col">
+            <span class="lsc-day" id="lsc-day"></span>
+            <span class="lsc-date" id="lsc-date"></span>
+          </span>
+          <span class="lsc-time"><span id="lsc-hm">--<i class="lsc-colon">:</i>--</span><small id="lsc-ss">00</small></span>
+          <span class="live-dot lsc-live" aria-hidden="true"></span>
+        </div>
         <span class="chart-legend line-status-legend">
           <span class="cl-dot" style="background:var(--pending)"></span>ยังไม่ตรวจ
           <span class="cl-dot" style="background:var(--fixed)"></span>กำลังตรวจ (ยังไม่ครบ)
