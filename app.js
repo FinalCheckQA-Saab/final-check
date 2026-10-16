@@ -5098,10 +5098,40 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   }
 
   /* ── กรองรายการ Part ตามคำค้นหา (ชื่อ/รหัส/Model) — ซ่อนแถวที่ไม่ตรง และซ่อนหัวข้อกลุ่มถ้าไม่เหลือ Part ที่ตรงในกลุ่มนั้น ── */
+  // 🆕 ย่อ/ขยายแต่ละ Line ในรายการ Part (จำค่าไว้ในเบราว์เซอร์นี้) — ระหว่างค้นหาจะขยายให้ทั้งหมดอัตโนมัติ
+  let jigCollapsed = new Set();
+  try { jigCollapsed = new Set(JSON.parse(localStorage.getItem('fc_jig_collapsed') || '[]')); } catch (e) {}
+  function applyJigCollapse() {
+    const searching = !!($('adm-jig-search') && $('adm-jig-search').value.trim());
+    document.querySelectorAll('#adm-jig-list [data-dept]').forEach(el => {
+      const dk = el.dataset.dept;
+      if (el.classList.contains('adm-dept-header')) {
+        const closed = !searching && jigCollapsed.has(dk);
+        el.classList.toggle('is-collapsed', closed);
+        el.setAttribute('aria-expanded', closed ? 'false' : 'true');
+      } else el.classList.toggle('dept-collapsed', !searching && jigCollapsed.has(dk));
+    });
+  }
+  function toggleJigDept(dk) {
+    if (jigCollapsed.has(dk)) jigCollapsed.delete(dk); else jigCollapsed.add(dk);
+    try { localStorage.setItem('fc_jig_collapsed', JSON.stringify([...jigCollapsed])); } catch (e) {}
+    applyJigCollapse();
+  }
+  document.addEventListener('click', e => {
+    const h = e.target.closest && e.target.closest('#adm-jig-list .adm-dept-header');
+    if (h) toggleJigDept(h.dataset.dept);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const h = e.target.closest && e.target.closest('#adm-jig-list .adm-dept-header');
+    if (h) { e.preventDefault(); toggleJigDept(h.dataset.dept); }
+  });
+
   function filterJigList() {
     const searchInput = $('adm-jig-search');
     if (!searchInput) return;
     const q = searchInput.value.trim().toLowerCase();
+    applyJigCollapse();
     const rows = document.querySelectorAll('#adm-jig-list .adm-item[data-search]');
     rows.forEach(row => {
       row.classList.toggle('hidden', !!q && !row.dataset.search.includes(q));
@@ -5208,7 +5238,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         if (deptKey === '__none__') catalog.jigs.forEach(j => { if (!catalog.lines.some(l => l.id === j.lineId) && !lineKeys.includes(j.lineId || '')) lineKeys.push(j.lineId || ''); });
         const deptJigs = catalog.jigs.filter(j => lineKeys.includes(j.lineId || ''));
         if (!deptJigs.length) return; // Line ที่ไม่มี Part ไม่ต้องโชว์หัวข้อ
-        html += `<div class="adm-dept-header" data-dept="${escHtml(deptKey)}"><span class="adm-dept-name">${escHtml(deptName)}</span><span class="adm-group-count">${deptJigs.length} Part</span></div>`;
+        html += `<div class="adm-dept-header" data-dept="${escHtml(deptKey)}" role="button" tabindex="0" aria-expanded="true" title="กดเพื่อย่อ/ขยาย"><span class="adm-dept-caret" aria-hidden="true"></span><span class="adm-dept-name">${escHtml(deptName)}</span><span class="adm-group-count">${deptJigs.length} Part</span></div>`;
         lineKeys.forEach(lk => {
           const jigsOfLine = catalog.jigs.filter(j => (j.lineId || '') === lk);
           if (!jigsOfLine.length) return;

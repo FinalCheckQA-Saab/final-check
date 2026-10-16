@@ -4052,3 +4052,13 @@ html[data-palette="clean"][data-theme="light"] .sidebar-logout:hover { backgroun
 .adm-dept-header:first-child { margin-top: 0; }
 .adm-dept-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .adm-dept-header + .adm-group-header { margin-top: 6px; }
+.adm-dept-header { cursor: pointer; user-select: none; }
+.adm-dept-header:hover { filter: brightness(.97); }
+.adm-dept-header:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.adm-dept-caret {
+  flex-shrink: 0; width: 7px; height: 7px; margin: 0 4px 2px 2px;
+  border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent);
+  transform: rotate(45deg); transition: transform .18s;
+}
+.adm-dept-header.is-collapsed .adm-dept-caret { transform: rotate(-45deg); margin-bottom: 0; }
+#adm-jig-list .dept-collapsed { display: none !important; }
