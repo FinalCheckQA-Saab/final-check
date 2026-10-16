@@ -4136,3 +4136,7 @@ html[data-palette="clean"][data-theme="light"] .sidebar-logout:hover { backgroun
 @media (prefers-reduced-motion: reduce) {
   .lsc-clock::after, .lsc-sky, .lsc-colon, .lsc-ss-tick { animation: none; }
 }
+
+/* นาฬิกาตัวที่สอง (ใต้ NG วันนี้ — อยู่ในแถวตัวกรอง) */
+.lsc-clock--inline { margin: 0; }
+@media (max-width: 640px) { .lsc-clock--inline { order: 3; } }

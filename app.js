@@ -6626,37 +6626,35 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
      LIVE CLOCK (Dashboard)
   ══════════════════════════════════════ */
   function startDashClock() {
-    const dateEl = $('dash-clock-date');
-    const timeEl = $('dash-clock-time');
-    // 🆕 นาฬิกาในการ์ด "สถานะ Line วันนี้"
-    const lscDay = $('lsc-day'), lscDate = $('lsc-date'), lscHm = $('lsc-hm'), lscSs = $('lsc-ss'), lscSky = $('lsc-sky');
-    if ((!dateEl || !timeEl) && !lscHm) return;
-    let lastSky = '';
+    // 🆕 นาฬิกาทุกจุดบน Dashboard ใช้หน้าตา/โค้ดชุดเดียวกัน (class .lsc-clock) — เพิ่มกี่จุดก็อัปเดตพร้อมกัน
+    const clocks = Array.from(document.querySelectorAll('.lsc-clock')).map(el => ({
+      day: el.querySelector('.lsc-day'), date: el.querySelector('.lsc-date'),
+      hm: el.querySelector('.lsc-hm'), ss: el.querySelector('.lsc-ss'), sky: el.querySelector('.lsc-sky'), lastSky: ''
+    }));
+    if (!clocks.length) return;
     function tick() {
       const now = new Date();
       const hh = String(now.getHours()).padStart(2, '0');
       const mm = String(now.getMinutes()).padStart(2, '0');
       const ss = String(now.getSeconds()).padStart(2, '0');
-      if (dateEl && timeEl) {
-        dateEl.textContent = now.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-        timeEl.textContent = `${hh}:${mm}:${ss}`;
-      }
-      if (lscHm) {
-        lscDay.textContent  = now.toLocaleDateString('th-TH', { weekday: 'long' });
-        lscDate.textContent = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
-        lscHm.innerHTML = `${hh}<i class="lsc-colon">:</i>${mm}`;
-        lscSs.textContent = ss;
-        lscSs.classList.remove('lsc-ss-tick'); void lscSs.offsetWidth; lscSs.classList.add('lsc-ss-tick');
-        // ไอคอนเปลี่ยนตามช่วงเวลาของวัน
-        const h = now.getHours();
-        const sky = h < 5 ? ['🌙', 'ดึก', 1] : h < 12 ? ['🌤️', 'เช้า', 0] : h < 17 ? ['☀️', 'บ่าย', 0] : h < 19 ? ['🌇', 'เย็น', 0] : ['🌙', 'ค่ำ', 1];
-        if (sky[0] + sky[1] !== lastSky) {
-          lastSky = sky[0] + sky[1];
-          lscSky.textContent = sky[0];
-          lscSky.title = 'ช่วง' + sky[1];
-          lscSky.classList.toggle('night', !!sky[2]);
+      const dayTxt  = now.toLocaleDateString('th-TH', { weekday: 'long' });
+      const dateTxt = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+      // ไอคอนเปลี่ยนตามช่วงเวลาของวัน
+      const h = now.getHours();
+      const sky = h < 5 ? ['🌙', 'ดึก', 1] : h < 12 ? ['🌤️', 'เช้า', 0] : h < 17 ? ['☀️', 'บ่าย', 0] : h < 19 ? ['🌇', 'เย็น', 0] : ['🌙', 'ค่ำ', 1];
+      clocks.forEach(c => {
+        c.day.textContent  = dayTxt;
+        c.date.textContent = dateTxt;
+        c.hm.innerHTML = `${hh}<i class="lsc-colon">:</i>${mm}`;
+        c.ss.textContent = ss;
+        c.ss.classList.remove('lsc-ss-tick'); void c.ss.offsetWidth; c.ss.classList.add('lsc-ss-tick');
+        if (sky[0] + sky[1] !== c.lastSky) {
+          c.lastSky = sky[0] + sky[1];
+          c.sky.textContent = sky[0];
+          c.sky.title = 'ช่วง' + sky[1];
+          c.sky.classList.toggle('night', !!sky[2]);
         }
-      }
+      });
     }
     tick();
     setInterval(tick, 1000);
