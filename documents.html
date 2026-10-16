@@ -293,6 +293,17 @@
   .line-group-header::after { content: ""; position: absolute; left: 0; bottom: -2px; width: 48px; height: 2px; background: var(--gold); }
   .lg-name { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; }
   .line-group-count { background: #eef2f8; color: var(--navy); }
+  /* พับ/ขยายกลุ่ม Line — กดที่หัวกลุ่ม */
+  .line-group-header { cursor: pointer; user-select: none; border-radius: 8px 8px 0 0; transition: background .15s ease; }
+  .line-group-header:hover { background: #f5f8fd; }
+  .line-group-header:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .lg-chev { display: inline-flex; color: #94a3b8; transition: transform .18s ease; }
+  .line-group.collapsed .lg-chev { transform: rotate(-90deg); }
+  .line-group.collapsed > :not(.line-group-header) { display: none; }
+  .line-group.collapsed .line-group-header { border-bottom-color: transparent; }
+  .btn-fold-all { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); background: #fff; color: var(--navy); border-radius: 999px; padding: 3px 11px; font-family: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: background .15s ease; }
+  .btn-fold-all:hover { background: #f3f6fb; }
+  @media (prefers-reduced-motion: reduce) { .lg-chev { transition: none; } }
 
   .doc-row { align-items: center; gap: 14px; padding: 14px 10px; margin: 0 -10px; border-bottom: 1px solid #edf0f5; border-radius: 12px; transition: background .15s ease; }
   .doc-row:hover { background: #f5f8fd; }
@@ -729,6 +740,7 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
   let docInfoById = {}; // doc.id -> { section: แผนก, line: Line, model: Model } หาจากการจับคู่กลับไปที่ Part ในระบบ (อ่านสดทุกครั้งที่โหลดหน้า)
   let filters = { company: params.get('company') || '', section: '', line: '', model: '', q: '' };
   let currentDocId = params.get('doc') || null;
+  const collapsedLines = new Set(); // ชื่อ Line ที่ผู้ใช้พับกลุ่มไว้ (จำไว้ตลอดที่เปิดหน้านี้ แม้กรอง/ค้นหา)
   let editingRevDocId = null;   // ← document_id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายการ"
   let editingDocId = null;       // ← id ของเอกสารที่กำลังเปิดฟอร์ม "แก้ไขข้อมูลเอกสาร" (เลขที่/ชื่อ/ประเภท/บริษัท/Line)
   let editingRevIdDetail = null; // ← revision id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายละเอียด"
@@ -859,6 +871,7 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
     ban:     '<circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>',
     lock:    '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
     info:    '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+    chevD:   '<polyline points="6 9 12 15 18 9"/>',
     undo:    '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>',
   };
   // สามเหลี่ยมแสดง Revision (ใช้ซ้ำทั้งหน้ารายการ/รายละเอียด/ไทม์ไลน์)
@@ -980,11 +993,11 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
       <div id="import-preview"></div>
 
       <div class="card">
-        <div class="section-title"><span>รายการเอกสาร</span><span class="count-pill">${filtered.length}</span></div>
+        <div class="section-title"><span>รายการเอกสาร</span><span class="count-pill">${filtered.length}</span>${grouped.length > 1 ? `<button type="button" class="btn-fold-all" id="btn-fold-all">${grouped.every(g => collapsedLines.has(g.line)) ? 'ขยายทั้งหมด' : 'พับทั้งหมด'}</button>` : ''}</div>
         ${grouped.length ? grouped.map(g => `
-          <div class="line-group">
-            <div class="line-group-header">
-              <span class="lg-name">${dIco('layers', 14)}LINE: ${esc(g.line)}</span>
+          <div class="line-group${collapsedLines.has(g.line) ? ' collapsed' : ''}">
+            <div class="line-group-header" role="button" tabindex="0" data-line="${escAttr(g.line)}" aria-expanded="${!collapsedLines.has(g.line)}" title="กดเพื่อพับ/ขยาย">
+              <span class="lg-name"><span class="lg-chev">${dIco('chevD', 14)}</span>${dIco('layers', 14)}LINE: ${esc(g.line)}</span>
               <span class="line-group-count">${g.docs.length}</span>
             </div>
             ${g.docs.map(d => renderDocRow(d)).join('')}
@@ -1020,6 +1033,27 @@ html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-ac
       // render() สร้างหน้าใหม่ทั้งหมด → คืนโฟกัสและตำแหน่งเคอร์เซอร์ให้ช่องค้นหา ไม่งั้นพิมพ์ได้ทีละตัวอักษร
       const el = document.getElementById('f-search');
       if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (_) {} }
+    });
+    // ── พับ/ขยายกลุ่ม Line (กดที่หัวกลุ่ม หรือกด Enter/Space เมื่อโฟกัสอยู่) ──
+    document.querySelectorAll('.line-group-header').forEach(h => {
+      const toggle = () => {
+        const g = h.closest('.line-group');
+        const name = h.dataset.line;
+        const nowCollapsed = !g.classList.contains('collapsed');
+        g.classList.toggle('collapsed', nowCollapsed);
+        h.setAttribute('aria-expanded', String(!nowCollapsed));
+        nowCollapsed ? collapsedLines.add(name) : collapsedLines.delete(name);
+        const fa = document.getElementById('btn-fold-all');
+        if (fa) fa.textContent = grouped.every(x => collapsedLines.has(x.line)) ? 'ขยายทั้งหมด' : 'พับทั้งหมด';
+      };
+      h.addEventListener('click', toggle);
+      h.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+    });
+    const foldAllBtn = document.getElementById('btn-fold-all');
+    if (foldAllBtn) foldAllBtn.addEventListener('click', () => {
+      const allFolded = grouped.every(g => collapsedLines.has(g.line));
+      grouped.forEach(g => allFolded ? collapsedLines.delete(g.line) : collapsedLines.add(g.line));
+      renderList();
     });
     document.querySelectorAll('.doc-row').forEach(row => {
       row.addEventListener('click', () => {
