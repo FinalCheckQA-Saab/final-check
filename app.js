@@ -8530,7 +8530,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       // Fallback to smart engine
       const report = analyzeWithSmartEngine(hist, periodLabel);
       $('ai-result').innerHTML = `<div class="ai-report">${sanitizeReportHtml(report)}</div>`;
-      toast('⚠️ เรียก Gemini API ไม่สำเร็จ (' + err.message + ') — ใช้ Smart Analysis Engine (offline) แทน', 'ng');
+      toast('⚠️ Gemini ไม่ว่างชั่วคราว (' + err.message + ') ลองซ้ำแล้วไม่สำเร็จ — แสดงผลจาก Smart Analysis Engine แทน กดวิเคราะห์ใหม่อีกครั้งภายหลังได้', 'ng');
     }
 
     btn.classList.remove('loading');
@@ -8559,15 +8559,37 @@ ${JSON.stringify(summary, null, 2)}
 
 ตอบเป็น HTML โดยใช้ tag: <h3>, <p>, <ul>, <li>, <strong> และ class="tag-risk tag-high/tag-med/tag-low" เท่านั้น`;
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-
-    if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
-    const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || analyzeWithSmartEngine(hist);
+    // 🆕 503/429 = Gemini ยุ่ง/โหลดเกินชั่วคราว (ไม่ใช่โค้ดเราพัง) → retry แบบ backoff + สลับไปโมเดลสำรองตามลำดับ
+    const MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+    const RETRYABLE = [429, 500, 502, 503, 504];
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    let lastErr = null;
+    for (const model of MODELS) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) return text;
+            lastErr = new Error('Gemini ตอบกลับว่างเปล่า');
+            break; // ลองโมเดลถัดไป
+          }
+          lastErr = new Error(`Gemini API error: ${res.status}`);
+          if (!RETRYABLE.includes(res.status)) throw lastErr; // เช่น 400/403 (key ผิด) — ลองซ้ำก็ไม่หาย
+          await sleep(1200 * (attempt + 1));
+        } catch (e) {
+          if (e === lastErr && !RETRYABLE.some(c => e.message.endsWith(String(c)))) throw e;
+          lastErr = e;
+          await sleep(800);
+        }
+      }
+    }
+    throw lastErr || new Error('Gemini ไม่พร้อมใช้งาน');
   }
 
   /* ── Smart Rule-Based Engine (ไม่ต้อง internet) ── */
