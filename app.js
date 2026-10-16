@@ -4166,26 +4166,31 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     const qEl = $('adm-user-q'), sEl = $('adm-user-sort'), cEl = $('adm-user-count');
     const q = qEl ? qEl.value.trim().toLowerCase() : '';
     const mode = sEl ? sEl.value : 'name';
+    const rf = $('adm-user-rolefilter') ? $('adm-user-rolefilter').value : '';
     const rows = Array.from(box.querySelectorAll(':scope > .adm-item[data-uid]'));
     if (!rows.length) { if (cEl) cEl.hidden = true; return; }
     const cmp = (a, b) => String(a).localeCompare(String(b), 'th', { sensitivity: 'base', numeric: true });
+    const cTime = r => { const t = Date.parse(r.dataset.created); return isNaN(t) ? Number(r.dataset.idx) : t; };
     const ROLE_ORDER = { inspector: 0, supervisor: 1, manager: 2 };
     const by = {
       'name': (a, b) => cmp(a.dataset.name, b.dataset.name),
       'name-desc': (a, b) => cmp(b.dataset.name, a.dataset.name),
       'username': (a, b) => cmp(a.dataset.username, b.dataset.username),
       'role': (a, b) => ((ROLE_ORDER[a.dataset.role] ?? 9) - (ROLE_ORDER[b.dataset.role] ?? 9)) || cmp(a.dataset.name, b.dataset.name),
+      // วันที่สร้าง: ใช้ created_at ถ้าฐานข้อมูลส่งมา ไม่งั้นใช้ลำดับที่ฐานข้อมูลคืนมา (ตามลำดับการสร้าง)
+      'oldest': (a, b) => cTime(a) - cTime(b),
+      'newest': (a, b) => cTime(b) - cTime(a),
       'status': (a, b) => (Number(b.dataset.active) - Number(a.dataset.active)) || cmp(a.dataset.name, b.dataset.name),
     }[mode] || ((a, b) => cmp(a.dataset.name, b.dataset.name));
     rows.sort(by).forEach(r => box.appendChild(r)); // appendChild = ย้ายตำแหน่ง (ไม่สร้างใหม่)
     let shown = 0;
-    rows.forEach(r => { const m = !q || (r.dataset.q || '').includes(q); r.hidden = !m; r.style.display = m ? '' : 'none'; if (m) shown++; });
+    rows.forEach(r => { const m = (!q || (r.dataset.q || '').includes(q)) && (!rf || r.dataset.role === rf); r.hidden = !m; r.style.display = m ? '' : 'none'; if (m) shown++; });
     let none = box.querySelector(':scope > .adm-user-none');
     if (!shown) {
       if (!none) { none = document.createElement('span'); none.className = 'chip-empty adm-user-none'; none.textContent = 'ไม่พบบัญชีที่ค้นหา'; }
       box.appendChild(none);
     } else if (none) none.remove();
-    if (cEl) { cEl.hidden = false; cEl.textContent = q ? `พบ ${shown} จาก ${rows.length} บัญชี` : `ทั้งหมด ${rows.length} บัญชี`; }
+    if (cEl) { cEl.hidden = false; cEl.textContent = (q || rf) ? `พบ ${shown} จาก ${rows.length} บัญชี` : `ทั้งหมด ${rows.length} บัญชี`; }
   }
 
   async function renderStaffAccountList() {
@@ -4222,11 +4227,11 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     }
 
     box.innerHTML = users.map(u => `
-      <div class="adm-item ${u.active ? '' : 'adm-user-inactive'}" data-uid="${escHtml(u.id)}" data-name="${escHtml(u.full_name || '')}" data-username="${escHtml(u.username || '')}" data-role="${escHtml(u.role || '')}" data-active="${u.active ? 1 : 0}" data-q="${escHtml(((u.full_name || '') + ' ' + (u.username || '') + ' ' + roleLabelTh(u.role) + ' ' + roleOptionTh(u.role)).toLowerCase())}">
+      <div class="adm-item ${u.active ? '' : 'adm-user-inactive'}" data-uid="${escHtml(u.id)}" data-name="${escHtml(u.full_name || '')}" data-username="${escHtml(u.username || '')}" data-role="${escHtml(u.role || '')}" data-active="${u.active ? 1 : 0}" data-created="${escHtml(u.created_at || '')}" data-idx="${users.indexOf(u)}" data-q="${escHtml(((u.full_name || '') + ' ' + (u.username || '') + ' ' + roleLabelTh(u.role) + ' ' + roleOptionTh(u.role)).toLowerCase())}">
         <div class="adm-item-main">
           <div class="adm-item-info">
             <div>${escHtml(u.full_name)}<span class="adm-item-role-tag">${escHtml(roleLabelTh(u.role))}</span>${menuTagText(menuMap.get(String(u.id))) ? `<span class="adm-item-role-tag" style="margin-left:4px">${escHtml(menuTagText(menuMap.get(String(u.id))))}</span>` : ''}</div>
-            <div class="adm-item-code">@${escHtml(u.username)} ${u.active ? '' : '· ปิดใช้งานอยู่'}</div>
+            <div class="adm-item-code">@${escHtml(u.username)} ${u.active ? '' : '· ปิดใช้งานอยู่'}${u.created_at && !isNaN(new Date(u.created_at)) ? ' · สร้างเมื่อ ' + new Date(u.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }) : ''}</div>
           </div>
         </div>
         <div>
@@ -4417,6 +4422,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   function bindStaffAccountPanel() {
     { const qEl = $('adm-user-q'), sEl = $('adm-user-sort'); // 🆕 ค้นหา/เรียงลำดับบัญชีผู้ใช้
       if (qEl) qEl.addEventListener('input', applyUserView);
+      const rfEl = $('adm-user-rolefilter'); if (rfEl) rfEl.addEventListener('change', applyUserView);
       if (sEl) { try { const sv = localStorage.getItem('fc_adm_user_sort'); if (sv && Array.from(sEl.options).some(o => o.value === sv)) sEl.value = sv; } catch (e) {}
         sEl.addEventListener('change', () => { try { localStorage.setItem('fc_adm_user_sort', sEl.value); } catch (e) {} applyUserView(); }); } }
     $('btn-adm-add-user').addEventListener('click', async () => {

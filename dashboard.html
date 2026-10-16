@@ -997,6 +997,16 @@ html .adm-sys-act .adm-sys-ok:disabled::after{content:'';width:16px;height:16px;
           <option value="username">เรียง: Username A → Z</option>
           <option value="role">เรียง: สิทธิ์</option>
           <option value="status">เรียง: สถานะ (ใช้งานก่อน)</option>
+          <option value="newest">เรียง: สร้างล่าสุดก่อน</option>
+          <option value="oldest">เรียง: สร้างเก่าสุดก่อน</option>
+        </select>
+      </div>
+      <div class="admin-input-row adm-user-tools">
+        <select id="adm-user-rolefilter" class="adm-sel" aria-label="กรองตามสิทธิ์">
+          <option value="">สิทธิ์: ทั้งหมด</option>
+          <option value="inspector">ผู้ตรวจสอบ (Inspector)</option>
+          <option value="supervisor">หัวหน้างาน (Leader)</option>
+          <option value="manager">หัวหน้าส่วนงาน (Supervisor)</option>
         </select>
       </div>
       <div class="adm-user-count" id="adm-user-count" style="font-size:11px;color:var(--text-muted);margin:2px 0 6px" hidden></div>
