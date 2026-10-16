@@ -4176,3 +4176,13 @@ html[data-palette="clean"][data-theme="light"] .sidebar-logout:hover { backgroun
 /* นาฬิกาชิดขวาในหัวการ์ด "เลือก Part ที่ต้องการตรวจสอบ" */
 .lsc-clock--right { margin: 0 0 0 auto; }
 @media (max-width: 640px) { .lsc-clock--right { margin: 0; } }
+
+/* 🆕 จุดเขียว "ออนไลน์" หน้าข้อความท้าย Sidebar */
+.sidebar-foot-text { display: flex; align-items: center; gap: 7px; }
+.sidebar-foot-text::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%; flex: none; background: #22c55e;
+  box-shadow: 0 0 0 0 hsla(142, 70%, 50%, .7); animation: sbOnline 2s infinite;
+}
+@keyframes sbOnline { 70% { box-shadow: 0 0 0 6px hsla(142, 70%, 50%, 0); } 100% { box-shadow: 0 0 0 0 hsla(142, 70%, 50%, 0); } }
+body.sidebar-collapsed .sidebar-foot-text { display: none; }
+@media (prefers-reduced-motion: reduce) { .sidebar-foot-text::before { animation: none; } }
