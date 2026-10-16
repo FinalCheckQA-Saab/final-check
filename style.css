@@ -4136,3 +4136,39 @@ html[data-palette="clean"][data-theme="light"] .sidebar-logout:hover { backgroun
 @media (prefers-reduced-motion: reduce) {
   .lsc-clock::after, .lsc-sky, .lsc-colon, .lsc-ss-tick { animation: none; }
 }
+
+/* ── 🆕 ปุ่ม "รีเซ็ตลำดับการ์ด" — ดีไซน์ใหม่ มีสีสัน/แอนิเมชัน ── */
+.btn-dash-reset-order {
+  position: relative; overflow: hidden; isolation: isolate;
+  height: 40px; padding: 0 18px 0 6px; gap: 9px; border-radius: 999px;
+  font-size: 13px; font-weight: 700; letter-spacing: .2px; color: #fff;
+  border: 1px solid color-mix(in srgb, var(--accent) 70%, #000 10%);
+  background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--accent) 70%, transparent), inset 0 1px 0 rgba(255,255,255,.35);
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.btn-dash-reset-order::after {            /* แสงกวาดเมื่อ hover */
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%);
+  transform: translateX(-130%); transition: transform .6s ease;
+}
+.btn-dash-reset-order svg {               /* ไอคอนในวงกลมขาวโปร่ง */
+  box-sizing: content-box; width: 14px; height: 14px; padding: 6px; border-radius: 50%; flex: none;
+  background: rgba(255,255,255,.22); box-shadow: inset 0 0 0 1px rgba(255,255,255,.35);
+  transition: transform .55s cubic-bezier(.34,1.56,.64,1), background .2s;
+}
+.btn-dash-reset-order:hover {
+  color: #fff; border-color: color-mix(in srgb, var(--accent) 70%, #000 10%);
+  background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+  transform: translateY(-2px); filter: saturate(1.1);
+  box-shadow: 0 12px 22px -8px color-mix(in srgb, var(--accent) 80%, transparent), inset 0 1px 0 rgba(255,255,255,.4);
+}
+.btn-dash-reset-order:hover::after { transform: translateX(130%); }
+.btn-dash-reset-order:hover svg { transform: rotate(-360deg); background: rgba(255,255,255,.32); }
+.btn-dash-reset-order:active { transform: translateY(0) scale(.97); box-shadow: 0 3px 8px -4px color-mix(in srgb, var(--accent) 70%, transparent); }
+.btn-dash-reset-order:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .btn-dash-reset-order, .btn-dash-reset-order svg, .btn-dash-reset-order::after { transition: none; }
+  .btn-dash-reset-order:hover { transform: none; }
+  .btn-dash-reset-order:hover svg { transform: none; }
+}
