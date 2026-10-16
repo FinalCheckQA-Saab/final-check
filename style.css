@@ -4090,3 +4090,49 @@ html[data-palette="clean"][data-theme="light"] .sidebar-logout:hover { backgroun
 .line-jig-detail-model { display: flex; align-items: center; gap: 8px; margin: 12px 2px 6px; font-size: 12px; font-weight: 700; color: var(--text-heading); }
 .line-jig-detail-model:first-child { margin-top: 2px; }
 .line-jig-detail-model span { font-weight: 700; font-size: 11px; color: var(--accent); background: var(--accent-dim); padding: 1px 9px; border-radius: 999px; }
+
+
+/* ── 🆕 นาฬิกาในการ์ด "สถานะ Line วันนี้" ── */
+.lsc-clock {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 6px 16px 6px 8px; border-radius: 999px; margin-right: auto; margin-left: 4px;
+  background: linear-gradient(135deg, var(--accent-dim), transparent), var(--bg-card);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 26%, transparent);
+  position: relative; overflow: hidden;
+}
+.lsc-clock::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(110deg, transparent 35%, color-mix(in srgb, var(--accent) 16%, transparent) 50%, transparent 65%);
+  transform: translateX(-120%); animation: lscShine 6s ease-in-out infinite;
+}
+.lsc-sky {
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 18px; line-height: 1; flex: none;
+  background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--fixed) 35%, transparent), var(--accent-dim));
+  animation: lscFloat 3.6s ease-in-out infinite;
+}
+.lsc-sky.night { background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--accent) 40%, transparent), var(--accent-dim)); }
+.lsc-date-col { display: flex; flex-direction: column; line-height: 1.2; }
+.lsc-day  { font-size: 13px; font-weight: 700; color: var(--text-heading); }
+.lsc-date { font-size: 11px; color: var(--text-muted); }
+.lsc-time {
+  display: inline-flex; align-items: baseline; gap: 3px;
+  font-family: var(--font-en); font-variant-numeric: tabular-nums;
+  font-size: 24px; font-weight: 800; letter-spacing: 1px; color: var(--text-heading);
+  padding-left: 12px; border-left: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.lsc-time small { font-size: 13px; font-weight: 600; color: var(--accent); min-width: 1.4em; letter-spacing: 0; }
+.lsc-colon { font-style: normal; animation: lscBlink 1s steps(1) infinite; }
+.lsc-live { flex: none; }
+.lsc-ss-tick { animation: lscTick .35s ease-out; display: inline-block; }
+@keyframes lscBlink { 50% { opacity: .15; } }
+@keyframes lscFloat { 50% { transform: translateY(-2px) rotate(-4deg); } }
+@keyframes lscTick  { from { transform: translateY(-4px); opacity: .3; } to { transform: none; opacity: 1; } }
+@keyframes lscShine { 0%, 70% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+@media (max-width: 640px) {
+  .lsc-clock { width: 100%; margin: 0; justify-content: space-between; gap: 8px; padding-right: 12px; }
+  .lsc-time { font-size: 20px; padding-left: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lsc-clock::after, .lsc-sky, .lsc-colon, .lsc-ss-tick { animation: none; }
+}

@@ -6628,14 +6628,35 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   function startDashClock() {
     const dateEl = $('dash-clock-date');
     const timeEl = $('dash-clock-time');
-    if (!dateEl || !timeEl) return;
+    // 🆕 นาฬิกาในการ์ด "สถานะ Line วันนี้"
+    const lscDay = $('lsc-day'), lscDate = $('lsc-date'), lscHm = $('lsc-hm'), lscSs = $('lsc-ss'), lscSky = $('lsc-sky');
+    if ((!dateEl || !timeEl) && !lscHm) return;
+    let lastSky = '';
     function tick() {
       const now = new Date();
-      dateEl.textContent = now.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
       const hh = String(now.getHours()).padStart(2, '0');
       const mm = String(now.getMinutes()).padStart(2, '0');
       const ss = String(now.getSeconds()).padStart(2, '0');
-      timeEl.textContent = `${hh}:${mm}:${ss}`;
+      if (dateEl && timeEl) {
+        dateEl.textContent = now.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+        timeEl.textContent = `${hh}:${mm}:${ss}`;
+      }
+      if (lscHm) {
+        lscDay.textContent  = now.toLocaleDateString('th-TH', { weekday: 'long' });
+        lscDate.textContent = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+        lscHm.innerHTML = `${hh}<i class="lsc-colon">:</i>${mm}`;
+        lscSs.textContent = ss;
+        lscSs.classList.remove('lsc-ss-tick'); void lscSs.offsetWidth; lscSs.classList.add('lsc-ss-tick');
+        // ไอคอนเปลี่ยนตามช่วงเวลาของวัน
+        const h = now.getHours();
+        const sky = h < 5 ? ['🌙', 'ดึก', 1] : h < 12 ? ['🌤️', 'เช้า', 0] : h < 17 ? ['☀️', 'บ่าย', 0] : h < 19 ? ['🌇', 'เย็น', 0] : ['🌙', 'ค่ำ', 1];
+        if (sky[0] + sky[1] !== lastSky) {
+          lastSky = sky[0] + sky[1];
+          lscSky.textContent = sky[0];
+          lscSky.title = 'ช่วง' + sky[1];
+          lscSky.classList.toggle('night', !!sky[2]);
+        }
+      }
     }
     tick();
     setInterval(tick, 1000);
@@ -8533,7 +8554,7 @@ ${JSON.stringify(summary, null, 2)}
 
 กติกาการใส่ emoji (สำคัญมาก ต้องทำทุกบรรทัด):
 - ทุกหัวข้อ <h3> ต้องขึ้นต้นด้วย emoji ตามข้อ 1-5 ด้านบน
-- ทุกบรรทัด <li> ต้องขึ้นต้นด้วย emoji ที่สื่อความหมายของเนื้อหาบรรทัดนั้น (เช่น 🔧 สำหรับ maintenance, 📋 สำหรับ audit/checklist, ⚠️ สำหรับคำเตือน, 📅 สำหรับกำหนดเวลา, 🏭 สำหรับ Model) ห้ามมี <li> ที่ไม่มี emoji นำหน้า
+- ทุกบรรทัด <li> ต้องขึ้นต้นด้วย emoji ที่สื่อความหมายของเนื้อหาบรรทัดนั้น (เช่น 🔧 สำหรับ maintenance, 📋 สำหรับ audit/checklist, ⚠️ สำหรับคำเตือน, 📅 สำหรับกำหนดเวลา, 🏭 สำหรับ Line) ห้ามมี <li> ที่ไม่มี emoji นำหน้า
 - ใช้ <strong> เน้นตัวเลข/ชื่อที่สำคัญ และใช้ span class="tag-risk tag-high/tag-med/tag-low" ประกอบเมื่อมีระดับความเสี่ยง
 
 ตอบเป็น HTML โดยใช้ tag: <h3>, <p>, <ul>, <li>, <strong> และ class="tag-risk tag-high/tag-med/tag-low" เท่านั้น`;
@@ -8568,7 +8589,7 @@ ${JSON.stringify(summary, null, 2)}
     hist.forEach(h => {
       const ngCount = h.items.filter(i => i.status === 'ng').length;
       if (!ngCount) return;
-      const key = h.lineName || h.lineId || 'Unknown';
+      const key = h.deptName || h.lineName || h.lineId || 'Unknown'; // 🆕 สรุปตาม "Line" (deptName) ไม่ใช่ Model (lineName)
       byLine[key] = (byLine[key] || 0) + ngCount;
     });
 
@@ -8629,12 +8650,12 @@ ${JSON.stringify(summary, null, 2)}
       </ul>` : '<p>✅ ไม่พบรายการ NG ที่น่าเป็นห่วง</p>'}
 
       <hr class="report-sep">
-      <h3>🏭 Model ที่มีปัญหาสูงสุด</h3>
+      <h3>🏭 Line ที่มีปัญหาสูงสุด</h3>
       ${topLine.length ? `<ul>
         ${topLine.map(([line, count]) => `<li><strong>${escHtml(line)}</strong> — พบ NG รวม <span class="tag-risk tag-high">${count} รายการ</span>
           <br><small>แนะนำให้ทีม QC เข้าตรวจสอบ Part อย่างละเอียด</small>
         </li>`).join('')}
-      </ul>` : '<p>✅ ทุก Model มีอัตรา NG ต่ำ</p>'}
+      </ul>` : '<p>✅ ทุก Line มีอัตรา NG ต่ำ</p>'}
 
       <hr class="report-sep">
       <h3>${trendIcon} แนวโน้ม</h3>
@@ -8655,7 +8676,7 @@ ${JSON.stringify(summary, null, 2)}
       <h3>✅ คำแนะนำ Action Items</h3>
       <ul>
         ${topNg.length ? `<li>🔧 วางแผน PM เพิ่มความถี่สำหรับ: <strong>${topNg.map(([id,d])=>`ข้อ ${id}`).join(', ')}</strong></li>` : ''}
-        ${topLine.length ? `<li>📋 ทำ Audit พิเศษสำหรับ Model: <strong>${escHtml(topLine[0][0])}</strong></li>` : ''}
+        ${topLine.length ? `<li>📋 ทำ Audit พิเศษสำหรับ Line: <strong>${escHtml(topLine[0][0])}</strong></li>` : ''}
         ${trend === 'แย่ลง' ? `<li>🚨 ประชุม QC ทีมเพื่อหาสาเหตุแนวโน้มที่แย่ลง</li>` : ''}
         ${s.passRate < 80 ? `<li>📊 อัตราผ่านต่ำกว่า 80% — ทบทวน SOP และ Training</li>` : ''}
         <li>📅 บันทึกผลการตรวจให้ครบทุก Shift ทุกวัน</li>
