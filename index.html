@@ -949,6 +949,17 @@ html .adm-sys-act .adm-sys-ok:disabled::after{content:'';width:16px;height:16px;
         </select>
         <button class="btn-adm-add" id="btn-adm-add-user">+ เพิ่มผู้ใช้</button>
       </div>
+      <div class="admin-input-row adm-user-tools">
+        <input type="search" id="adm-user-q" class="adm-search" placeholder="ค้นหาชื่อ / Username / สิทธิ์…" aria-label="ค้นหาบัญชีผู้ใช้" autocomplete="off">
+        <select id="adm-user-sort" class="adm-sel" aria-label="เรียงลำดับ">
+          <option value="name">เรียง: ชื่อ ก → ฮ</option>
+          <option value="name-desc">เรียง: ชื่อ ฮ → ก</option>
+          <option value="username">เรียง: Username A → Z</option>
+          <option value="role">เรียง: สิทธิ์</option>
+          <option value="status">เรียง: สถานะ (ใช้งานก่อน)</option>
+        </select>
+      </div>
+      <div class="adm-user-count" id="adm-user-count" style="font-size:11px;color:var(--text-muted);margin:2px 0 6px" hidden></div>
       <div class="admin-list admin-list-scroll" id="adm-user-list"></div>
     </div>
 
