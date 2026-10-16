@@ -42,43 +42,7 @@
   }
   header { position: relative; }
 
-  /* ─── Login Gate ─── */
-  .docs-login-overlay {
-    position: fixed; inset: 0; z-index: 999;
-    background: linear-gradient(135deg, #0f2137, #1e3a5f);
-    display: flex; align-items: center; justify-content: center;
-    padding: 20px;
-  }
-  .docs-login-overlay.hidden { display: none; }
-  .docs-login-box {
-    width: 100%; max-width: 340px;
-    background: #fff; border-radius: 16px;
-    padding: 28px 24px; text-align: center;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
-  }
-  .docs-login-logo {
-    width: 52px; height: 52px; border-radius: 12px;
-    background: var(--bg, #f3f4f6); border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 12px;
-  }
-  .docs-login-box h2 { margin: 0 0 4px; font-size: 16px; color: var(--text); }
-  .docs-login-box p { margin: 0 0 18px; font-size: 12.5px; color: var(--muted); }
-  .docs-login-field { text-align: left; margin-bottom: 12px; }
-  .docs-login-field label { display: block; font-size: 11.5px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
-  .docs-login-field input {
-    width: 100%; box-sizing: border-box;
-    border: 1px solid var(--border); border-radius: 10px;
-    padding: 10px 12px; font-size: 14px; font-family: inherit;
-  }
-  .docs-login-field input:focus { outline: none; border-color: var(--accent); }
-  .docs-login-msg { min-height: 16px; font-size: 12px; color: var(--ng); margin-bottom: 8px; text-align: left; }
-  .docs-login-btn {
-    width: 100%; border: none; border-radius: 12px; padding: 13px;
-    background: var(--navy); color: #fff; font-size: 14.5px; font-weight: 700;
-    cursor: pointer; font-family: inherit;
-  }
-  .docs-login-btn:disabled { opacity: 0.6; cursor: default; }
+  /* ─── Login Gate — สไตล์ Login กลาง อยู่ใน <style id="fc-login-style"> ถัดลงไป ─── */
   .header-actions-row {
     position: absolute; top: 16px; right: 16px;
     display: flex; align-items: center; gap: 8px;
@@ -534,6 +498,60 @@
   }
 </style>
   <link rel="stylesheet" href="manual.css?v=2">
+<style id="fc-login-style">
+/* ═════ FC LOGIN STYLE — สไตล์หน้า Login กลาง (ใช้ร่วมกันทุกหน้า · รองรับธีมมืด/สว่าง + ชุดสี) ═════ */
+#docs-login-overlay{--lg-accent:var(--accent,#2f6fd1);--lg-a:color-mix(in srgb,var(--lg-accent) 80%,#0b1626);--lg-b:var(--lg-accent);--lg-glow:color-mix(in srgb,var(--lg-accent) 50%,transparent);--lg-card:linear-gradient(180deg,#fff,#f5f8fc);--lg-bd:rgba(15,33,55,.08);--lg-sh:0 50px 110px -30px rgba(15,33,55,.5),0 1px 0 #fff inset;--lg-tx:#0f2137;--lg-mu:#64748b;--lg-lb:#475569;--lg-inbg:#f2f5fa;--lg-inbd:rgba(15,33,55,.14);--lg-inhv:rgba(15,33,55,.28);--lg-infc:#fff;--lg-ph:#94a3b8;--lg-ic:#94a3b8;--lg-err:#dc2626;--lg-ok:#16a34a;--lg-ghost:rgba(15,33,55,.07);--lg-glowop:.4;
+  background:radial-gradient(760px 460px at 50% 28%,color-mix(in srgb,var(--lg-accent) 30%,transparent),transparent 70%),linear-gradient(160deg,#0f2137,#16324f);padding:20px;overflow-y:auto;align-items:center;justify-content:center}
+html[data-theme="dark"] #docs-login-overlay{--lg-a:color-mix(in srgb,var(--lg-accent) 58%,#0b1626);--lg-b:color-mix(in srgb,var(--lg-accent) 92%,#0b1626);--lg-card:linear-gradient(180deg,rgba(25,40,64,.97),rgba(11,21,37,.98));--lg-bd:rgba(255,255,255,.1);--lg-sh:0 50px 120px -30px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.12) inset;--lg-tx:#fff;--lg-mu:#9db0c6;--lg-lb:#b6c6d9;--lg-inbg:rgba(255,255,255,.05);--lg-inbd:rgba(255,255,255,.13);--lg-inhv:rgba(255,255,255,.24);--lg-infc:rgba(255,255,255,.08);--lg-ph:#6b8099;--lg-ic:#7f93ab;--lg-err:#fca5a5;--lg-ok:#86efac;--lg-ghost:rgba(255,255,255,.08);--lg-glowop:.7}
+#docs-login-overlay .admin-login-box,#docs-login-overlay .admin-login-box *,#docs-login-overlay .admin-login-box *::before,#docs-login-overlay .admin-login-box *::after{box-sizing:border-box}
+#docs-login-overlay .admin-login-box{position:relative;isolation:isolate;overflow:hidden;display:block;width:min(100%,420px);max-width:420px;max-height:none;margin:auto;padding:38px 32px 24px;border-radius:28px;text-align:center;color:var(--lg-tx);background:var(--lg-card);border:1px solid var(--lg-bd);box-shadow:var(--lg-sh);transform:none;animation:fcl-pop .4s cubic-bezier(.2,.9,.25,1.15)}
+@keyframes fcl-pop{from{opacity:0;transform:translateY(18px) scale(.94)}}
+#docs-login-overlay .admin-login-box::before{content:'';position:absolute;z-index:-1;left:50%;top:-130px;width:380px;height:300px;margin-left:-190px;border-radius:50%;background:radial-gradient(closest-side,var(--lg-glow),transparent);filter:blur(24px);opacity:var(--lg-glowop);animation:fcl-drift 7s ease-in-out infinite alternate;pointer-events:none}
+#docs-login-overlay .admin-login-box::after{content:'';position:absolute;z-index:-1;left:12%;right:12%;top:0;height:1px;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--lg-accent) 80%,#fff),transparent);opacity:.9;pointer-events:none}
+@keyframes fcl-drift{to{transform:translate(40px,18px) scale(1.12)}}
+#docs-login-overlay .admin-login-icon{position:relative;width:68px;height:68px;margin:0 auto 20px;border-radius:22px;display:grid;place-items:center;color:#fff;background:linear-gradient(145deg,var(--lg-b),var(--lg-a));border:0;box-shadow:0 14px 34px -8px var(--lg-glow),0 0 0 1px rgba(255,255,255,.18) inset,0 1px 0 rgba(255,255,255,.35) inset;animation:fcl-float 4s ease-in-out infinite}
+#docs-login-overlay .admin-login-icon svg{width:32px;height:32px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#docs-login-overlay .admin-login-icon::after{content:'';position:absolute;inset:-1px;border-radius:inherit;border:2px solid var(--lg-glow);animation:fcl-ring 2.8s ease-out infinite;pointer-events:none}
+@keyframes fcl-float{50%{transform:translateY(-4px)}}
+@keyframes fcl-ring{from{transform:scale(1);opacity:.9}to{transform:scale(1.55);opacity:0}}
+#docs-login-overlay .admin-login-title{margin:0;padding:0;font-size:20px;font-weight:700;letter-spacing:.2px;line-height:1.35;color:var(--lg-tx);text-align:center;text-wrap:balance}
+#docs-login-overlay .admin-login-subtitle{margin:6px 0 26px;padding:0;font-size:13.5px;line-height:1.6;color:var(--lg-mu);text-align:center}
+#docs-login-overlay .admin-login-field{text-align:left;margin:0 0 14px;padding:0}
+#docs-login-overlay .admin-login-field label{display:block;margin:0 0 7px 2px;font-size:12.5px;font-weight:600;color:var(--lg-lb)}
+#docs-login-overlay .admin-login-input-wrap{position:relative;display:block}
+#docs-login-overlay .admin-login-input-icon{position:absolute;left:15px;top:50%;width:19px;height:19px;margin-top:-9.5px;fill:none;stroke:currentColor;stroke-width:1.9;color:var(--lg-ic);pointer-events:none;transition:color .2s}
+#docs-login-overlay .admin-login-input-wrap:focus-within .admin-login-input-icon{color:var(--lg-accent)}
+#docs-login-overlay .admin-login-input-wrap input,#docs-login-overlay #tv-pin-input{display:block;width:100%;height:50px;margin:0;padding:0 46px;border-radius:15px;border:1px solid var(--lg-inbd);background:var(--lg-inbg);color:var(--lg-tx);font-family:inherit;font-size:15px;outline:none;box-shadow:none;transition:border-color .2s,box-shadow .2s,background .2s}
+#docs-login-overlay .admin-login-input-wrap input::placeholder,#docs-login-overlay #tv-pin-input::placeholder{color:var(--lg-ph)}
+#docs-login-overlay .admin-login-input-wrap input:hover,#docs-login-overlay #tv-pin-input:hover{border-color:var(--lg-inhv)}
+#docs-login-overlay .admin-login-input-wrap input:focus,#docs-login-overlay #tv-pin-input:focus{border-color:var(--lg-accent);background:var(--lg-infc);box-shadow:0 0 0 4px color-mix(in srgb,var(--lg-accent) 22%,transparent)}
+#docs-login-overlay .admin-login-eye{position:absolute;right:8px;top:50%;width:34px;height:34px;margin:-17px 0 0;padding:0;display:grid;place-items:center;border:0;border-radius:10px;background:transparent;color:var(--lg-ic);cursor:pointer;transition:background .2s,color .2s}
+#docs-login-overlay .admin-login-eye:hover{background:var(--lg-ghost);color:var(--lg-tx)}
+#docs-login-overlay .admin-login-eye svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9}
+#docs-login-overlay .admin-login-close{position:absolute;top:14px;right:14px;z-index:2;width:34px;height:34px;margin:0;padding:0;display:grid;place-items:center;border:0;border-radius:10px;background:transparent;color:var(--lg-ic);cursor:pointer;transition:background .2s,color .2s}
+#docs-login-overlay .admin-login-close:hover{background:var(--lg-ghost);color:var(--lg-tx)}
+#docs-login-overlay .admin-login-close svg{width:18px;height:18px}
+#docs-login-overlay .docs-login-msg{min-height:22px;margin:2px 0 10px;padding:0;font-size:13px;font-weight:500;line-height:1.5;color:var(--lg-err);text-align:center}
+#docs-login-overlay .docs-login-msg.ok,#docs-login-overlay .docs-login-msg.success{color:var(--lg-ok)}
+#docs-login-overlay .admin-login-submit{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;margin:0;padding:0 20px;border:0;border-radius:15px;font-family:inherit;font-size:15.5px;font-weight:700;letter-spacing:.3px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--lg-b),var(--lg-a));box-shadow:0 14px 30px -10px var(--lg-glow),0 1px 0 rgba(255,255,255,.3) inset;transition:transform .15s,filter .2s}
+#docs-login-overlay .admin-login-field+.admin-login-submit{margin-top:10px}
+#docs-login-overlay .admin-login-submit svg{display:none}
+#docs-login-overlay .admin-login-submit::after{content:'→';font-size:18px;line-height:1;transition:transform .2s}
+#docs-login-overlay .admin-login-submit::before{content:'';position:absolute;top:0;left:-70%;width:50%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-20deg);transition:left .6s;pointer-events:none}
+#docs-login-overlay .admin-login-submit:hover{transform:translateY(-1px);filter:brightness(1.08)}
+#docs-login-overlay .admin-login-submit:hover::before{left:130%}
+#docs-login-overlay .admin-login-submit:hover::after{transform:translateX(4px)}
+#docs-login-overlay .admin-login-submit:active{transform:scale(.99)}
+#docs-login-overlay .admin-login-submit:disabled{cursor:wait;filter:saturate(.7);transform:none}
+#docs-login-overlay .admin-login-submit:disabled::after{content:'';width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:fcl-spin .7s linear infinite}
+@keyframes fcl-spin{to{transform:rotate(1turn)}}
+#docs-login-overlay .admin-login-submit:focus-visible,#docs-login-overlay .admin-login-eye:focus-visible,#docs-login-overlay .admin-login-close:focus-visible{outline:2px solid var(--lg-accent);outline-offset:2px}
+@media (max-width:480px){#docs-login-overlay .admin-login-box{padding:30px 22px 20px;border-radius:24px}}
+@media (prefers-reduced-motion:reduce){#docs-login-overlay .admin-login-box,#docs-login-overlay .admin-login-box::before,#docs-login-overlay .admin-login-icon,#docs-login-overlay .admin-login-icon::after{animation:none!important}}
+
+#docs-login-overlay{position:fixed;inset:0;z-index:999;display:flex}
+#docs-login-overlay.hidden{display:none}
+</style>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -559,22 +577,30 @@
 
   <!-- ─── LOGIN GATE ─── -->
   <div id="docs-login-overlay" class="docs-login-overlay">
-    <div class="docs-login-box">
-      <div class="docs-login-logo">
-        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#1e3a5f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      </div>
-      <h2>เข้าสู่ระบบควบคุมเอกสาร</h2>
-      <p>กรุณาเข้าสู่ระบบก่อนเข้าใช้งานหน้านี้</p>
-      <div class="docs-login-field">
+    <div class="admin-login-box">
+      <div class="admin-login-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8.1 7.5 9.5 4.4-1.4 7.5-4.9 7.5-9.5V6z"/><rect x="9" y="11" width="6" height="4.5" rx="1"/><path d="M10 11V9.6a2 2 0 0 1 4 0V11"/></svg></div>
+      <h3 class="admin-login-title">เข้าสู่ระบบควบคุมเอกสาร</h3>
+      <p class="admin-login-subtitle">กรุณาเข้าสู่ระบบก่อนเข้าใช้งานหน้านี้</p>
+      <div class="admin-login-field">
         <label for="docs-login-user">ชื่อผู้ใช้</label>
-        <input type="text" id="docs-login-user" autocomplete="username" placeholder="ชื่อผู้ใช้">
+        <div class="admin-login-input-wrap">
+          <svg class="admin-login-input-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <input type="text" id="docs-login-user" autocomplete="username" placeholder="กรอกชื่อผู้ใช้" spellcheck="false" autocapitalize="off">
+        </div>
       </div>
-      <div class="docs-login-field">
+      <div class="admin-login-field">
         <label for="docs-login-pass">รหัสผ่าน</label>
-        <input type="password" id="docs-login-pass" autocomplete="current-password" placeholder="รหัสผ่าน">
+        <div class="admin-login-input-wrap">
+          <svg class="admin-login-input-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="docs-login-pass" autocomplete="current-password" placeholder="กรอกรหัสผ่าน">
+          <button type="button" id="btn-toggle-docs-pass" class="admin-login-eye" title="แสดง/ซ่อนรหัสผ่าน">
+          <svg class="eye-open" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="eye-closed" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.6 18.6 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+        </div>
       </div>
-      <div id="docs-login-msg" class="docs-login-msg"></div>
-      <button id="docs-login-submit" class="docs-login-btn">เข้าสู่ระบบ</button>
+      <div id="docs-login-msg" class="docs-login-msg" role="alert"></div>
+      <button id="docs-login-submit" class="admin-login-submit">เข้าสู่ระบบ</button>
     </div>
   </div>
 
@@ -1834,7 +1860,7 @@
 
     loginBtn.disabled = true;
     const originalText = loginBtn.textContent;
-    loginBtn.textContent = '🔄 กำลังตรวจสอบ...';
+    loginBtn.textContent = 'กำลังตรวจสอบ...';
 
     try {
       const { data: ok, error } = await sb.rpc('verify_docs_login', {
@@ -1865,6 +1891,25 @@
     }
   }
 
+  // แสดง/ซ่อนรหัสผ่าน (ปุ่มรูปตา)
+  const docsEyeBtn = document.getElementById('btn-toggle-docs-pass');
+  function resetDocsEye() {
+    loginPassInp.type = 'password';
+    if (docsEyeBtn) {
+      docsEyeBtn.querySelector('.eye-open').style.display = '';
+      docsEyeBtn.querySelector('.eye-closed').style.display = 'none';
+    }
+  }
+  if (docsEyeBtn) {
+    docsEyeBtn.addEventListener('click', () => {
+      const showing = loginPassInp.type === 'text';
+      loginPassInp.type = showing ? 'password' : 'text';
+      docsEyeBtn.querySelector('.eye-open').style.display = showing ? '' : 'none';
+      docsEyeBtn.querySelector('.eye-closed').style.display = showing ? 'none' : '';
+      loginPassInp.focus();
+    });
+  }
+
   loginBtn.addEventListener('click', attemptDocsLogin);
   loginPassInp.addEventListener('keydown', e => { if (e.key === 'Enter') attemptDocsLogin(); });
   loginUserInp.addEventListener('keydown', e => { if (e.key === 'Enter') loginPassInp.focus(); });
@@ -1875,6 +1920,7 @@
     sessionStorage.removeItem('fc_docs_authed');
     loginUserInp.value = '';
     loginPassInp.value = '';
+    resetDocsEye();
     loginMsg.textContent = '';
     loginOverlay.classList.remove('hidden');
     loginUserInp.focus();

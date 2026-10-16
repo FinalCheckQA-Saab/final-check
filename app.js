@@ -3398,7 +3398,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
 
     btn.disabled = true;
     const origHtml = btn.innerHTML;
-    btn.textContent = '🔄 กำลังตรวจสอบ...';
+    btn.textContent = 'กำลังตรวจสอบ...';
 
     try {
       const netInfo = await detectNetworkType(); // { network_type: 'mobile'|'wifi'|null, isp_org }
@@ -3614,7 +3614,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       try {
         $('btn-login-submit').disabled = true;
         const btnText = $('btn-login-submit').textContent;
-        $('btn-login-submit').textContent = '🔄 กำลังตรวจสอบ...';
+        $('btn-login-submit').textContent = 'กำลังตรวจสอบ...';
 
         const { data: ok, error } = await sb.rpc('verify_admin_login', {
           p_username: username,
