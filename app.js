@@ -1162,6 +1162,8 @@
       catalog.lines.forEach(l => { if (l.deptId === oldId) l.deptId = newId; });
       if (selection.deptId === oldId) selection.deptId = newId;
       fixHistory('deptId');
+      try { if (dashLineFilter === oldId) dashLineFilter = newId; } catch (e) { /* ยังไม่ได้ประกาศ — ข้าม */ }
+      try { if (expandedLineId === oldId) expandedLineId = newId; } catch (e) {}
     } else {
       catalog.jigs.forEach(j => { if (j.lineId === oldId) j.lineId = newId; });
       if (selection.lineId === oldId) selection.lineId = newId;
@@ -1171,7 +1173,6 @@
         skips.forEach(x => { if (x.lineId === oldId) { x.lineId = newId; ch = true; } });
         if (ch) saveJigSkips(skips);
       } catch (e) { console.warn('fix skips error:', e); }
-      try { if (dashLineFilter === oldId) dashLineFilter = newId; } catch (e) { /* ยังไม่ได้ประกาศ — ข้าม */ }
     }
   }
 
@@ -7872,69 +7873,87 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   }
 
   let lineSearchQuery = '';
-  let expandedLineId = null; // Model ที่กำลังเปิดดูรายละเอียดราย Part อยู่ (คลิกที่การ์ด Model เพื่อเปิด/ปิด)
+  let expandedLineId = null; // Line (id ของ dept) ที่กำลังเปิดดูรายละเอียดราย Part อยู่ (คลิกที่การ์ด Line เพื่อเปิด/ปิด)
+
+  /* 🆕 รวมสถานะรายวันขึ้นมาเป็นระดับ "Line" (dept) — ใช้ผลของ computeLineStatusToday() ของแต่ละ Model ภายใน Line นั้น
+     - ตัวนับ = Part number (ตัด Part ที่ Mark "ไม่ได้ผลิต" ออกแล้ว)
+     - พบ NG ใน Model ใดก็ได้ = Line เป็นสีแดง */
+  function computeDeptStatusToday() {
+    const perModel = computeLineStatusToday();
+    const out = {};
+    catalog.depts.forEach(d => {
+      const models = catalog.lines.filter(l => l.deptId === d.id);
+      const details = [];
+      let anyNg = false;
+      models.forEach(l => {
+        const info = perModel[l.id];
+        if (info && info.status === 'ng') anyNg = true;
+        ((info && info.jigDetails) || []).forEach(j => details.push({ ...j, model: l.name || l.id }));
+      });
+      const active = details.filter(j => j.status !== 'skipped');
+      const total = active.length;
+      const checked = active.filter(j => j.status === 'ok' || j.status === 'ng').length;
+      const skipped = details.length - total;
+      let status;
+      if (!details.length) status = undefined;            // Line ที่ยังไม่มี Part
+      else if (anyNg) status = 'ng';
+      else if (total === 0 || checked >= total) status = 'ok';
+      else status = checked > 0 ? 'partial' : undefined;  // ยังไม่ตรวจเลย = เทา
+      out[d.id] = { status, checked, total, skipped, models: models.length, jigDetails: details };
+    });
+    return out;
+  }
 
   function renderLineStatusList() {
     const listEl = $('line-status-list');
     if (!listEl) return;
-    const statusMap = computeLineStatusToday();
+    const statusMap = computeDeptStatusToday();
     const q = lineSearchQuery.trim().toLowerCase();
 
-    const filtered = catalog.lines.filter(l => !q || (l.name || l.id).toLowerCase().includes(q));
+    // ค้นหาได้ทั้งชื่อ Line และชื่อ Model ภายใน Line นั้น
+    const filtered = catalog.depts.filter(d => !q
+      || (d.name || d.id).toLowerCase().includes(q)
+      || catalog.lines.some(l => l.deptId === d.id && (l.name || l.id).toLowerCase().includes(q)));
 
     if (!filtered.length) {
-      listEl.innerHTML = `<div class="line-status-empty">${q ? 'ไม่พบ Model ที่ค้นหา' : 'ยังไม่มี Model ในระบบ'}</div>`;
+      listEl.innerHTML = `<div class="line-status-empty">${q ? 'ไม่พบ Line ที่ค้นหา' : 'ยังไม่มี Line ในระบบ'}</div>`;
       return;
     }
 
-    // จัดกลุ่มตาม Line แล้วเรียงชื่อ Model ในแต่ละกลุ่มตามตัวอักษร
-    const deptOrder = catalog.depts.map(d => d.id);
-    const groups = {}; // deptId -> [lines]
-    filtered.forEach(l => {
-      const key = l.deptId || '__none__';
-      (groups[key] = groups[key] || []).push(l);
-    });
-    Object.values(groups).forEach(arr => arr.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'th')));
+    // จัดกลุ่ม Line ตามแผนก (ลำดับแผนกตามที่ตั้งไว้ในระบบ)
+    const secNames = getSections();
+    const extra = [...new Set(filtered.map(deptSection))].filter(n => !secNames.includes(n));
+    const orderedSecs = [...secNames, ...extra].filter(n => filtered.some(d => deptSection(d) === n));
 
-    const orderedDeptIds = [...deptOrder.filter(id => groups[id]), ...Object.keys(groups).filter(id => !deptOrder.includes(id))];
-
-    listEl.innerHTML = orderedDeptIds.map(deptId => {
-      const dept = catalog.depts.find(d => d.id === deptId);
-      const deptName = dept ? dept.name : 'ไม่ระบุ Line';
-      const cards = groups[deptId].map(l => {
-        const info = statusMap[l.id]; // undefined | { status: 'ok'|'ng'|'partial', checked, total, jigDetails }
-        const status = info ? info.status : undefined;
+    listEl.innerHTML = orderedSecs.map(sn => {
+      const ds = filtered.filter(d => deptSection(d) === sn);
+      let secChecked = 0, secTotal = 0;
+      const cards = ds.map(d => {
+        const info = statusMap[d.id];
+        secChecked += info.checked; secTotal += info.total;
+        const status = info.status;
         const statusClass = status === 'ng' ? 'status-ng' : status === 'ok' ? 'status-ok' : status === 'partial' ? 'status-partial' : '';
-        const progress = info && info.total ? ` (${info.checked}/${info.total} Part)` : '';
-        const skipNote = info && info.skipped ? ` [ข้าม ${info.skipped} ไม่ได้ผลิต]` : '';
+        const progress = info.total ? ` (${info.checked}/${info.total} Part)` : '';
+        const skipNote = info.skipped ? ` [ข้าม ${info.skipped} ไม่ได้ผลิต]` : '';
         const statusLabel = status === 'ng' ? 'พบ NG' + progress + skipNote
           : status === 'ok' ? 'ตรวจแล้ว ครบทุก Part' + skipNote
           : status === 'partial' ? 'กำลังตรวจ' + progress + skipNote
           : 'ยังไม่ตรวจวันนี้';
-        const progressBadge = (status === 'partial' || status === 'ng') && info && info.total
+        const progressBadge = (status === 'partial' || status === 'ng') && info.total
           ? `<span class="line-status-card-progress">${info.checked}/${info.total}</span>` : '';
-        const isOpen = expandedLineId === l.id;
+        const isOpen = expandedLineId === d.id;
         return `
-          <div class="line-status-card ${statusClass} ${isOpen ? 'expanded' : ''}" data-line="${escHtml(l.id)}" title="คลิกเพื่อดูว่า Part ไหนตรวจแล้วบ้าง — ${escHtml(l.name || l.id)}: ${statusLabel}">
+          <div class="line-status-card ${statusClass} ${isOpen ? 'expanded' : ''}" data-line="${escHtml(d.id)}" title="คลิกเพื่อดูว่า Part ไหนตรวจแล้วบ้าง — ${escHtml(d.name || d.id)}: ${statusLabel}">
             <span class="line-status-card-dot"></span>
-            <span class="line-status-card-name">${escHtml(l.name || l.id)}</span>
+            <span class="line-status-card-name">${escHtml(d.name || d.id)}</span>
             ${progressBadge}
           </div>`;
       }).join('');
-
-      // ── แผงรายละเอียดราย Part (เปิดเมื่อคลิกการ์ด Model) — บอกชัดว่า Part ไหนตรวจแล้ว/ยังไม่ตรวจ/ไม่ได้ผลิตวันนี้ ──
-      const expandedLine = groups[deptId].find(l => l.id === expandedLineId);
-      const detailPanel = expandedLine ? renderJigDetailPanel(expandedLine, statusMap[expandedLine.id]) : '';
-
-      // 🆕 ตัวเลขหลังชื่อ Line = (ตรวจแล้ว/ทั้งหมด) นับเป็น Part number — หักรายการที่ Mark "ไม่ได้ผลิต" ออกแล้ว
-      let deptChecked = 0, deptTotal = 0;
-      groups[deptId].forEach(l => {
-        const det = (statusMap[l.id] && statusMap[l.id].jigDetails) || [];
-        det.forEach(j => { if (j.status === 'skipped') return; deptTotal++; if (j.status === 'ok' || j.status === 'ng') deptChecked++; });
-      });
+      const openDept = ds.find(d => d.id === expandedLineId);
+      const detailPanel = openDept ? renderJigDetailPanel(openDept, statusMap[openDept.id]) : '';
       return `
         <div class="line-status-dept-group">
-          <div class="line-status-dept-title">${escHtml(deptName)} <span style="opacity:.6" title="ตรวจแล้ว / Part ที่ต้องตรวจวันนี้ (ไม่นับที่ Mark ไม่ได้ผลิต)">(${deptChecked}/${deptTotal})</span></div>
+          <div class="line-status-dept-title">${escHtml(sn)} <span style="opacity:.6" title="ตรวจแล้ว / Part ที่ต้องตรวจวันนี้ (ไม่นับที่ Mark ไม่ได้ผลิต)">(${secChecked}/${secTotal})</span></div>
           <div class="line-status-grid">${cards}</div>
           ${detailPanel}
         </div>`;
@@ -7942,23 +7961,21 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
 
     listEl.querySelectorAll('.line-status-card').forEach(card => {
       card.addEventListener('click', () => {
-        const lineId = card.dataset.line;
-        const isSame = expandedLineId === lineId;
-        expandedLineId = isSame ? null : lineId;
-        // 🆕 คลิกการ์ด Model แล้ว sync กับตัวกรอง Model ของ Dashboard ด้วย (เดิมกรอง KPI/กราฟ
-        // ไม่ผูกกับการคลิกการ์ดเลย ทำให้คลิก Model ไหนข้อมูล/กราฟด้านล่างก็ไม่เปลี่ยนตาม)
-        // คลิกซ้ำที่การ์ดเดิม (ยุบแผง) = กลับไปดู "ทุก Model" เหมือนเดิม
-        dashLineFilter = isSame ? 'all' : lineId;
-        refreshDashboard(); // เรียกตัวนี้แทน renderLineStatusList() เพราะจะ re-render การ์ดนี้ให้ + อัปเดต KPI/กราฟ/dropdown ให้ตรงกันในทีเดียว
+        const deptId = card.dataset.line;
+        const isSame = expandedLineId === deptId;
+        expandedLineId = isSame ? null : deptId;
+        // คลิกการ์ด Line = sync กับตัวกรอง Line ของ Dashboard · คลิกซ้ำ (ยุบแผง) = กลับไปดู "ทุก Line"
+        dashLineFilter = isSame ? 'all' : deptId;
+        refreshDashboard();
       });
     });
   }
 
-  // ── รายละเอียดราย Part ของ Model ที่เปิดดูอยู่ — ใครตรวจแล้ว/ยังไม่ตรวจ/ไม่ได้ผลิตวันนี้ ──
-  function renderJigDetailPanel(line, info) {
+  // ── รายละเอียดราย Part ของ Line ที่เปิดดูอยู่ (แยกตาม Model) — ตรวจแล้ว/ยังไม่ตรวจ/ไม่ได้ผลิตวันนี้ ──
+  function renderJigDetailPanel(dept, info) {
     const jigDetails = (info && info.jigDetails) || [];
-    if (!jigDetails.length) return '<div class="line-jig-detail-panel"><span class="line-jig-detail-empty">ยังไม่มี Part ใน Model นี้</span></div>';
-    const chips = jigDetails.map(j => {
+    if (!jigDetails.length) return '<div class="line-jig-detail-panel"><span class="line-jig-detail-empty">ยังไม่มี Part ใน Line นี้</span></div>';
+    const chipHtml = j => {
       let cls, icon, label;
       if (j.status === 'ok') { cls = 'jd-ok'; icon = '✅'; label = `ตรวจแล้ว ${j.time || ''}`; }
       else if (j.status === 'ng') { cls = 'jd-ng'; icon = '⚠️'; label = `ตรวจแล้ว ${j.time || ''} (พบ NG)`; }
@@ -7972,8 +7989,15 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
             <span class="jd-status">${label}</span>
           </span>
         </div>`;
+    };
+    const models = [...new Set(jigDetails.map(j => j.model))];
+    const body = models.map(m => {
+      const part = jigDetails.filter(j => j.model === m);
+      const n = part.filter(j => j.status !== 'skipped').length, c = part.filter(j => j.status === 'ok' || j.status === 'ng').length;
+      return (models.length > 1 ? `<div class="line-jig-detail-model">${escHtml(m)} <span>${c}/${n}</span></div>` : '')
+        + `<div class="line-jig-detail-grid">${part.map(chipHtml).join('')}</div>`;
     }).join('');
-    return `<div class="line-jig-detail-panel"><div class="line-jig-detail-grid">${chips}</div></div>`;
+    return `<div class="line-jig-detail-panel">${body}</div>`;
   }
 
   function bindLineSearch() {
@@ -7994,10 +8018,9 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
      เพื่อให้เลือกดู Model ที่ยังไม่เคยตรวจได้ด้วย — เห็นชัดว่า "ยังไม่มีข้อมูล") */
   function populateDashLineOptions() {
     const sel = $('dash-line-filter');
-    const sortedLines = [...catalog.lines].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'th'));
-    sel.innerHTML = '<option value="all">ทุก Model (All)</option>' +
-      sortedLines.map(l => `<option value="${escHtml(l.id)}">${escHtml(l.name)}</option>`).join('');
-    if (dashLineFilter !== 'all' && catalog.lines.some(l => l.id === dashLineFilter)) {
+    sel.innerHTML = '<option value="all">ทุก Line (All)</option>' +
+      catalog.depts.map(d => `<option value="${escHtml(d.id)}">${escHtml(d.name)}</option>`).join('');
+    if (dashLineFilter !== 'all' && catalog.depts.some(d => d.id === dashLineFilter)) {
       sel.value = dashLineFilter;
     } else {
       sel.value = 'all';
@@ -8005,10 +8028,19 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     }
   }
 
-  // 🆕 หาชื่อ Model จาก id (ใช้โชว์ในหัวข้อการ์ดต่าง ๆ เมื่อกรองดูเฉพาะ Model เดียว)
+  // 🆕 หาชื่อ Line (dept) จาก id — ใช้โชว์ในหัวข้อการ์ดเมื่อกรองดูเฉพาะ Line เดียว
   function lineNameById(id) {
-    const l = catalog.lines.find(x => x.id === id);
-    return l ? (l.name || l.id) : id;
+    const d = catalog.depts.find(x => x.id === id);
+    return d ? (d.name || d.id) : id;
+  }
+  // 🆕 รหัส Line (dept) ของประวัติหนึ่งรายการ — ใช้ deptId ที่บันทึกไว้ ถ้าไม่มีให้ย้อนหาจาก Model
+  function histDeptId(h) {
+    if (h.deptId) return h.deptId;
+    const l = catalog.lines.find(x => x.id === h.lineId);
+    return l ? l.deptId : '';
+  }
+  function histDeptName(h) {
+    return h.deptName || lineNameById(histDeptId(h)) || 'ไม่ระบุ';
   }
 
   function refreshDashboard() {
@@ -8021,23 +8053,20 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     let hist = dashMonthFilter === 'all'
       ? allHist
       : allHist.filter(h => (h.date || '').slice(0, 7) === dashMonthFilter);
-    if (dashLineFilter !== 'all') hist = hist.filter(h => h.lineId === dashLineFilter);
+    if (dashLineFilter !== 'all') hist = hist.filter(h => histDeptId(h) === dashLineFilter);
     renderKpis(hist, allHist);
     renderTrendChart(hist, dashMonthFilter);
     renderByLineChart(hist);
     renderDeptDonut(hist);
     renderNgRanking(hist);
 
-    // 🆕 ใส่ชื่อ Model ที่กำลังกรองอยู่ต่อท้ายหัวข้อการ์ดต่าง ๆ ให้เห็นชัดว่าตอนนี้ดูข้อมูลของ Model ไหนอยู่
+    // 🆕 ใส่ชื่อ Line ที่กำลังกรองอยู่ต่อท้ายหัวข้อการ์ดต่าง ๆ ให้เห็นชัดว่าตอนนี้ดูข้อมูลของ Line ไหนอยู่
     const lineSuffix = dashLineFilter !== 'all' ? ` — ${lineNameById(dashLineFilter)}` : '';
     if (lineSuffix) $('trend-title-text').textContent += lineSuffix;
-    $('byline-title-text').textContent   = 'NG ตาม Model' + lineSuffix;
-    $('donut-title-text').textContent    = 'อัตราผ่านตาม Model' + lineSuffix;
+    $('byline-title-text').textContent   = 'NG ตาม Line' + lineSuffix;
+    $('donut-title-text').textContent    = 'อัตราผ่านตาม Line' + lineSuffix;
     $('ng-rank-title-text').textContent  = 'จุดตรวจที่พบ NG บ่อยที่สุด' + lineSuffix;
-    // 🆕 หัวข้อ NG วันนี้ แสดงชื่อ "Line" (ระดับบนของ Model) แทนชื่อ Model — ข้อมูลในการ์ดยังกรองตาม Model ที่เลือกเหมือนเดิม
-    const ngLineObj = dashLineFilter !== 'all' ? catalog.lines.find(l => l.id === dashLineFilter) : null;
-    const ngDeptObj = ngLineObj ? catalog.depts.find(d => d.id === ngLineObj.deptId) : null;
-    $('ng-today-title-text').textContent = 'NG วันนี้' + (ngLineObj ? ` — ${ngDeptObj ? ngDeptObj.name : lineNameById(dashLineFilter)}` : '');
+    $('ng-today-title-text').textContent = 'NG วันนี้' + lineSuffix;
   }
 
   // ── สร้างรายการ NG แบบละเอียด (Part ไหน ข้อไหน ใครตรวจ วันไหน กี่โมง) จาก history subset ที่ส่งเข้ามา ──
@@ -8073,7 +8102,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     const t = todayStr();
     // 🆕 กรองตาม Model ที่กำลังเลือกดูอยู่ด้วย (เดิมโชว์ทุก Model เสมอ ไม่ผูกกับการคลิกการ์ด Model)
     let todayHist = allHist.filter(h => h.date === t);
-    if (dashLineFilter !== 'all') todayHist = todayHist.filter(h => h.lineId === dashLineFilter);
+    if (dashLineFilter !== 'all') todayHist = todayHist.filter(h => histDeptId(h) === dashLineFilter);
     const rows = buildNgDetailRows(todayHist);
 
     if (countEl) countEl.textContent = rows.length ? `${rows.length} รายการ` : '';
@@ -8163,7 +8192,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       const t = todayStr();
       const y = localDateStr(new Date(Date.now() - 86400000));
       let scoped = allHist;
-      if (dashLineFilter !== 'all') scoped = scoped.filter(h => h.lineId === dashLineFilter);
+      if (dashLineFilter !== 'all') scoped = scoped.filter(h => histDeptId(h) === dashLineFilter);
       const todayHist     = scoped.filter(h => h.date === t);
       const yesterdayHist = scoped.filter(h => h.date === y);
       const todayNg     = todayHist.flatMap(h => h.items.filter(i => i.status === 'ng')).length;
@@ -8247,7 +8276,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     });
   }
 
-  /* ── NG by Model Bar Chart ── */
+  /* ── NG by Line Bar Chart ── */
   function renderByLineChart(hist) {
     const style = getComputedStyle(document.documentElement);
     const ng  = style.getPropertyValue('--ng').trim();
@@ -8258,7 +8287,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     hist.forEach(h => {
       const ngCount = h.items.filter(i => i.status === 'ng').length;
       if (!ngCount) return;
-      const key = h.lineName || h.lineId || 'Unknown';
+      const key = histDeptName(h);
       counts[key] = (counts[key] || 0) + ngCount;
     });
     const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 8);
@@ -8286,7 +8315,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     });
   }
 
-  /* ── Model Donut (เดิมเป็น Dept Donut — เปลี่ยนมาจัดกลุ่มตาม Model ตามที่พี่บีขอ) ── */
+  /* ── Line Donut — จัดกลุ่มตาม Line (dept) ── */
   function renderDeptDonut(hist) {
     const style = getComputedStyle(document.documentElement);
     const colors = [
@@ -8298,7 +8327,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
 
     const deptMap = {};
     hist.forEach(h => {
-      const key = h.lineName || h.lineId || 'ไม่ระบุ';
+      const key = histDeptName(h);
       if (!deptMap[key]) deptMap[key] = { pass: 0, total: 0 };
       deptMap[key].total++;
       if (recPass(h)) deptMap[key].pass++;

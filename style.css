@@ -4085,3 +4085,8 @@ html[data-palette="clean"][data-theme="light"] .sidebar-logout:hover { backgroun
 .adm-dept-header.is-static:hover { filter: none; }
 #adm-line-list .adm-dept-header, #adm-dept-list .adm-dept-header { margin-top: 16px; }
 #adm-line-list .adm-dept-header:first-child, #adm-dept-list .adm-dept-header:first-child { margin-top: 0; }
+
+/* รายละเอียด Part ใน Dashboard — หัวข้อ Model ภายใต้ Line ที่เปิดอยู่ */
+.line-jig-detail-model { display: flex; align-items: center; gap: 8px; margin: 12px 2px 6px; font-size: 12px; font-weight: 700; color: var(--text-heading); }
+.line-jig-detail-model:first-child { margin-top: 2px; }
+.line-jig-detail-model span { font-weight: 700; font-size: 11px; color: var(--accent); background: var(--accent-dim); padding: 1px 9px; border-radius: 999px; }
