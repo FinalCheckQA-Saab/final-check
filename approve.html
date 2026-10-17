@@ -649,6 +649,14 @@ input[type=password]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0
   #app>.card,.done-banner,.done-banner::after,.ring .bar,.tl-step.now .tl-dot{animation:none!important}
 }
 
+
+/* ═════ v3.1 — แถว "มาตรฐาน" ใต้ชื่อหัวข้อ (ช่วงตัวเลข + เกณฑ์ + วิธีตรวจ) ═════ */
+.ispec{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:5px;font-size:12px;line-height:1.5;color:var(--muted)}
+.ispec b{font-weight:700;color:var(--accent)}
+.spec-chip{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:8px;background:var(--accent-dim);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);color:var(--navy);font-family:var(--num);font-weight:600}
+.spec-txt{color:#475569}
+.spec-meth{color:var(--muted)}
+
 </style>
 </head>
 <body>
@@ -1048,6 +1056,20 @@ input[type=password]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0
     }).join('');
     return `<div class="pchips">${chips}</div>`;
   }
+  // มาตรฐาน/เกณฑ์ของหัวข้อ: หัวข้อตัวเลข = ช่วง min ถึง max + หน่วย (เหมือน "เกณฑ์" ในหน้าตรวจ)
+  // หัวข้อทั่วไป = ข้อความเกณฑ์ (sub) ; ทุกหัวข้อแสดงวิธีตรวจ (method) ถ้ามี
+  function specLine(item) {
+    const hasMin = item.min != null && item.min !== '';
+    const hasMax = item.max != null && item.max !== '';
+    const unit = item.unit ? ' ' + esc(item.unit) : '';
+    const parts = [];
+    if (item.type === 'numeric' && (hasMin || hasMax)) {
+      parts.push(`<span class="spec-chip"><b>มาตรฐาน</b>${hasMin ? esc(item.min) : '—'} ถึง ${hasMax ? esc(item.max) : '—'}${unit}</span>`);
+    }
+    if (item.sub) parts.push(`<span class="spec-txt">${parts.length ? '' : '<b>มาตรฐาน</b> '}${esc(item.sub)}</span>`);
+    if (item.method) parts.push(`<span class="spec-meth">วิธีตรวจ: ${esc(item.method)}</span>`);
+    return parts.length ? `<div class="ispec">${parts.join('')}</div>` : '';
+  }
   function itemRow(item, idx) {
     const st = item.status || '';
     const label = st === 'ok' ? 'ผ่าน' : st === 'fixed' ? 'แก้ไขแล้ว' : st === 'ng' ? 'NG' : '-';
@@ -1055,6 +1077,7 @@ input[type=password]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0
       <span class="inum">${idx + 1}</span>
       <div class="ibody">
         <div class="ilabel">${esc(item.label)}</div>
+        ${specLine(item)}
         ${pieceChips(item)}
         ${item.note ? `<div class="inote">${esc(item.note)}</div>` : ''}
       </div>
