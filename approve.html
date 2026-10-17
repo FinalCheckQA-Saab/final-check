@@ -683,6 +683,12 @@ input[type=password]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0
 .pending-dept-group .pending-line-group{margin-bottom:14px}
 .pending-dept-group .pending-line-header{padding:8px 12px;font-size:14px;color:var(--navy);background:#fff;border:1px solid var(--border);border-radius:10px}
 .pending-dept-group .pending-line-header .pending-line-count{background:var(--accent-dim);color:var(--navy)}
+
+.line-table .dept-row{cursor:pointer;user-select:none}
+.line-table .dept-row .dept-name .chev{margin-left:auto;display:inline-block;width:9px;height:9px;border-right:2.5px solid var(--muted);border-bottom:2.5px solid var(--muted);transform:rotate(-45deg);transition:transform .2s;flex:none}
+.line-table .dept-row.open .dept-name .chev{transform:rotate(45deg)}
+.line-table .dept-row:hover td{filter:brightness(.97)}
+.line-table .model-row[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -925,14 +931,14 @@ input[type=password]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0
         <table class="line-table">
           <thead><tr><th>Line / Model</th><th>รอตรวจสอบ</th><th>ตรวจสอบแล้ว</th></tr></thead>
           <tbody>
-            ${deptRows.map(([dName, d, models]) => `
-              <tr class="dept-row">
-                <td class="line-name-cell"><div><span class="dept-name"><i class="ti ti-factory"></i>${esc(dName)}</span></div><div class="lt-bar" title="${d.approved}/${d.pending + d.approved}"><i style="width:${Math.round(d.approved / (d.pending + d.approved) * 100)}%"></i></div></td>
+            ${deptRows.map(([dName, d, models], di) => `
+              <tr class="dept-row" data-d="${di}" role="button" aria-expanded="false">
+                <td class="line-name-cell"><div><span class="dept-name"><i class="ti ti-factory"></i>${esc(dName)}<i class="chev"></i></span></div><div class="lt-bar" title="${d.approved}/${d.pending + d.approved}"><i style="width:${Math.round(d.approved / (d.pending + d.approved) * 100)}%"></i></div></td>
                 <td>${d.pending ? `<span class="mini-badge pending">${d.pending}</span>` : `<span class="mini-badge zero">0</span>`}</td>
                 <td>${d.approved ? `<span class="mini-badge approved">${d.approved}</span>` : `<span class="mini-badge zero">0</span>`}</td>
               </tr>
               ${models.map(([name, g]) => `
-              <tr class="model-row">
+              <tr class="model-row" data-d="${di}" hidden>
                 <td class="line-name-cell"><div>${esc(name)}</div><div class="lt-bar" title="${g.approved}/${g.pending + g.approved}"><i style="width:${Math.round(g.approved / (g.pending + g.approved) * 100)}%"></i></div></td>
                 <td>${g.pending ? `<span class="mini-badge pending">${g.pending}</span>` : `<span class="mini-badge zero">0</span>`}</td>
                 <td>${g.approved ? `<span class="mini-badge approved">${g.approved}</span>` : `<span class="mini-badge zero">0</span>`}</td>
@@ -990,6 +996,15 @@ input[type=password]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0
         `).join('') : `<div class="center-msg" style="padding:16px 0;">🎉 ไม่มีรายการค้างตรวจสอบ</div>`}
       </div>
     `;
+
+    // ยุบ/ขยาย Model ใต้แต่ละ Line (เริ่มต้นยุบไว้เสมอ)
+    dash.querySelectorAll('.dept-row').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const open = tr.classList.toggle('open');
+        tr.setAttribute('aria-expanded', open);
+        dash.querySelectorAll('.model-row[data-d="' + tr.dataset.d + '"]').forEach(x => { x.hidden = !open; });
+      });
+    });
 
     dash.querySelectorAll('.btn-bulk').forEach(btn => {
       btn.addEventListener('click', () => bulkApprove(btn.dataset.line, btn.dataset.ids.split(',').filter(Boolean), btn));
