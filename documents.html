@@ -818,6 +818,64 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
 .lg-toggle-all:hover{background:#e0e8f5}
 .stat-row,.filter-grid,#add-doc-form,#import-preview,.section-title{scroll-margin-top:14px}
 @media (prefers-reduced-motion:reduce){.lg-body,.lg-chev{transition:none}}
+
+/* ── 🆕 ปุ่ม "ดึงจาก Part ที่สร้างไว้ในระบบ" — ไล่สีน้ำเงิน มีไอคอนวงกลมหมุนได้ ── */
+.action-row .btn-import{
+  position:relative;overflow:hidden;isolation:isolate;gap:10px;padding:10px 20px 10px 9px;border-radius:12px;
+  color:#fff;font-weight:700;letter-spacing:.2px;
+  border:1px solid #1e56b3;background:linear-gradient(135deg,#4a8df0,#2f6fd1 55%,#1e56b3);
+  box-shadow:0 8px 18px -8px rgba(47,111,209,.75),inset 0 1px 0 rgba(255,255,255,.35);
+  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;
+}
+.action-row .btn-import::after{
+  content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);
+  transform:translateX(-130%);transition:transform .6s ease;
+}
+.action-row .btn-import svg.di{
+  box-sizing:content-box;width:15px;height:15px;padding:6px;border-radius:50%;flex:none;
+  background:rgba(255,255,255,.22);box-shadow:inset 0 0 0 1px rgba(255,255,255,.38);
+  transition:transform .6s cubic-bezier(.34,1.56,.64,1),background .2s;
+}
+.action-row .btn-import:hover{
+  background:linear-gradient(135deg,#5b9bf5,#3a7be0 55%,#2563c7);transform:translateY(-2px);filter:saturate(1.08);
+  box-shadow:0 14px 24px -10px rgba(47,111,209,.85),inset 0 1px 0 rgba(255,255,255,.4);
+}
+.action-row .btn-import:hover::after{transform:translateX(130%)}
+.action-row .btn-import:hover svg.di{transform:rotate(360deg);background:rgba(255,255,255,.34)}
+.action-row .btn-import:active{transform:translateY(0) scale(.98);box-shadow:0 4px 10px -6px rgba(47,111,209,.8)}
+.action-row .btn-import:focus-visible{outline:3px solid rgba(47,111,209,.4);outline-offset:2px}
+.action-row .btn-import:disabled{opacity:.65;cursor:progress;transform:none}
+
+/* ── 🆕 ปุ่ม "ขยายทั้งหมด / ยุบทั้งหมด" — แคปซูลกรมท่า ไอคอนทอง ── */
+.lg-toggle-all{
+  position:relative;overflow:hidden;isolation:isolate;display:inline-flex;align-items:center;gap:7px;
+  padding:5px 14px 5px 6px;border-radius:999px;border:1px solid rgba(255,255,255,.18);
+  font:inherit;font-size:12px;font-weight:700;letter-spacing:.2px;color:#fff;cursor:pointer;
+  background:linear-gradient(135deg,var(--navy-light),var(--navy));
+  box-shadow:0 6px 14px -7px rgba(30,58,95,.8),inset 0 1px 0 rgba(255,255,255,.22);
+  transition:transform .18s ease,box-shadow .18s ease;
+}
+.lg-toggle-all::after{
+  content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.28) 50%,transparent 70%);
+  transform:translateX(-130%);transition:transform .6s ease;
+}
+.lgt-ico{
+  box-sizing:content-box;width:14px;height:14px;padding:4px;border-radius:50%;flex:none;color:#3a2a06;
+  background:linear-gradient(135deg,#f3d27a,var(--gold));box-shadow:0 2px 6px rgba(184,144,58,.55);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+}
+.lg-toggle-all.is-open .lgt-ico{transform:rotate(180deg)}
+.lg-toggle-all:hover{background:linear-gradient(135deg,var(--navy-light),var(--navy));transform:translateY(-1px);box-shadow:0 10px 18px -8px rgba(30,58,95,.85),inset 0 1px 0 rgba(255,255,255,.28)}
+.lg-toggle-all:hover::after{transform:translateX(130%)}
+.lg-toggle-all:active{transform:scale(.97)}
+.lg-toggle-all:focus-visible{outline:3px solid rgba(47,111,209,.4);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){
+  .action-row .btn-import,.action-row .btn-import svg.di,.action-row .btn-import::after,.lg-toggle-all,.lg-toggle-all::after,.lgt-ico{transition:none}
+  .action-row .btn-import:hover,.lg-toggle-all:hover{transform:none}
+  .action-row .btn-import:hover svg.di{transform:none}
+}
 </style>
 </head>
 <body>
@@ -1294,7 +1352,7 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
       <div id="import-preview"></div>
 
       <div class="card">
-        <div class="section-title"><span>รายการเอกสาร</span><span class="count-pill">${filtered.length}</span>${grouped.length ? `<button type="button" class="lg-toggle-all" id="btn-lines-toggle">ขยายทั้งหมด</button>` : ''}</div>
+        <div class="section-title"><span>รายการเอกสาร</span><span class="count-pill">${filtered.length}</span>${grouped.length ? `<button type="button" class="lg-toggle-all" id="btn-lines-toggle"><svg class="lgt-ico" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg><span class="lgt-label">ขยายทั้งหมด</span></button>` : ''}</div>
         ${grouped.length ? grouped.map(g => {
           // กลุ่มเปิดเมื่อ: ผู้ใช้กดขยายไว้ • กำลังค้นหา (ให้เห็นผลลัพธ์) • มีแถวที่กำลังแก้ไข Rev อยู่
           const open = expandedLines.has(g.line) || !!filters.q || !!(editingRevDocId && g.docs.some(d => d.id === editingRevDocId));
@@ -1342,7 +1400,9 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
     const syncToggleAll = () => {
       const b = document.getElementById('btn-lines-toggle'); if (!b) return;
       const gs = [...document.querySelectorAll('.line-group')];
-      b.textContent = gs.length && gs.every(g => !g.classList.contains('collapsed')) ? 'ยุบทั้งหมด' : 'ขยายทั้งหมด';
+      const allOpen = gs.length && gs.every(g => !g.classList.contains('collapsed'));
+      b.querySelector('.lgt-label').textContent = allOpen ? 'ยุบทั้งหมด' : 'ขยายทั้งหมด';
+      b.classList.toggle('is-open', !!allOpen);
     };
     document.querySelectorAll('.line-group-header').forEach(h => {
       const toggle = () => {
