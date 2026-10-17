@@ -67,11 +67,11 @@ header.hd-min .bar a.back{padding:5px 12px}
 .bar button:hover svg{transform:rotate(90deg)}
 .bar button.busy svg{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.bar #btn-hd,.bar #btn-mode{padding:8px 10px}.bar #btn-hd svg{transition:transform .25s}.bar #btn-hd:hover svg{transform:none}
+.bar #btn-hd{padding:8px 10px}.bar #btn-hd svg{transition:transform .25s}.bar #btn-hd:hover svg{transform:none}
 header.hd-min{padding:8px 24px;position:sticky;top:0;z-index:20}
 header.hd-min>div:first-child{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 header.hd-min h1{font-size:18px;margin:0}header.hd-min small{font-size:13px;margin:0;padding-left:14px;border-left:1px solid rgba(255,255,255,.25)}
-header.hd-min .bar{gap:8px}header.hd-min .bar button{padding:5px 12px}header.hd-min .bar #btn-hd,header.hd-min .bar #btn-mode{padding:5px 9px}
+header.hd-min .bar{gap:8px}header.hd-min .bar button{padding:5px 12px}header.hd-min .bar #btn-hd{padding:5px 9px}
 header.hd-min #btn-hd svg{transform:rotate(180deg)}
 @keyframes ping{0%{box-shadow:0 0 0 0 rgba(34,197,94,.7)}70%,100%{box-shadow:0 0 0 8px rgba(34,197,94,0)}}
 main{padding:20px 24px 56px;max-width:1080px;margin:0 auto}
@@ -87,7 +87,11 @@ h2::before{content:"";width:4px;height:16px;border-radius:3px;background:linear-
 .filt input:focus,.filt select:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px var(--accent-dim)}
 .filt button{font-weight:600;cursor:pointer;padding:0 18px}
 #btn-today{background:linear-gradient(135deg,var(--accent),var(--brand-navy-700));border-color:transparent;color:#fff;box-shadow:0 6px 14px -6px var(--accent)}#btn-today:hover{filter:brightness(1.12);transform:translateY(-1px)}
-#btn-reset{color:var(--muted)}#btn-reset:hover{background:var(--soft)}
+#btn-reset{display:inline-flex;align-items:center;gap:7px;color:var(--accent);background:var(--accent-dim);border-color:color-mix(in srgb,var(--accent) 35%,transparent)}
+#btn-reset svg{flex:none;transition:transform .5s}
+#btn-reset:hover{background:var(--accent);border-color:var(--accent);color:var(--card);transform:translateY(-1px);box-shadow:0 6px 14px -6px var(--accent)}
+#btn-reset:hover svg{transform:rotate(-360deg)}
+#btn-reset:active{transform:translateY(0)}
 /* สรุปรวม */
 .hero-top{display:flex;align-items:center;gap:22px;margin-bottom:18px;flex-wrap:wrap}
 .hero-info{flex:1;min-width:230px}.hero-info h2{margin-bottom:10px}
@@ -200,6 +204,18 @@ header.hd-min .lsc-clock{gap:8px;padding:3px 12px 3px 4px}header.hd-min .lsc-sky
 @keyframes lscFloat{50%{transform:translateY(-2px) rotate(-4deg)}}
 header h1{display:flex;align-items:center;gap:13px}
 header.hd-min .ttl-ic{width:30px;height:30px;border-radius:10px}header.hd-min .ttl-ic svg{width:19px;height:19px}header.hd-min .ttl-ic::after{width:9px;height:9px;top:-2px;right:-2px}
+/* ปุ่มสลับโหมด สว่าง/มืด (สวิตช์ ☀ / ☾) */
+.bar #btn-mode{position:relative;width:68px;height:36px;padding:0;gap:0;justify-content:space-between;overflow:hidden;border-radius:999px;background:linear-gradient(135deg,rgba(255,255,255,.18),rgba(255,255,255,.05))}
+.bar #btn-mode svg{position:relative;z-index:1;width:16px;height:16px;margin:0 9px;color:rgba(255,255,255,.7);transition:color .25s,transform .35s}
+.bar #btn-mode .kn{position:absolute;top:3px;left:3px;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);box-shadow:0 3px 8px -2px rgba(0,0,0,.55);transition:transform .35s cubic-bezier(.4,1.5,.5,1),background .3s}
+html:not([data-theme=dark]) .bar #btn-mode .sun{color:#7c4a03}
+html[data-theme=dark] .bar #btn-mode .moon{color:#1e1b4b}
+html[data-theme=dark] .bar #btn-mode .kn{transform:translateX(32px);background:linear-gradient(135deg,#c7d2fe,#818cf8)}
+.bar #btn-mode:hover svg{transform:none}.bar #btn-mode:hover .sun{transform:rotate(45deg)}.bar #btn-mode:hover .moon{transform:rotate(-18deg)}
+header.hd-min .bar #btn-mode{width:56px;height:30px;padding:0}
+header.hd-min #btn-mode svg{width:14px;height:14px;margin:0 7px}
+header.hd-min #btn-mode .kn{width:22px;height:22px}
+html[data-theme=dark] header.hd-min #btn-mode .kn{transform:translateX(26px)}
 /* โหลด + เข้าฉาก */
 .sk{border-radius:12px;background:linear-gradient(90deg,var(--soft) 25%,color-mix(in srgb,var(--soft),var(--card) 55%) 50%,var(--soft) 75%);background-size:200% 100%;animation:shim 1.3s infinite}
 .sk+.sum,.sk+.sk{margin-top:12px}
@@ -223,7 +239,7 @@ header.hd-min .ttl-ic{width:30px;height:30px;border-radius:10px}header.hd-min .t
 <body>
 <header>
   <div><h1><span class="ttl-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="15.5" width="19" height="5" rx="2.5"/><circle cx="6" cy="18" r=".9" fill="currentColor" stroke="none" class="wh"/><circle cx="18" cy="18" r=".9" fill="currentColor" stroke="none" class="wh"/><g class="bx b1"><rect x="4" y="9.5" width="5" height="5" rx="1.2" fill="currentColor" fill-opacity=".25"/></g><g class="bx b2"><rect x="4" y="9.5" width="5" height="5" rx="1.2" fill="currentColor" fill-opacity=".25"/></g><path d="M12 3.2v3M10.3 4.6 12 6.3l1.7-1.7" class="arw"/></svg></span><span id="ttl">รายละเอียด Line</span></h1><small id="sub"></small></div>
-  <div class="bar"><div class="lsc-clock" role="timer" aria-live="off" title="วันที่และเวลาปัจจุบัน"><span class="lsc-sky" aria-hidden="true"></span><span class="lsc-date-col"><span class="lsc-day"></span><span class="lsc-date"></span></span><span class="lsc-time"><span class="lsc-hm">--<i class="lsc-colon">:</i>--</span><small class="lsc-ss">00</small></span></div><button id="btn-mode" type="button" title="สลับโหมดสว่าง/มืด" aria-label="สลับโหมดสว่าง/มืด">🌓</button><button id="btn-refresh" type="button" title="โหลดข้อมูลล่าสุด"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg><span>รีเฟรช</span></button><button id="btn-hd" type="button" title="ยุบส่วนหัว" aria-label="ยุบ/ขยายส่วนหัว" aria-expanded="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg></button><a class="back" id="back" href="layout.html" title="ปิดหน้านี้" role="button"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg><span>ปิดหน้านี้</span></a></div>
+  <div class="bar"><div class="lsc-clock" role="timer" aria-live="off" title="วันที่และเวลาปัจจุบัน"><span class="lsc-sky" aria-hidden="true"></span><span class="lsc-date-col"><span class="lsc-day"></span><span class="lsc-date"></span></span><span class="lsc-time"><span class="lsc-hm">--<i class="lsc-colon">:</i>--</span><small class="lsc-ss">00</small></span></div><button id="btn-mode" type="button" title="สลับโหมดสว่าง/มืด" aria-label="สลับโหมดสว่าง/มืด"><i class="kn"></i><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button><button id="btn-refresh" type="button" title="โหลดข้อมูลล่าสุด"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg><span>รีเฟรช</span></button><button id="btn-hd" type="button" title="ยุบส่วนหัว" aria-label="ยุบ/ขยายส่วนหัว" aria-expanded="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg></button><a class="back" id="back" href="layout.html" title="ปิดหน้านี้" role="button"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg><span>ปิดหน้านี้</span></a></div>
 </header>
 <main>
   <section class="card filt">
@@ -238,7 +254,7 @@ header.hd-min .ttl-ic{width:30px;height:30px;border-radius:10px}header.hd-min .t
       <label>Line<select id="f-dept"><option value="">ทุก Line</option></select></label>
       <label>Model<select id="f-model"><option value="">ทุก Model</option></select></label>
       <label>Part number<input type="search" id="f-part" placeholder="พิมพ์ค้นหา Part No. / ชื่อ"></label>
-      <button id="btn-reset" type="button">รีเซ็ต</button>
+      <button id="btn-reset" type="button"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span>รีเซ็ต</span></button>
     </div>
   </section>
   <div id="warn"></div>
