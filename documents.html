@@ -263,6 +263,28 @@
   .stat.warn b { color: #b45309; }
   .stat.mute b { color: var(--obsolete); }
 
+  /* ── Stat cards: icon tile + tone ตามความหมายของตัวเลข ── */
+  .stat { display: flex; align-items: center; gap: 12px; padding: 14px 14px; --tone: #2f6fd1; --tone-bg: #e6effc; }
+  .stat > div { min-width: 0; }
+  .stat b { font-size: 26px; letter-spacing: -.01em; }
+  .stat span { display: block; margin-top: 3px; font-size: 12px; line-height: 1.3; }
+  .stat-ico { flex: 0 0 auto; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: var(--tone-bg); color: var(--tone); }
+  .stat-ico .di { display: block; }
+  .stat.t-navy  { --tone: #1e3a5f; --tone-bg: #e4eaf3; }
+  .stat.t-amber { --tone: #b45309; --tone-bg: #fdf0d5; }
+  .stat.t-green { --tone: #15803d; --tone-bg: #dcfce7; }
+  .stat.t-grey  { --tone: #6b7280; --tone-bg: #f0f2f5; }
+  .stat.t-grey.is-zero b { color: #9aa3b0; }
+  .stat-hint { display: block; margin-top: 3px; font-style: normal; font-size: 11px; font-weight: 600; color: var(--tone); }
+  button.stat { font: inherit; text-align: left; width: 100%; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease, background .15s ease, transform .1s ease; }
+  button.stat:hover { border-color: #e6c27a; box-shadow: 0 8px 18px -12px rgba(180,83,9,.55); }
+  button.stat:active { transform: scale(.985); }
+  button.stat:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .stat.t-grey.is-active { border-color: #6b7280; background: #f8f9fb; box-shadow: 0 0 0 3px rgba(107,114,128,.16); }
+  button.stat.t-grey:hover { border-color: #c4cad4; box-shadow: 0 8px 18px -12px rgba(15,33,55,.4); }
+  .stat.is-active { border-color: #b45309; background: #fffbf3; box-shadow: 0 0 0 3px rgba(180,83,9,.14); }
+  @media (prefers-reduced-motion: reduce) { button.stat { transition: none; } }
+
   .filter-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
   select {
     width: 100%; appearance: none; -webkit-appearance: none;
@@ -324,6 +346,9 @@
 
   @media (max-width: 600px) {
     .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stat { gap: 10px; padding: 12px; }
+    .stat-ico { width: 36px; height: 36px; border-radius: 10px; }
+    .stat b { font-size: 22px; }
     .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .doc-rev-tile { width: 42px; height: 46px; }
     .doc-rev-tile b { font-size: 17px; }
@@ -1101,7 +1126,7 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
   let allDocs = [];
   let latestRevByDoc = {}; // document_id -> แถวประวัติแก้ไขล่าสุด (rev_no สูงสุด) — ใช้โชว์สรุปในหน้ารายการ
   let docInfoById = {}; // doc.id -> { section: แผนก, line: Line, model: Model } หาจากการจับคู่กลับไปที่ Part ในระบบ (อ่านสดทุกครั้งที่โหลดหน้า)
-  let filters = { company: params.get('company') || '', section: '', line: '', model: '', q: '' };
+  let filters = { company: params.get('company') || '', section: '', line: '', model: '', q: '', noHist: false, obsolete: false };
   let currentDocId = params.get('doc') || null;
   const expandedLines = new Set(); // 🆕 Line ที่ผู้ใช้กดขยาย — ว่างเสมอตอนเปิดหน้า = ทุกกลุ่มยุบ
   let editingRevDocId = null;   // ← document_id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายการ"
@@ -1296,6 +1321,8 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
       if (filters.section && i.section !== filters.section) return false;
       if (filters.line && i.line !== filters.line) return false;
       if (filters.model && i.model !== filters.model) return false;
+      if (filters.noHist && latestRevByDoc[d.id]) return false; // กรองเฉพาะเอกสารที่ยังไม่มีประวัติแก้ไข
+      if (filters.obsolete && d.status !== 'obsolete') return false; // กรองเฉพาะเอกสารที่ยกเลิกใช้
       if (filters.q) {
         const q = filters.q.toLowerCase();
         if (!(d.doc_no || '').toLowerCase().includes(q) && !(d.doc_name || '').toLowerCase().includes(q)) return false;
@@ -1313,10 +1340,14 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
 
     app.innerHTML = `
       <div class="stat-row">
-        <div class="stat"><b>${stat.total}</b><span>เอกสารที่แสดง</span></div>
-        <div class="stat"><b>${stat.lines}</b><span>Line</span></div>
-        <div class="stat${stat.noHist ? ' warn' : ''}"><b>${stat.noHist}</b><span>ยังไม่มีประวัติแก้ไข</span></div>
-        <div class="stat${stat.obsolete ? ' mute' : ''}"><b>${stat.obsolete}</b><span>ยกเลิกใช้</span></div>
+        <div class="stat"><i class="stat-ico">${dIco('file', 20)}</i><div><b>${stat.total}</b><span>เอกสารที่แสดง</span></div></div>
+        <div class="stat t-navy"><i class="stat-ico">${dIco('layers', 20)}</i><div><b>${stat.lines}</b><span>Line</span></div></div>
+        ${(stat.noHist || filters.noHist)
+          ? `<button type="button" id="stat-nohist" class="stat t-amber warn${filters.noHist ? ' is-active' : ''}" aria-pressed="${filters.noHist}" title="${filters.noHist ? 'ยกเลิกตัวกรอง' : 'แสดงเฉพาะเอกสารที่ยังไม่มีประวัติแก้ไข'}"><i class="stat-ico">${dIco('clock', 20)}</i><div><b>${stat.noHist}</b><span>ยังไม่มีประวัติแก้ไข</span><em class="stat-hint">${filters.noHist ? 'กำลังกรอง · แตะเพื่อยกเลิก' : 'แตะเพื่อดูรายการ'}</em></div></button>`
+          : `<div class="stat t-green"><i class="stat-ico">${dIco('check', 20)}</i><div><b>${stat.noHist}</b><span>ยังไม่มีประวัติแก้ไข</span></div></div>`}
+        ${(stat.obsolete || filters.obsolete)
+          ? `<button type="button" id="stat-obsolete" class="stat t-grey mute${filters.obsolete ? ' is-active' : ''}" aria-pressed="${filters.obsolete}" title="${filters.obsolete ? 'ยกเลิกตัวกรอง' : 'แสดงเฉพาะเอกสารที่ยกเลิกใช้'}"><i class="stat-ico">${dIco('ban', 20)}</i><div><b>${stat.obsolete}</b><span>ยกเลิกใช้</span><em class="stat-hint">${filters.obsolete ? 'กำลังกรอง · แตะเพื่อยกเลิก' : 'แตะเพื่อดูรายการ'}</em></div></button>`
+          : `<div class="stat t-grey is-zero"><i class="stat-ico">${dIco('ban', 20)}</i><div><b>${stat.obsolete}</b><span>ยกเลิกใช้</span></div></div>`}
       </div>
 
       <div class="card">
@@ -1358,7 +1389,7 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
         <div class="section-title"><span>รายการเอกสาร</span><span class="count-pill">${filtered.length}</span>${grouped.length ? `<button type="button" class="lg-toggle-all" id="btn-lines-toggle"><svg class="lgt-ico" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg><span class="lgt-label">ขยายทั้งหมด</span></button>` : ''}</div>
         ${grouped.length ? grouped.map(g => {
           // กลุ่มเปิดเมื่อ: ผู้ใช้กดขยายไว้ • กำลังค้นหา (ให้เห็นผลลัพธ์) • มีแถวที่กำลังแก้ไข Rev อยู่
-          const open = expandedLines.has(g.line) || !!filters.q || !!(editingRevDocId && g.docs.some(d => d.id === editingRevDocId));
+          const open = expandedLines.has(g.line) || !!filters.q || filters.noHist || filters.obsolete || !!(editingRevDocId && g.docs.some(d => d.id === editingRevDocId));
           return `
           <div class="line-group${open ? '' : ' collapsed'}" data-line="${escAttr(g.line)}">
             <div class="line-group-header" role="button" tabindex="0" aria-expanded="${open}" title="คลิกเพื่อยุบ/ขยาย">
@@ -1372,6 +1403,10 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
     `;
 
 
+    const nhBtn = document.getElementById('stat-nohist');
+    if (nhBtn) nhBtn.addEventListener('click', () => { filters.noHist = !filters.noHist; render(); });
+    const obBtn = document.getElementById('stat-obsolete');
+    if (obBtn) obBtn.addEventListener('click', () => { filters.obsolete = !filters.obsolete; render(); });
     document.getElementById('f-company').addEventListener('change', e => {
       filters.company = e.target.value;
       filters.section = ''; filters.line = ''; filters.model = ''; // เปลี่ยนระดับบน รีเซ็ตตัวกรองระดับล่าง เพราะตัวเลือกเปลี่ยนตาม
