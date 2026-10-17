@@ -193,6 +193,15 @@ table.ct{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric
 @media (prefers-reduced-motion:reduce){.lsc-clock::after,.lsc-sky,.lsc-colon,.lsc-live,.lsc-ss-tick{animation:none}}
 header.hd-min .lsc-clock{gap:8px;padding:3px 12px 3px 4px}header.hd-min .lsc-sky{width:26px;height:26px;font-size:14px}header.hd-min .lsc-day{font-size:12px}header.hd-min .lsc-date{font-size:10px}header.hd-min .lsc-time{font-size:19px;padding-left:9px}header.hd-min .lsc-time small{font-size:11px}
 .bar .lsc-clock{margin-right:6px}
+.ttl-ic{position:relative;flex:none;width:46px;height:46px;border-radius:15px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 50%,#000));box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--brand-gold) 75%,transparent),0 8px 18px -8px rgba(0,0,0,.7);animation:lscFloat 3.6s ease-in-out infinite}
+.ttl-ic::after{content:"";position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:#22c55e;border:2px solid var(--brand-navy-900);animation:ping 2s infinite}
+.ttl-ic .bx{animation:belt 2.6s linear infinite}.ttl-ic .b2{animation-delay:-1.3s}
+.ttl-ic .arw{animation:arw 1.6s ease-in-out infinite}
+@keyframes belt{0%{transform:translateX(-3px);opacity:0}15%{opacity:1}80%{opacity:1}100%{transform:translateX(12px);opacity:0}}
+@keyframes arw{50%{transform:translateY(1.5px);opacity:.55}}
+@keyframes lscFloat{50%{transform:translateY(-2px) rotate(-4deg)}}
+header h1{display:flex;align-items:center;gap:13px}
+header.hd-min .ttl-ic{width:30px;height:30px;border-radius:10px}header.hd-min .ttl-ic svg{width:19px;height:19px}header.hd-min .ttl-ic::after{width:9px;height:9px;top:-2px;right:-2px}
 /* โหลด + เข้าฉาก */
 .sk{border-radius:12px;background:linear-gradient(90deg,var(--soft) 25%,color-mix(in srgb,var(--soft),var(--card) 55%) 50%,var(--soft) 75%);background-size:200% 100%;animation:shim 1.3s infinite}
 .sk+.sum,.sk+.sk{margin-top:12px}
@@ -215,7 +224,7 @@ header.hd-min .lsc-clock{gap:8px;padding:3px 12px 3px 4px}header.hd-min .lsc-sky
 </head>
 <body>
 <header>
-  <div><h1 id="ttl">รายละเอียด Line</h1><small id="sub"></small></div>
+  <div><h1><span class="ttl-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="15.5" width="19" height="5" rx="2.5"/><circle cx="6" cy="18" r=".9" fill="currentColor" stroke="none" class="wh"/><circle cx="18" cy="18" r=".9" fill="currentColor" stroke="none" class="wh"/><g class="bx b1"><rect x="4" y="9.5" width="5" height="5" rx="1.2" fill="currentColor" fill-opacity=".25"/></g><g class="bx b2"><rect x="4" y="9.5" width="5" height="5" rx="1.2" fill="currentColor" fill-opacity=".25"/></g><path d="M12 3.2v3M10.3 4.6 12 6.3l1.7-1.7" class="arw"/></svg></span><span id="ttl">รายละเอียด Line</span></h1><small id="sub"></small></div>
   <div class="bar"><div class="lsc-clock" role="timer" aria-live="off" title="วันที่และเวลาปัจจุบัน"><span class="lsc-sky" aria-hidden="true"></span><span class="lsc-date-col"><span class="lsc-day"></span><span class="lsc-date"></span></span><span class="lsc-time"><span class="lsc-hm">--<i class="lsc-colon">:</i>--</span><small class="lsc-ss">00</small></span></div><span class="live" id="live" hidden>อัปเดตอัตโนมัติ</span><button id="btn-mode" type="button" title="สลับโหมดสว่าง/มืด" aria-label="สลับโหมดสว่าง/มืด">🌓</button><button id="btn-refresh" type="button" title="โหลดข้อมูลล่าสุด"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg><span>รีเฟรช</span></button><button id="btn-hd" type="button" title="ยุบส่วนหัว" aria-label="ยุบ/ขยายส่วนหัว" aria-expanded="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg></button><a class="back" id="back" href="layout.html" title="ปิดหน้านี้" role="button"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg><span>ปิดหน้านี้</span></a></div>
 </header>
 <main>
