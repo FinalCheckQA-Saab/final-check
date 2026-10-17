@@ -308,7 +308,7 @@
         jig_id: h.jigId, jig_name: h.jigName, jig_doc_no: h.jigDocNo,
         insp_date: h.date, shift: h.shift, month: h.month,
         production_order: h.productionOrder || null, // ต้องมีคอลัมน์ production_order (text) บนตาราง history — ดู migration SQL
-        inspector: h.inspector, notes: h.notes, items: h.items || [],
+        inspector: h.inspector, notes: h.notes, items: stripNgImgs(h.items), // 🆕 รูปจุด NG ไม่เก็บใน items (กัน Egress ตอนดึงรายการ) — แยกไปตาราง history_ng_images
         sig_inspector: h.sigInspector ?? '', sig_supervisor: h.sigSupervisor ?? '', // คอลัมน์เป็น NOT NULL — ถ้าไม่มีลายเซ็นให้ส่งสตริงว่างแทน null
         // ─── Approval Workflow (Stage 1: หัวหน้างาน) ───
         approval_status: h.approvalStatus || 'pending',
@@ -346,10 +346,14 @@
           }
         }
       }
+      // 🆕 อัปรูปจุด NG ขึ้นตารางแยก history_ng_images (เฉพาะแถวที่ history ขึ้นสำเร็จแล้ว)
+      // ล้มเหลว/ยังไม่ได้สร้างตาราง = ไม่ถือว่า sync พัง (ข้อมูลหลักขึ้นแล้ว) — เก็บรูปไว้ในเครื่อง แล้วลองใหม่รอบ push ถัดไป
+      const imgsOk = await pushNgImages((arr || []).filter(h => !failedIds.has(String(h.id))));
       // ✅ ขึ้น Supabase สำเร็จ — mark เฉพาะ record ที่เพิ่ง push เป็น synced:true
       // (merge เข้ากับ local ล่าสุด แทนที่จะ overwrite ทั้งก้อน กันเขียนทับข้อมูลอื่นที่อาจเปลี่ยนระหว่างรอ push)
       const pushedIds = new Set((arr || []).map(h => String(h.id)).filter(id => !failedIds.has(id)));
-      const merged = loadHistory().map(h => pushedIds.has(String(h.id)) ? { ...h, synced: true } : h);
+      // รูปจุด NG อัปขึ้นแล้ว → ล้างรูปออกจากข้อมูลในเครื่อง (เหลือแค่ธง hasNgImg) ประหยัด localStorage
+      const merged = loadHistory().map(h => pushedIds.has(String(h.id)) ? { ...h, synced: true, items: imgsOk ? stripNgImgs(h.items) : h.items } : h);
       localStorage.setItem(SK.history, JSON.stringify(merged));
       if (failedIds.size) {
         localStorage.setItem(SK.historySyncPending, String(Date.now()));
@@ -2167,6 +2171,8 @@
           it.note = ri.note || '';
           it.photos = Array.isArray(ri.photos) ? ri.photos.slice() : [];
           it.markedAt = ri.markedAt || null;
+          it.ngImg = ri.ngImg || null;                       // 🆕 รูปจุด NG (ถ้ายังค้างอยู่ในเครื่อง ยังไม่ได้อัปขึ้นระบบ)
+          it.hasNgImg = !!(ri.hasNgImg || ri.ngImg);         // 🆕 มีรูปจุด NG ของหัวข้อนี้แล้ว (ไม่ต้องสร้างซ้ำ)
           it.status = itemAggStatus(it);
         });
         session.stageIdx = recordStagesDone(rec);
@@ -2756,6 +2762,110 @@ ${escHtml(record.jigId || '')}
     await sendTelegramMessage(msg);
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     🆕 รูปจุดตรวจที่ NG (Snapshot) — แนบเฉพาะหัวข้อที่ NG
+     - ตอนกดส่งข้อมูล: ตัดแผนผังรอบจุดที่ NG (พร้อมลูกศร/ข้อความที่ Admin วาด + หมายเลขจุด) เป็น JPEG เล็กๆ ~10-20 KB ต่อรูป
+     - ไม่เก็บใน history.items (หน้ารายการของ approve/line/spc ดึง items ทั้งก้อน — ถ้าฝังรูปจะกิน Egress ทุกครั้ง)
+       แต่เก็บตารางแยก history_ng_images แล้วหน้า approve / manager-approve ดึงเฉพาะรายงานที่เปิดดู (1 request เล็กๆ)
+     - ใน items เหลือแค่ธง hasNgImg:true ให้หน้า approve รู้ว่าต้องไปดึงรูป
+     - ปรับขนาด/คุณภาพได้ที่ค่าคงที่ NG_IMG_* ด้านล่าง
+  ══════════════════════════════════════════════════════════════ */
+  const NG_IMG_WIN_W = 300, NG_IMG_WIN_H = 190;  // หน้าต่างที่ตัดรอบจุด (หน่วยพิกัดแผนผัง viewBox 600×340) — ยิ่งใหญ่ยิ่งเห็นบริบทเยอะ แต่รูปใหญ่ขึ้น
+  const NG_IMG_OUT_W = 480;                      // ความกว้างรูปที่เก็บ (px)
+  const NG_IMG_QUALITY = 0.65;                   // คุณภาพ JPEG
+  const NG_IMG_MAX_CHARS = 90000;                // เพดานต่อรูป (base64 ≈ 66 KB) — เกินแล้วลดคุณภาพลงอีกขั้น
+  const NG_IMG_PREFIX = 'data:image/jpeg;base64,';
+  let _ngImgTableMissing = false;                // ถ้ายังไม่ได้รัน SQL สร้างตาราง จะไม่ยิงซ้ำให้เปลืองเน็ต (รีเซ็ตตอนรีเฟรชหน้า)
+
+  // ตัดรูปออกจาก items (เก็บเป็นธง hasNgImg) — ใช้ก่อนส่งขึ้น history และหลังอัปรูปสำเร็จ
+  function stripNgImgs(items) {
+    return (items || []).map(it => {
+      if (!it || !it.ngImg) return it;
+      const { ngImg, ...rest } = it;
+      return { ...rest, hasNgImg: true };
+    });
+  }
+
+  // อัปรูปจุด NG ขึ้นตาราง history_ng_images (upsert ตาม history_id + item_id) — คืน true ถ้าไม่มีอะไรค้าง/อัปสำเร็จ
+  async function pushNgImages(records) {
+    if (!sb || _ngImgTableMissing) return false;
+    const rows = [];
+    (records || []).forEach(h => (h.items || []).forEach(it => {
+      if (it && it.ngImg && typeof it.ngImg === 'string' && it.ngImg.startsWith(NG_IMG_PREFIX))
+        rows.push({ history_id: String(h.id), item_id: it.id, img: it.ngImg });
+    }));
+    if (!rows.length) return true;
+    try {
+      for (let i = 0; i < rows.length; i += 8) {
+        const { error } = await sb.from('history_ng_images').upsert(rows.slice(i, i + 8), { onConflict: 'history_id,item_id' });
+        if (error) {
+          if (error.code === '42P01' || error.code === 'PGRST205' || /history_ng_images/i.test(error.message || '')) {
+            _ngImgTableMissing = true;
+            console.warn('ยังไม่มีตาราง history_ng_images — รัน add_history_ng_images.sql ใน Supabase ก่อน (รูป NG จะยังไม่ขึ้นหน้า approve)');
+          } else console.warn('upload NG images failed:', error.code, error.message);
+          return false;
+        }
+      }
+      return true;
+    } catch (e) {
+      console.warn('pushNgImages error:', e);
+      return false;
+    }
+  }
+
+  // สร้างรูปจุดที่ NG: ตัดรอบจุด + วาดลูกศร/ข้อความของแผนผัง + จุดเพื่อนบ้าน + วงแดงที่จุด NG → JPEG dataURL (หรือ null ถ้าทำไม่ได้)
+  async function makeNgSnapshot(jig, pt, num) {
+    try {
+      if (!jig || !jig.bgImage || !pt || pt.x == null || pt.y == null) return null;
+      // รูปพื้นหลังต้องเป็น data:image base64 เท่านั้น (กันสตริงแปลกๆ หลุดเข้าไปใน SVG)
+      if (!/^data:image\/[a-z+.-]+;base64,[A-Za-z0-9+\/=]+$/.test(jig.bgImage)) return null;
+      const IMG = { x: 20, y: 30, w: 560, h: 280 };            // ตำแหน่งรูปพื้นหลังใน viewBox 600×340 (ตรงกับ #svg-bg-image ใน index.html)
+      const W = NG_IMG_WIN_W, H = NG_IMG_WIN_H;
+      const vx = Math.round(Math.min(Math.max(pt.x - W / 2, IMG.x), IMG.x + IMG.w - W));
+      const vy = Math.round(Math.min(Math.max(pt.y - H / 2, IMG.y), IMG.y + IMG.h - H));
+      const pts = getActiveCheckpoints();
+      const near = p => p.x >= vx - 12 && p.x <= vx + W + 12 && p.y >= vy - 12 && p.y <= vy + H + 12;
+      const others = pts.map((p, i) => ({ p, n: i + 1 })).filter(o => o.n !== num && near(o.p)).map(o =>
+        `<g transform="translate(${o.p.x},${o.p.y})"><circle r="8" fill="#64748b" stroke="#e2e8f0" stroke-width="1.5"/><text y="3.5" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">${o.n}</text></g>`).join('');
+      const arrows = (Array.isArray(jig.arrows) ? jig.arrows : []).map(a => arrowSvg(a, false)).join('');
+      const outH = Math.round(NG_IMG_OUT_W * H / W);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${NG_IMG_OUT_W}" height="${outH}" viewBox="${vx} ${vy} ${W} ${H}" font-family="Arial, Helvetica, sans-serif">`
+        + `<rect x="${vx}" y="${vy}" width="${W}" height="${H}" fill="#000"/>`
+        + `<image x="${IMG.x}" y="${IMG.y}" width="${IMG.w}" height="${IMG.h}" preserveAspectRatio="xMidYMid slice" xlink:href="${jig.bgImage}"/>` // xlink:href = เข้ากันได้กับ Safari รุ่นเก่า
+        + arrows + others
+        + `<g transform="translate(${pt.x},${pt.y})"><circle r="17" fill="none" stroke="#ef4444" stroke-width="2" opacity=".55"/><circle r="10" fill="#ef4444" stroke="#fff" stroke-width="2"/><text y="4" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${num}</text></g>`
+        + `</svg>`;
+      const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+      try {
+        const im = await new Promise((res, rej) => { const el = new Image(); el.onload = () => res(el); el.onerror = () => rej(new Error('โหลด SVG ไม่สำเร็จ')); el.src = url; });
+        const c = document.createElement('canvas'); c.width = NG_IMG_OUT_W; c.height = outH;
+        const ctx = c.getContext('2d'); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(im, 0, 0, c.width, c.height);
+        let out = c.toDataURL('image/jpeg', NG_IMG_QUALITY);
+        if (out.length > NG_IMG_MAX_CHARS) out = c.toDataURL('image/jpeg', 0.5);
+        return (out.startsWith(NG_IMG_PREFIX) && out.length <= NG_IMG_MAX_CHARS) ? out : null;
+      } finally { URL.revokeObjectURL(url); }
+    } catch (e) {
+      console.warn('makeNgSnapshot error:', e);
+      return null;
+    }
+  }
+
+  // แนบรูปให้ทุกหัวข้อที่ NG และยังไม่มีรูป (ชุดที่ตรวจต่อหลายรอบ S/M/E จะไม่สร้างซ้ำ) — ห้ามให้ขั้นตอนนี้ทำให้การบันทึกล้ม
+  async function attachNgSnapshots(builtItems) {
+    try {
+      const jig = catalog.jigs.find(j => j.id === selection.jigId);
+      if (!jig || !jig.bgImage) return;
+      const pts = getActiveCheckpoints();
+      for (const it of builtItems) {
+        if (it.status !== 'ng' || it.ngImg || it.hasNgImg) continue;
+        const k = pts.findIndex(p => p.id === it.id);
+        if (k < 0) continue;
+        const img = await withTimeout(makeNgSnapshot(jig, pts[k], k + 1), 8000, null);
+        if (img) { it.ngImg = img; it.hasNgImg = true; }
+      }
+    } catch (e) { console.warn('attachNgSnapshots error:', e); }
+  }
+
   async function submitReport() {
     if (_submitInProgress) return; // กันกดซ้ำระหว่างที่ยังรอ GPS/บันทึก/ส่ง Telegram — ต้นเหตุประวัติซ้ำ
     if (!selection.jigId) { toast('กรุณาเลือก Part ก่อนบันทึก', 'ng'); return; }
@@ -2832,7 +2942,10 @@ ${escHtml(record.jigId || '')}
       pieceCount: i.pieceCount || DEFAULT_PIECE_COUNT,
       pieces: i.pieces || [],
       markedAt: i.markedAt || null,
+      ngImg: i.ngImg || undefined,
+      hasNgImg: (i.hasNgImg || i.ngImg) ? true : undefined,
     }));
+    await attachNgSnapshots(builtItems); // 🆕 แนบรูปจุดตรวจ (ย่อเล็ก) เฉพาะหัวข้อที่ NG — ไม่ throw ถ้าสร้างรูปไม่ได้ ไม่กระทบการบันทึก
 
     // ชุดเดิม → อัปเดต Record เดิม (id เดิม) / ชุดใหม่ → สร้าง Record ใหม่ตอนส่งชิ้น S
     let record = session.record;
