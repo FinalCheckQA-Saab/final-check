@@ -8071,12 +8071,13 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   }
 
   function refreshDashboard() {
-    const allHist = loadHistory().filter(isRecordComplete);
+    const rawHist = loadHistory(); // 🆕 ประวัติทั้งหมด (รวมใบที่ยังตรวจ S/M/E ไม่ครบ) — ใช้กับการ์ด "NG วันนี้" เท่านั้น
+    const allHist = rawHist.filter(isRecordComplete);
     populateDashMonthOptions(allHist);
     populateDashLineOptions();
     populateAiPeriodOptions(allHist); // 🆕 อัปเดตรายชื่อเดือนใน dropdown ของ AI ให้ตรงกับข้อมูลล่าสุด
     renderLineStatusList();
-    renderNgToday(allHist); // 🆕 รายการ NG วันนี้ — โชว์ "วันนี้" เสมอ ไม่ผูกกับตัวกรองเดือน แต่กรองตาม Model ที่เลือกด้วย (ดูใน renderNgToday)
+    renderNgToday(rawHist); // 🆕 รายการ NG วันนี้ — แสดงทันทีตั้งแต่ตรวจรอบ S ไม่ต้องรอครบ S/M/E — โชว์ "วันนี้" เสมอ ไม่ผูกกับตัวกรองเดือน แต่กรองตาม Model ที่เลือกด้วย (ดูใน renderNgToday)
     let hist = dashMonthFilter === 'all'
       ? allHist
       : allHist.filter(h => (h.date || '').slice(0, 7) === dashMonthFilter);
