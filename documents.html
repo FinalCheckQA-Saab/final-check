@@ -771,6 +771,53 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
   header{padding-left:62px}
   .sidebar-foot-text{display:flex}
 }
+
+/* ── 🆕 Header โค้งมน (อยู่ในกรอบหลักข้าง Sidebar) ── */
+.docs-main > header{margin:12px 12px 0 0;border-radius:18px;padding-right:16px}
+.docs-main > header::after{left:24px;right:24px}
+@media (max-width:900px){.docs-main > header{margin:8px 8px 0}}
+
+/* ── 🆕 นาฬิกา วันที่-เวลา (รูปแบบเดียวกับ Dashboard) ── */
+.lsc-clock{--lsc-a:#6fa8ee;display:inline-flex;align-items:center;gap:11px;padding:6px 16px 6px 7px;border-radius:999px;position:relative;overflow:hidden;flex:none;color:#fff;text-align:left;
+  background:linear-gradient(135deg,rgba(255,255,255,.13),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 8px 20px -12px rgba(0,0,0,.6)}
+.lsc-clock::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.14) 50%,transparent 65%);transform:translateX(-120%);animation:lscShine 6s ease-in-out infinite}
+.lsc-sky{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:18px;line-height:1;flex:none;background:radial-gradient(circle at 30% 30%,rgba(245,197,66,.45),rgba(255,255,255,.08));animation:lscFloat 3.6s ease-in-out infinite}
+.lsc-sky.night{background:radial-gradient(circle at 30% 30%,rgba(111,168,238,.5),rgba(255,255,255,.08))}
+.lsc-date-col{display:flex;flex-direction:column;line-height:1.2}
+.lsc-day{font-size:13px;font-weight:700;color:#fff}
+.lsc-date{font-size:11px;color:#c5d3e2}
+.lsc-time{display:inline-flex;align-items:baseline;gap:3px;font-family:'Outfit','Noto Sans Thai',sans-serif;font-variant-numeric:tabular-nums;font-size:25px;font-weight:700;letter-spacing:1px;color:#fff;padding-left:12px;border-left:1px solid rgba(255,255,255,.2)}
+.lsc-time small{font-size:13px;font-weight:600;color:var(--lsc-a);min-width:1.4em;letter-spacing:0}
+.lsc-colon{font-style:normal;animation:lscBlink 1s steps(1) infinite}
+.lsc-live{width:8px;height:8px;border-radius:50%;background:#22c55e;flex:none;box-shadow:0 0 0 0 rgba(34,197,94,.7);animation:lscLive 1.8s infinite}
+.lsc-ss-tick{display:inline-block;animation:lscTick .35s ease-out}
+@keyframes lscBlink{50%{opacity:.15}}
+@keyframes lscFloat{50%{transform:translateY(-2px) rotate(-4deg)}}
+@keyframes lscTick{from{transform:translateY(-4px);opacity:.3}to{transform:none;opacity:1}}
+@keyframes lscShine{0%,70%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+@keyframes lscLive{0%{box-shadow:0 0 0 0 rgba(34,197,94,.7)}70%{box-shadow:0 0 0 7px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.lsc-clock--hdr{position:absolute;right:20px;top:50%;transform:translateY(-50%)}
+@media (max-width:1180px){.lsc-clock--hdr .lsc-date{display:none}}
+@media (max-width:760px){
+  .lsc-clock--hdr{position:relative;right:auto;top:auto;transform:none;display:flex;width:max-content;margin:12px auto 0}
+}
+@media (prefers-reduced-motion:reduce){.lsc-clock::after,.lsc-sky,.lsc-colon,.lsc-live,.lsc-ss-tick{animation:none}}
+
+/* ── 🆕 กลุ่ม Line ยุบ/ขยายได้ ── */
+.line-group-header{cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:background .15s}
+.line-group-header:hover{background:rgba(47,111,209,.06)}
+.line-group-header:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.lg-chev{flex:none;color:var(--muted);transition:transform .25s ease}
+.line-group.collapsed .lg-chev{transform:rotate(-90deg)}
+.line-group.collapsed .line-group-header{margin-bottom:0}
+.lg-body{display:grid;grid-template-rows:1fr;transition:grid-template-rows .28s ease}
+.lg-body-inner{overflow:hidden;min-height:0}
+.line-group.collapsed .lg-body{grid-template-rows:0fr}
+.line-group.collapsed{margin-top:14px}
+.lg-toggle-all{margin-left:auto;font:inherit;font-size:11.5px;font-weight:600;color:var(--accent);background:#eef2f8;border:0;border-radius:999px;padding:5px 12px;cursor:pointer;transition:background .15s}
+.lg-toggle-all:hover{background:#e0e8f5}
+.stat-row,.filter-grid,#add-doc-form,#import-preview,.section-title{scroll-margin-top:14px}
+@media (prefers-reduced-motion:reduce){.lg-body,.lg-chev{transition:none}}
 </style>
 </head>
 <body>
@@ -833,62 +880,54 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
     </button>
     <div class="sidebar-brand">
       <div class="sidebar-brand-logo">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#1e3a5f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#1e3a5f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
       </div>
-      <span class="sidebar-brand-text">Daily Inspection</span>
+      <span class="sidebar-brand-text">ควบคุมเอกสาร</span>
     </div>
   </div>
 
   <nav class="sidebar-nav">
-    <span class="sidebar-nav-label">เมนูหลัก</span>
-    <a class="side-nav-item" href="index.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-      <span class="sidebar-link-text">ตรวจสอบ</span>
+    <span class="sidebar-nav-label">ทะเบียนเอกสาร</span>
+    <a class="side-nav-item active" href="#" data-doc-nav="overview">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      <span class="sidebar-link-text">ภาพรวมเอกสาร</span>
     </a>
-    <a class="side-nav-item" href="index.html#dashboard">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-      <span class="sidebar-link-text">Dashboard</span>
+    <a class="side-nav-item" href="#" data-doc-nav="filter">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span class="sidebar-link-text">ค้นหา &amp; กรอง</span>
     </a>
-    <a class="side-nav-item" href="layout.html" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-      <span class="sidebar-link-text">Layout S M E</span>
+    <a class="side-nav-item" href="#" data-doc-nav="list">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+      <span class="sidebar-link-text">รายการเอกสาร</span>
     </a>
-    <a class="side-nav-item" href="spc.html" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/><path d="M3 8h18" stroke-dasharray="2 3" opacity=".6"/></svg>
-      <span class="sidebar-link-text">SPC</span>
-    </a>
-    <a class="side-nav-item" href="index.html#history">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13a9 9 0 1 0 .5-4.5L3 8"/><path d="M12 7v5l4 2"/></svg>
-      <span class="sidebar-link-text">ประวัติ</span>
-    </a>
-
-    <!-- 🆕 เมนูอนุมัติ — แสดงเฉพาะบัญชีที่ role = หัวหน้างาน / Supervisor (ควบคุมโดย updateApprovalNav() ใน app.js) -->
-    <div class="sidebar-divider" data-approve-nav style="display:none"></div>
-    <span class="sidebar-nav-label" data-approve-nav style="display:none">การอนุมัติ</span>
-    <a class="side-nav-item" id="nav-leader-check" data-approve-nav style="display:none" href="approve.html" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
-      <span class="sidebar-link-text">Leader Check</span>
-      
-    </a>
-    <a class="side-nav-item" id="nav-sup-approved" data-approve-nav style="display:none" href="manager-approve.html" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-      <span class="sidebar-link-text">Supervisor Approved</span>
-      
+    <a class="side-nav-item" href="#" data-doc-nav="toggle">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+      <span class="sidebar-link-text">ยุบ / ขยาย Line</span>
     </a>
 
     <div class="sidebar-divider"></div>
-    <span class="sidebar-nav-label">เอกสาร &amp; อนุมัติ</span>
-    <a class="side-nav-item active" href="documents.html" aria-current="page">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-      <span class="sidebar-link-text">ควบคุมเอกสาร</span>
+    <span class="sidebar-nav-label">จัดการเอกสาร</span>
+    <a class="side-nav-item" href="#" data-doc-nav="add">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      <span class="sidebar-link-text">เพิ่มเอกสารใหม่</span>
+    </a>
+    <a class="side-nav-item" href="#" data-doc-nav="imp">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      <span class="sidebar-link-text">ดึงจาก Part ในระบบ</span>
     </a>
 
     <div class="sidebar-divider"></div>
-    <div class="sidebar-nav-label"><span class="sidebar-link-text">คู่มือ</span></div>
+    <span class="sidebar-nav-label">ช่วยเหลือ</span>
     <button type="button" class="side-nav-item" id="btn-docs-manual" data-manual="docs" title="คู่มือการใช้งานหน้าควบคุมเอกสาร">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
       <span class="sidebar-link-text">คู่มือการใช้งาน</span>
     </button>
+
+    <div class="sidebar-divider"></div>
+    <a class="side-nav-item" href="index.html" title="กลับไปหน้าตรวจสอบหลัก">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span class="sidebar-link-text">กลับหน้าหลัก</span>
+    </a>
   </nav>
 
   <div class="sidebar-bottom">
@@ -896,7 +935,7 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       <span class="sidebar-link-text">ออกจากระบบ</span>
     </button>
-    <span class="sidebar-link-text sidebar-foot-text">Daily Quality Inspection System</span>
+    <span class="sidebar-link-text sidebar-foot-text">Document Control System</span>
   </div>
 </aside>
 
@@ -912,6 +951,7 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
     </div>
+    <div class="lsc-clock lsc-clock--hdr" role="timer" aria-live="off" title="วันที่และเวลาปัจจุบัน"><span class="lsc-sky" aria-hidden="true"></span><span class="lsc-date-col"><span class="lsc-day"></span><span class="lsc-date"></span></span><span class="lsc-time"><span class="lsc-hm">--<i class="lsc-colon">:</i>--</span><small class="lsc-ss">00</small></span><span class="lsc-live" aria-hidden="true"></span></div>
   </header>
 
   <div class="wrap">
@@ -1002,6 +1042,7 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
   let docInfoById = {}; // doc.id -> { section: แผนก, line: Line, model: Model } หาจากการจับคู่กลับไปที่ Part ในระบบ (อ่านสดทุกครั้งที่โหลดหน้า)
   let filters = { company: params.get('company') || '', section: '', line: '', model: '', q: '' };
   let currentDocId = params.get('doc') || null;
+  const expandedLines = new Set(); // 🆕 Line ที่ผู้ใช้กดขยาย — ว่างเสมอตอนเปิดหน้า = ทุกกลุ่มยุบ
   let editingRevDocId = null;   // ← document_id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายการ"
   let editingDocId = null;       // ← id ของเอกสารที่กำลังเปิดฟอร์ม "แก้ไขข้อมูลเอกสาร" (เลขที่/ชื่อ/ประเภท/บริษัท/Line)
   let editingRevIdDetail = null; // ← revision id ของแถวที่กำลังเปิดฟอร์มแก้ไขอยู่ในหน้า "รายละเอียด"
@@ -1253,16 +1294,19 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
       <div id="import-preview"></div>
 
       <div class="card">
-        <div class="section-title"><span>รายการเอกสาร</span><span class="count-pill">${filtered.length}</span></div>
-        ${grouped.length ? grouped.map(g => `
-          <div class="line-group">
-            <div class="line-group-header">
-              <span class="lg-name">${dIco('layers', 14)}LINE: ${esc(g.line)}</span>
+        <div class="section-title"><span>รายการเอกสาร</span><span class="count-pill">${filtered.length}</span>${grouped.length ? `<button type="button" class="lg-toggle-all" id="btn-lines-toggle">ขยายทั้งหมด</button>` : ''}</div>
+        ${grouped.length ? grouped.map(g => {
+          // กลุ่มเปิดเมื่อ: ผู้ใช้กดขยายไว้ • กำลังค้นหา (ให้เห็นผลลัพธ์) • มีแถวที่กำลังแก้ไข Rev อยู่
+          const open = expandedLines.has(g.line) || !!filters.q || !!(editingRevDocId && g.docs.some(d => d.id === editingRevDocId));
+          return `
+          <div class="line-group${open ? '' : ' collapsed'}" data-line="${escAttr(g.line)}">
+            <div class="line-group-header" role="button" tabindex="0" aria-expanded="${open}" title="คลิกเพื่อยุบ/ขยาย">
+              <span class="lg-name"><svg class="lg-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>${dIco('layers', 14)}LINE: ${esc(g.line)}</span>
               <span class="line-group-count">${g.docs.length}</span>
             </div>
-            ${g.docs.map(d => renderDocRow(d)).join('')}
+            <div class="lg-body"><div class="lg-body-inner">${g.docs.map(d => renderDocRow(d)).join('')}</div></div>
           </div>
-        `).join('') : `<div class="center-msg" style="padding:16px 0;">ไม่พบเอกสารตามเงื่อนไขที่กรอง</div>`}
+        `; }).join('') : `<div class="center-msg" style="padding:16px 0;">ไม่พบเอกสารตามเงื่อนไขที่กรอง</div>`}
       </div>
     `;
 
@@ -1294,6 +1338,36 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
       const el = document.getElementById('f-search');
       if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (_) {} }
     });
+    // ── 🆕 ยุบ/ขยายกลุ่ม Line (จำสถานะไว้ใน expandedLines ระหว่างใช้งาน — เปิดหน้าใหม่ = ยุบทั้งหมด) ──
+    const syncToggleAll = () => {
+      const b = document.getElementById('btn-lines-toggle'); if (!b) return;
+      const gs = [...document.querySelectorAll('.line-group')];
+      b.textContent = gs.length && gs.every(g => !g.classList.contains('collapsed')) ? 'ยุบทั้งหมด' : 'ขยายทั้งหมด';
+    };
+    document.querySelectorAll('.line-group-header').forEach(h => {
+      const toggle = () => {
+        const g = h.parentElement;
+        const willOpen = g.classList.contains('collapsed');
+        if (willOpen) expandedLines.add(g.dataset.line); else expandedLines.delete(g.dataset.line);
+        g.classList.toggle('collapsed', !willOpen);
+        h.setAttribute('aria-expanded', String(willOpen));
+        syncToggleAll();
+      };
+      h.addEventListener('click', toggle);
+      h.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+    });
+    const toggleAllBtn = document.getElementById('btn-lines-toggle');
+    if (toggleAllBtn) toggleAllBtn.addEventListener('click', () => {
+      const gs = [...document.querySelectorAll('.line-group')];
+      const allOpen = gs.every(g => !g.classList.contains('collapsed'));
+      gs.forEach(g => {
+        g.classList.toggle('collapsed', allOpen);
+        g.querySelector('.line-group-header').setAttribute('aria-expanded', String(!allOpen));
+        if (allOpen) expandedLines.delete(g.dataset.line); else expandedLines.add(g.dataset.line);
+      });
+      syncToggleAll();
+    });
+    syncToggleAll();
     document.querySelectorAll('.doc-row').forEach(row => {
       row.addEventListener('click', () => {
         currentDocId = row.dataset.id;
@@ -2233,7 +2307,7 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
   }
 </script>
 <script>
-// ── Sidebar ควบคุมเอกสาร: ย่อ/ขยาย • เมนูมือถือ • แสดงเมนูอนุมัติตามสิทธิ์ ──
+// ── Sidebar ควบคุมเอกสาร: ย่อ/ขยาย • เมนูมือถือ • เมนูลัดไปยังส่วนต่างๆ ของหน้า ──
 (function () {
   var body = document.body;
   var collapseBtn = document.getElementById('sidebar-collapse-toggle');
@@ -2242,23 +2316,74 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
   if (collapseBtn) collapseBtn.addEventListener('click', function () { body.classList.toggle('sidebar-collapsed'); });
   if (openBtn) openBtn.addEventListener('click', function () { body.classList.add('sidebar-open'); });
   if (overlay) overlay.addEventListener('click', function () { body.classList.remove('sidebar-open'); });
+
+  // ถ้ากำลังอยู่หน้ารายละเอียดเอกสาร → กลับหน้ารายการก่อน แล้วค่อยทำงานต่อ
+  function ensureList(cb) {
+    try {
+      if (typeof currentDocId !== 'undefined' && currentDocId) {
+        currentDocId = null;
+        var p = new URLSearchParams(location.search); p.delete('doc');
+        try { editingDocId = null; } catch (e) {}
+        history.pushState({}, '', '?' + p.toString());
+        render();
+        setTimeout(cb, 60);
+        return;
+      }
+    } catch (e) {}
+    cb();
+  }
+  function scrollTo(sel, focusId) {
+    var el = document.querySelector(sel); if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (focusId) setTimeout(function () { var f = document.getElementById(focusId); if (f) f.focus({ preventScroll: true }); }, 350);
+  }
+  var ACTIONS = {
+    overview: function () { ensureList(function () { scrollTo('.stat-row'); }); },
+    filter:   function () { ensureList(function () { scrollTo('.filter-grid', 'f-search'); }); },
+    list:     function () { ensureList(function () { var t = document.querySelector('.section-title'); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }); },
+    toggle:   function () { ensureList(function () { var b = document.getElementById('btn-lines-toggle'); if (b) b.click(); }); },
+    add:      function () { ensureList(function () {
+                var f = document.getElementById('add-doc-form');
+                var open = f && f.innerHTML.trim() !== '';
+                if (!open) { var b = document.getElementById('btn-add-doc'); if (b) b.click(); }
+                setTimeout(function () { scrollTo('#add-doc-form'); }, 80); }); },
+    imp:      function () { ensureList(function () { var b = document.getElementById('btn-import-parts'); if (b) b.click(); setTimeout(function () { scrollTo('#import-preview'); }, 400); }); }
+  };
+  var SCROLL_ITEMS = { overview: 1, filter: 1, list: 1 }; // เมนูที่ไฮไลต์ Active เมื่อกด
+  var links = document.querySelectorAll('#app-sidebar [data-doc-nav]');
+  links.forEach(function (el) {
+    el.addEventListener('click', function (e) {
+      e.preventDefault();
+      var k = el.getAttribute('data-doc-nav');
+      if (SCROLL_ITEMS[k]) { links.forEach(function (x) { x.classList.remove('active'); }); el.classList.add('active'); }
+      if (ACTIONS[k]) ACTIONS[k]();
+    });
+  });
   document.querySelectorAll('#app-sidebar .side-nav-item').forEach(function (el) {
     el.addEventListener('click', function () { body.classList.remove('sidebar-open'); });
   });
-  // เมนูอนุมัติ — ใช้ข้อมูลผู้ใช้จากหน้าหลัก (ถ้าเปิดหน้านี้จากแท็บเดียวกัน); ไม่พบ = ซ่อน (การอนุมัติจริงยังต้องล็อกอิน/PIN ที่หน้านั้นเหมือนเดิม)
-  try {
-    var u = JSON.parse(sessionStorage.getItem('fc_app_user') || 'null');
-    if (u) {
-      var explicit = Array.isArray(u.menu) ? u.menu : null;
-      var showLeader = explicit ? explicit.includes('leader') : u.role === 'supervisor';
-      var showSup = explicit ? explicit.includes('supervisor') : u.role === 'manager';
-      var set = function (el, on) { if (el) el.style.display = on ? '' : 'none'; };
-      set(document.getElementById('nav-leader-check'), showLeader);
-      set(document.getElementById('nav-sup-approved'), showSup);
-      document.querySelectorAll('#app-sidebar [data-approve-nav]:not(a)').forEach(function (el) { set(el, showLeader || showSup); });
-    }
-  } catch (e) {}
 })();
+</script>
+<script>
+function lscStart(){
+  const clocks=[...document.querySelectorAll('.lsc-clock')].map(el=>({d:el.querySelector('.lsc-day'),dt:el.querySelector('.lsc-date'),hm:el.querySelector('.lsc-hm'),ss:el.querySelector('.lsc-ss'),sky:el.querySelector('.lsc-sky'),last:''}));
+  if(!clocks.length)return;
+  const p2=n=>String(n).padStart(2,'0');
+  function tick(){
+    const n=new Date(),h=n.getHours();
+    const day=n.toLocaleDateString('th-TH',{weekday:'long'});
+    const date=n.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'});
+    const sky=h<5?['🌙','ดึก',1]:h<12?['🌤️','เช้า',0]:h<17?['☀️','บ่าย',0]:h<19?['🌇','เย็น',0]:['🌙','ค่ำ',1];
+    clocks.forEach(c=>{
+      c.d.textContent=day;c.dt.textContent=date;
+      c.hm.innerHTML=p2(h)+'<i class="lsc-colon">:</i>'+p2(n.getMinutes());
+      c.ss.textContent=p2(n.getSeconds());c.ss.classList.remove('lsc-ss-tick');void c.ss.offsetWidth;c.ss.classList.add('lsc-ss-tick');
+      if(sky[0]+sky[1]!==c.last){c.last=sky[0]+sky[1];c.sky.textContent=sky[0];c.sky.title='ช่วง'+sky[1];c.sky.classList.toggle('night',!!sky[2]);}
+    });
+  }
+  tick();setInterval(tick,1000);
+}
+lscStart();
 </script>
 <script src="manual.js?v=2"></script>
 </body>
