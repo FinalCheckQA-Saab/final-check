@@ -986,5 +986,19 @@ ${row.manager_comment ? `💬 ความเห็น: ${escTg(row.manager_comm
   // รีเฟรชภาพรวมอัตโนมัติทุก 30 วิ — เพราะหน้างานตรวจ Part พร้อมกันหลายจุด ข้อมูลจะเข้ามาเรื่อยๆ
   setInterval(loadDashboard, 30000);
 </script>
+<script>
+// 🎨 ซิงก์ชุดสีกับ "ค่ากลางของระบบ" (theme_palette ที่ Admin กด "บันทึกให้ทุกเครื่อง") + ตามการเปลี่ยนสีจากแท็บอื่นแบบสด
+(function(){
+  var root=document.documentElement;
+  function setPal(id){ if(!id||id==='default')root.removeAttribute('data-palette'); else if(/^[a-z]+$/.test(id))root.setAttribute('data-palette',id); }
+  window.addEventListener('storage',function(e){ if(e.key==='fc_palette')setPal(e.newValue); });
+  try{
+    fetch('https://knzzmurumqrhwotyrooj.supabase.co/rest/v1/app_settings?select=value&key=eq.theme_palette',{headers:{apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU',Authorization:'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU'}})
+      .then(function(r){return r.ok?r.json():[];})
+      .then(function(rows){ var v=rows&&rows[0]&&rows[0].value; if(v){ setPal(v); try{localStorage.setItem('fc_palette',v);}catch(e){} } })
+      .catch(function(){});
+  }catch(e){}
+})();
+</script>
 </body>
 </html>
