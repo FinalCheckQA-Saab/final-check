@@ -667,6 +667,22 @@ input[type=password]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0
 .spec-txt{color:#475569}
 .spec-meth{color:var(--muted)}
 
+
+/* ── จัดกลุ่มตาม Line → Model ── */
+.line-table .dept-row td{background:var(--accent-dim);border-bottom:1px solid var(--border)}
+.line-table .dept-row:hover{background:transparent!important}
+.line-table .dept-row .dept-name{display:flex;align-items:center;gap:7px;font-weight:800;font-size:14.5px;color:var(--navy)}
+.line-table .dept-row .dept-name .ti{width:17px;height:17px;color:var(--gold,#c9a24a)}
+.line-table .model-row td.line-name-cell{padding-left:26px}
+.line-table .model-row td.line-name-cell>div:first-child{font-weight:600;font-size:13.5px}
+.pending-dept-group{margin-bottom:22px;padding:14px 14px 4px;border:1px solid var(--border);border-left:5px solid var(--gold,#c9a24a);border-radius:16px;background:color-mix(in srgb,var(--accent-dim) 55%,transparent)}
+.pending-dept-group:last-child{margin-bottom:0}
+.pending-dept-header{display:flex;align-items:center;gap:9px;margin:0 0 12px;font-size:17px;font-weight:800;color:var(--navy)}
+.pending-dept-header .ti{width:21px;height:21px;color:var(--gold,#c9a24a)}
+.pending-dept-count{margin-left:auto;padding:2px 12px;border-radius:999px;background:var(--navy);color:#fff;font-size:12.5px;font-weight:700}
+.pending-dept-group .pending-line-group{margin-bottom:14px}
+.pending-dept-group .pending-line-header{padding:8px 12px;font-size:14px;color:var(--navy);background:#fff;border:1px solid var(--border);border-radius:10px}
+.pending-dept-group .pending-line-header .pending-line-count{background:var(--accent-dim);color:var(--navy)}
 </style>
 </head>
 <body>
@@ -789,7 +805,7 @@ input[type=password]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0
     // หน้านี้ดูเฉพาะรายงานที่ "Leaderตรวจสอบแล้ว" เท่านั้น (approval_status = 'approved')
     // ที่เหลือรอ Supervisor อนุมัติต่อ (manager_approval_status)
     const { data, error } = await sb.from('history')
-      .select('id, jig_name, line_name, insp_date, ts, approval_status, manager_approval_status, inspector, items')
+      .select('id, jig_name, dept_name, line_name, insp_date, ts, approval_status, manager_approval_status, inspector, items')
       .eq('approval_status', 'approved')
       .gte('insp_date', since)
       .order('ts', { ascending: false });
@@ -834,6 +850,33 @@ input[type=password]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0
     const pendingLineEntries = Array.from(pendingByLine.entries())
       .sort((a, b) => (b[1].clean.length + b[1].ng.length) - (a[1].clean.length + a[1].ng.length));
 
+    // ── จัดกลุ่มตาม Line (dept) → Model ──
+    const NO_DEPT = 'ไม่ระบุ Line';
+    const byNat = (a, b) => (a === NO_DEPT) - (b === NO_DEPT) || String(a).localeCompare(String(b), 'th', { numeric: true });
+    const modelSort = (a, b) => (b[1].pending - a[1].pending) || byNat(a[0], b[0]);
+    const deptMap = new Map();
+    rows.forEach(r => {
+      const dk = r.dept_name || NO_DEPT, mk = r.line_name || 'ไม่ระบุ Model';
+      if (!deptMap.has(dk)) deptMap.set(dk, { pending: 0, approved: 0, models: new Map() });
+      const d = deptMap.get(dk);
+      if (!d.models.has(mk)) d.models.set(mk, { pending: 0, approved: 0 });
+      const k = (r.manager_approval_status === 'approved') ? 'approved' : 'pending';
+      d[k]++; d.models.get(mk)[k]++;
+    });
+    const deptRows = Array.from(deptMap.entries()).sort((a, b) => byNat(a[0], b[0]))
+      .map(([name, d]) => [name, d, Array.from(d.models.entries()).sort(modelSort)]);
+    const pendingDeptMap = new Map();
+    pendingList.forEach(r => {
+      const dk = r.dept_name || NO_DEPT, mk = r.line_name || 'ไม่ระบุ Model';
+      if (!pendingDeptMap.has(dk)) pendingDeptMap.set(dk, { total: 0, models: new Map() });
+      const d = pendingDeptMap.get(dk); d.total++;
+      if (!d.models.has(mk)) d.models.set(mk, { clean: [], ng: [] });
+      (r.ngCount === 0 ? d.models.get(mk).clean : d.models.get(mk).ng).push(r);
+    });
+    const pendingDeptEntries = Array.from(pendingDeptMap.entries()).sort((a, b) => byNat(a[0], b[0]))
+      .map(([name, d]) => [name, { total: d.total, models: Array.from(d.models.entries())
+        .sort((a, b) => (b[1].clean.length + b[1].ng.length) - (a[1].clean.length + a[1].ng.length) || byNat(a[0], b[0])) }]);
+
     dash.innerHTML = `
       <div class="card">
         <div class="section-title"><i class="ti ti-chart"></i>ภาพรวมการอนุมัติของ Supervisor (30 วันล่าสุด)</div>
@@ -845,14 +888,21 @@ input[type=password]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0
         <div class="dash-note"><i class="ti ti-info"></i><span>รายการทั้งหมดที่นี่ผ่าน Leader ตรวจสอบแล้ว รอ Supervisor อนุมัติขั้นสุดท้าย</span></div>
         ${lineRows.length ? `
         <table class="line-table">
-          <thead><tr><th>Model</th><th>รออนุมัติ</th><th>อนุมัติแล้ว</th></tr></thead>
+          <thead><tr><th>Line / Model</th><th>รออนุมัติ</th><th>อนุมัติแล้ว</th></tr></thead>
           <tbody>
-            ${lineRows.map(([name, g]) => `
-              <tr>
+            ${deptRows.map(([dName, d, models]) => `
+              <tr class="dept-row">
+                <td class="line-name-cell"><div><span class="dept-name"><i class="ti ti-factory"></i>${esc(dName)}</span></div><div class="lt-bar" title="${d.approved}/${d.pending + d.approved}"><i style="width:${Math.round(d.approved / (d.pending + d.approved) * 100)}%"></i></div></td>
+                <td>${d.pending ? `<span class="mini-badge pending">${d.pending}</span>` : `<span class="mini-badge zero">0</span>`}</td>
+                <td>${d.approved ? `<span class="mini-badge approved">${d.approved}</span>` : `<span class="mini-badge zero">0</span>`}</td>
+              </tr>
+              ${models.map(([name, g]) => `
+              <tr class="model-row">
                 <td class="line-name-cell"><div>${esc(name)}</div><div class="lt-bar" title="${g.approved}/${g.pending + g.approved}"><i style="width:${Math.round(g.approved / (g.pending + g.approved) * 100)}%"></i></div></td>
                 <td>${g.pending ? `<span class="mini-badge pending">${g.pending}</span>` : `<span class="mini-badge zero">0</span>`}</td>
                 <td>${g.approved ? `<span class="mini-badge approved">${g.approved}</span>` : `<span class="mini-badge zero">0</span>`}</td>
               </tr>
+              `).join('')}
             `).join('')}
           </tbody>
         </table>` : `<div class="center-msg" style="padding:10px 0;">ยังไม่มีข้อมูลการตรวจในช่วงนี้</div>`}
@@ -860,7 +910,10 @@ input[type=password]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0
 
       <div class="card">
         <div class="section-title"><i class="ti ti-clock"></i>รายการที่รอ Supervisor อนุมัติ (${pendingList.length})</div>
-        ${pendingLineEntries.length ? pendingLineEntries.map(([lineName, g]) => `
+        ${pendingDeptEntries.length ? pendingDeptEntries.map(([deptName, d]) => `
+          <div class="pending-dept-group">
+            <div class="pending-dept-header"><i class="ti ti-factory"></i>${esc(deptName)} <span class="pending-dept-count">${d.total}</span></div>
+            ${d.models.map(([lineName, g]) => `
           <div class="pending-line-group">
             <div class="pending-line-header"><i class="ti ti-factory"></i>${esc(lineName)} <span class="pending-line-count">${g.clean.length + g.ng.length}</span></div>
 
@@ -868,7 +921,7 @@ input[type=password]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0
               <div class="pending-subgroup">
                 <div class="pending-subgroup-head">
                   <span><i class="ti ti-check"></i>ไม่มี NG — อนุมัติทีเดียวได้ (${g.clean.length})</span>
-                  <button class="btn-bulk" data-line="${escAttr(lineName)}" data-ids="${g.clean.map(r => r.id).join(',')}">อนุมัติทั้งหมด</button>
+                  <button class="btn-bulk" data-line="${escAttr(deptName + ' › ' + lineName)}" data-ids="${g.clean.map(r => r.id).join(',')}">อนุมัติทั้งหมด</button>
                 </div>
                 ${g.clean.map(r => `
                   <div class="pending-item" style="cursor:default;">
@@ -897,6 +950,8 @@ input[type=password]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0
               </div>
             ` : ''}
           </div>
+        `).join('')}
+          </div>
         `).join('') : `<div class="center-msg" style="padding:16px 0;">🎉 ไม่มีรายการค้างอนุมัติ</div>`}
       </div>
     `;
@@ -912,7 +967,7 @@ input[type=password]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0
 
   async function bulkApprove(lineName, ids, btn) {
     if (!ids.length) return;
-    const name = askName(`ยืนยันอนุมัติทั้งหมด ${ids.length} รายการของ Model "${lineName}" (ไม่มี NG ทุกรายการ)\n\nกรุณาพิมพ์ชื่อผู้อนุมัติ (Supervisor):`);
+    const name = askName(`ยืนยันอนุมัติทั้งหมด ${ids.length} รายการของ "${lineName}" (ไม่มี NG ทุกรายการ)\n\nกรุณาพิมพ์ชื่อผู้อนุมัติ (Supervisor):`);
     if (!name || !name.trim()) return;
     const approverName = _rememberedName;
     // <i class="ti ti-check"></i>SECURITY: ต้องกรอก PIN Supervisor ก่อนอนุมัติได้ — เช็คฝั่ง Supabase (RPC) เท่านั้น
