@@ -1042,11 +1042,11 @@ input[type=password]:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0
     const chips = ps.map((p, k) => {
       const st = (p && p.status) || '';
       const mark = st === 'ok' ? '✓' : st === 'ng' ? '✕' : st === 'fixed' ? '🔧' : '–';
-      const val = (item.type === 'numeric' && p && p.value != null) ? ` ${esc(p.value)}` : '';
+      const u = item.unit ? ' ' + esc(item.unit) : '';
+      const val = (item.type === 'numeric' && p && p.value != null) ? ` ${esc(p.value)}${u}` : '';
       return `<span class="pc ${st || 'none'}"><i>${names[k] || (k + 1)}</i>${mark}${val}</span>`;
     }).join('');
-    const unit = (item.type === 'numeric' && item.unit) ? `<span class="punit">${esc(item.unit)}</span>` : '';
-    return `<div class="pchips">${chips}${unit}</div>`;
+    return `<div class="pchips">${chips}</div>`;
   }
   function itemRow(item, idx) {
     const st = item.status || '';
