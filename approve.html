@@ -438,6 +438,40 @@ textarea:focus,input[type=text]:focus{outline:0;border-color:var(--accent);box-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 /* 🆕 Silver — แถบหัวเมทัลลิกเหมือนหน้าหลัก */
 html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg,rgba(255,255,255,0) 28%,rgba(255,255,255,.2) 46%,rgba(255,255,255,0) 62%),linear-gradient(120deg,#44505f,#5f6c7e 55%,#4a5666);box-shadow:0 8px 24px -10px rgba(30,40,55,.55),inset 0 1px 0 rgba(255,255,255,.3)}
+
+/* ── Dashboard refresh: KPI + progress, note, per-model bars, line header ── */
+.section-title .ti{color:var(--accent)}
+.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0 0}
+.kpi{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:18px}
+.kpi::before{display:none}
+.kpi-pending{background:linear-gradient(135deg,#fff1c9,#fff8e6);color:#b45309;border-color:#f6dc9a}
+.kpi-ok{background:linear-gradient(135deg,#d3f5df,#effbf3);color:#15803d;border-color:#b6e8c8}
+.kpi>div{min-width:0}
+.kpi b{font-size:42px}
+.kpi span{display:block;margin-top:3px}
+.kpi-ico{flex:none;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:#fff;background:linear-gradient(145deg,#fbbf24,#d97706);box-shadow:0 10px 18px -9px rgba(217,119,6,.85),inset 0 1px 0 rgba(255,255,255,.35)}
+.kpi-ok .kpi-ico{background:linear-gradient(145deg,#4ade80,#16a34a);box-shadow:0 10px 18px -9px rgba(22,163,74,.85),inset 0 1px 0 rgba(255,255,255,.35)}
+.kpi-ico svg{width:25px;height:25px}
+.kpi-progress{margin:16px 2px 0}
+.kpi-progress-track{height:10px;border-radius:999px;background:#fde6ad;overflow:hidden}
+.kpi-progress-fill{height:100%;width:var(--p);border-radius:999px;background:linear-gradient(90deg,#4ade80,#16a34a);animation:kpi-grow .9s .15s cubic-bezier(.2,.8,.2,1) backwards}
+@keyframes kpi-grow{from{width:0}}
+.kpi-progress-label{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font-size:12px;color:var(--muted)}
+.kpi-progress-label b{font-family:var(--num);font-weight:600;color:var(--ok);font-size:13px}
+.dash-note{display:flex;align-items:flex-start;gap:9px;margin:16px 0 14px;padding:11px 14px;border-radius:12px;background:var(--accent-dim);color:var(--navy);font-size:12.5px;line-height:1.6}
+.dash-note .ti{width:18px;height:18px;margin-top:2px;color:var(--accent)}
+.line-table th:first-child{width:44%}
+.line-table th{color:var(--muted);font-weight:600}
+.line-name-cell>div:first-child{font-weight:700}
+.lt-bar{height:4px;max-width:150px;margin-top:7px;border-radius:999px;background:#fde6ad;overflow:hidden}
+.lt-bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#4ade80,#16a34a)}
+.pending-line-count{margin-left:auto;padding:1px 10px;border-radius:999px;background:rgba(255,255,255,.16);color:#fff;font-family:var(--num);font-size:12.5px;font-weight:600}
+@media (max-width:520px){.kpi{gap:10px;padding:14px}.kpi-ico{width:40px;height:40px;border-radius:12px}.kpi-ico svg{width:22px;height:22px}.kpi b{font-size:34px}.kpi-progress-label{flex-direction:column;gap:2px}}
+@media (prefers-reduced-motion:reduce){.kpi-progress-fill{animation:none}}
+.pending-subgroup-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pending-subgroup-head>span{display:inline-flex;align-items:center;gap:7px;font-weight:600}
+.pending-subgroup-head .ti{width:18px;height:18px}
+@media (max-width:520px){.header-actions-row{position:static;display:flex;justify-content:flex-end;margin:0 0 10px}}
 </style>
 </head>
 <body>
@@ -623,6 +657,7 @@ html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg
 
     const totalPending = rows.filter(r => r.approval_status !== 'approved').length;
     const totalApproved = rows.length - totalPending;
+    const pctDone = rows.length ? Math.round(totalApproved / rows.length * 100) : 0;
 
     const pendingList = rows.filter(r => r.approval_status !== 'approved')
       .map(r => ({ ...r, ngCount: (r.items || []).filter(i => i.status === 'ng').length }));
@@ -641,19 +676,20 @@ html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg
 
     dash.innerHTML = `
       <div class="card">
-        <div class="section-title"><i class="ti ti-chart"></i>ภาพรวมการตรวจสอบของLeader (30 วันล่าสุด)</div>
+        <div class="section-title"><i class="ti ti-chart"></i>ภาพรวมการตรวจสอบของ Leader (30 วันล่าสุด)</div>
         <div class="kpi-row">
-          <div class="kpi kpi-pending"><b>${totalPending}</b><span>รอ Leader ตรวจสอบ</span></div>
-          <div class="kpi kpi-ok"><b>${totalApproved}</b><span>ผ่าน Leader แล้ว</span></div>
+          <div class="kpi kpi-pending"><i class="kpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></i><div><b>${totalPending}</b><span>รอ Leader ตรวจสอบ</span></div></div>
+          <div class="kpi kpi-ok"><i class="kpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></i><div><b>${totalApproved}</b><span>ผ่าน Leader แล้ว</span></div></div>
         </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px;"><i class="ti ti-info"></i>หลังหัวหน้าตรวจสอบแล้ว ยังต้องรอ Supervisor อนุมัติต่อ (ขั้นที่ 2) ก่อนจะถือว่าสมบูรณ์</div>
+        ${rows.length ? `<div class="kpi-progress" role="img" aria-label="ตรวจสอบแล้ว ${pctDone}%"><div class="kpi-progress-track"><div class="kpi-progress-fill" style="--p:${pctDone}%"></div></div><div class="kpi-progress-label"><span>ตรวจสอบแล้ว <b>${pctDone}%</b></span><span>เหลืออีก ${totalPending} จาก ${rows.length} รายการ</span></div></div>` : ''}
+        <div class="dash-note"><i class="ti ti-info"></i><span>หลังหัวหน้าตรวจสอบแล้ว ยังต้องรอ Supervisor อนุมัติต่อ (ขั้นที่ 2) ก่อนจะถือว่าสมบูรณ์</span></div>
         ${lineRows.length ? `
         <table class="line-table">
           <thead><tr><th>Model</th><th>รอตรวจสอบ</th><th>ตรวจสอบแล้ว</th></tr></thead>
           <tbody>
             ${lineRows.map(([name, g]) => `
               <tr>
-                <td class="line-name-cell">${esc(name)}</td>
+                <td class="line-name-cell"><div>${esc(name)}</div><div class="lt-bar" title="${g.approved}/${g.pending + g.approved}"><i style="width:${Math.round(g.approved / (g.pending + g.approved) * 100)}%"></i></div></td>
                 <td>${g.pending ? `<span class="mini-badge pending">${g.pending}</span>` : `<span class="mini-badge zero">0</span>`}</td>
                 <td>${g.approved ? `<span class="mini-badge approved">${g.approved}</span>` : `<span class="mini-badge zero">0</span>`}</td>
               </tr>
@@ -666,7 +702,7 @@ html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg
         <div class="section-title"><i class="ti ti-clock"></i>รายการที่รอตรวจสอบ (${pendingList.length})</div>
         ${pendingLineEntries.length ? pendingLineEntries.map(([lineName, g]) => `
           <div class="pending-line-group">
-            <div class="pending-line-header"><i class="ti ti-factory"></i>${esc(lineName)} <span class="pending-line-count">(${g.clean.length + g.ng.length})</span></div>
+            <div class="pending-line-header"><i class="ti ti-factory"></i>${esc(lineName)} <span class="pending-line-count">${g.clean.length + g.ng.length}</span></div>
 
             ${g.clean.length ? `
               <div class="pending-subgroup">
