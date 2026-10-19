@@ -227,7 +227,7 @@
 
     /* คอลัมน์กลาง: SKETCH / ค่าคงที่ / สูตร / Judgement */
     h += '<div class="mid">' +
-      '<div class="box sketch"><b class="u">SKETCH</b><div class="skw">' + (c.img ? '<img src="' + esc(c.img) + '" alt="">' : '') + '</div></div>' +
+      '<div class="box sketch"><b class="u">SKETCH</b><div class="skw">' + (c.sketch || '') + '</div></div>' +
       '<div class="box konst">' + kTbl + '<div class="kn">ใช้ n = ' + n + ' ชิ้น / กลุ่ม</div></div>' +
       '<div class="box formula">' +
         '<div class="fr"><span class="fk">n =</span><span class="fb">' + a.N + '</span><span class="fn">Subgroup</span></div>' +
@@ -326,7 +326,7 @@
     '.ct td{border:1px solid #000;padding:3px 8px;font-size:9.5px;line-height:1.35}.ct td.k{text-align:center;font-weight:700;font-size:15px}',
     /* กลาง */
     '.mid{grid-column:2;grid-row:2/5;display:flex;flex-direction:column}',
-    '.sketch{height:196px;padding:6px 8px;display:flex;flex-direction:column}.sketch .skw{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding-top:4px}.sketch img{max-width:100%;max-height:100%;object-fit:contain;display:block}.u{text-decoration:underline;font-size:12px}',
+    '.sketch{height:196px;padding:6px 8px;display:flex;flex-direction:column}.sketch .skw{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding-top:4px}.sketch svg{width:100%;height:100%;display:block}.u{text-decoration:underline;font-size:12px}',
     '.konst{height:118px;padding:6px 8px;display:flex;flex-direction:column}',
     '.kt{width:100%}.kt th,.kt td{border:1px solid #000;text-align:center;padding:1px 2px;font-size:11px;height:19px}.kt th{background:#fff;font-weight:700}.kt .cy{background:#ccffff}.kt .b{font-weight:700}.kt .hl{background:#ffe38a;font-weight:700}',
     '.kt sub,.formula sub{font-size:.7em;vertical-align:baseline;position:relative;top:.25em}',
@@ -396,41 +396,120 @@
     return s.replace(/[\\/:*?"<>|\s]+/g, '_').replace(/_+/g, '_') + '.pdf';
   }
 
-  /* ───────── รูปของ Part (ดึงจากตาราง jigs — หาคอลัมน์รูปให้อัตโนมัติ) ───────── */
-  var imgCache = {};
-  function pickImg(row) {
-    if (!row) return null;
-    var pref = ['image', 'img', 'photo', 'picture', 'pic', 'thumbnail', 'thumb', 'image_url', 'img_url', 'photo_url', 'picture_url', 'thumbnail_url'], k, v;
-    for (var i = 0; i < pref.length; i++) { v = row[pref[i]]; if (typeof v === 'string' && v.length > 8) return v; }
-    for (k in row) {
-      v = row[k];
-      if (typeof v !== 'string') continue;
-      if (/^data:image\//i.test(v) || /^https?:\/\/\S+\.(png|jpe?g|webp|gif)(\?|$)/i.test(v) || (/(image|img|photo|pic|thumb)/i.test(k) && v.length > 8)) return v;
+  /* ───────── SKETCH: รูปแผนผังจุดตรวจ (พื้นขาว) + ลูกศร/กล่องข้อความ + หมุดเลขจุดตรวจ ─────────
+     ข้อมูลมาจาก Supabase: jigs.bg_image (base64) · jigs.arrows (ลูกศร/ข้อความ) · checkpoints.x/y (หมุด)
+     พิกัดทั้งหมดอยู่บน viewBox 600×340 เดียวกับหน้าตรวจสอบ — รูปวางที่ x20 y30 กว้าง560 สูง280 */
+  var SK = { x: 20, y: 30, w: 560, h: 280 };
+  var skCache = {};
+  function skThai(t) { return t.replace(/[ัิ-ฺ็-๎]/g, ''); }
+  function skWrap(line, maxCh) {
+    if (skThai(line).length <= maxCh) return [line];
+    var out = [], cur = '', vis = 0, lastSp = -1, chars = Array.from(line);
+    for (var i = 0; i < chars.length; i++) {
+      var ch = chars[i], w = skThai(ch).length;
+      if (vis + w > maxCh && cur) {
+        if (lastSp > 0) { out.push(cur.slice(0, lastSp)); cur = cur.slice(lastSp + 1); vis = skThai(cur).length; }
+        else { out.push(cur); cur = ''; vis = 0; }
+        lastSp = -1;
+      }
+      if (ch === ' ') lastSp = cur.length;
+      cur += ch; vis += w;
     }
-    return null;
+    if (cur) out.push(cur);
+    return out;
   }
-  async function toDataURL(u) {
+  function skBox(a) {
+    var size = Number(a.size) || 14, raw = String(a.text == null ? '' : a.text), src = (raw.trim() ? raw : '…').split('\n');
+    var pitch = size * 1.35, minH = Math.round(pitch + 10), w, lines;
+    if (Number(a.w) > 0) {
+      w = Math.max(30, Math.min(590, Math.round(a.w)));
+      var maxCh = Math.max(1, Math.floor((w - 16) / (size * 0.58)));
+      lines = [].concat.apply([], src.map(function (l) { return skWrap(l, maxCh); }));
+    } else {
+      lines = src;
+      w = Math.min(570, Math.round(Math.max.apply(null, [2].concat(lines.map(function (l) { return skThai(l).length; }))) * size * 0.58 + 16));
+    }
+    var h = Number(a.h) > 0 ? Math.max(minH, Math.min(330, Math.round(a.h))) : Math.round(lines.length * pitch + 10);
+    return { size: size, lines: lines, w: w, h: h, pitch: pitch };
+  }
+  function skTextSvg(a) {
+    var b = skBox(a), color = a.color || '#e03131', fill = a.fill || '#ffffff', tcol = a.textColor || '#111111';
+    var x = Number(a.x) || 0, y = Number(a.y) || 0, al = a.align === 'center' || a.align === 'right' ? a.align : 'left';
+    var tx = al === 'center' ? b.w / 2 : al === 'right' ? b.w - 8 : 8, anchor = al === 'center' ? 'middle' : al === 'right' ? 'end' : 'start';
+    var tsp = b.lines.map(function (ln, i) { return '<tspan x="' + tx + '" dy="' + (i === 0 ? 0 : Math.round(b.pitch * 10) / 10) + '">' + esc(ln) + '</tspan>'; }).join('');
+    return '<rect x="' + x + '" y="' + y + '" width="' + b.w + '" height="' + b.h + '" rx="4" fill="' + esc(fill) + '" fill-opacity="' + (fill === 'none' ? 0 : 0.93) + '" stroke="' + esc(color) + '" stroke-width="1.6"/>' +
+      '<svg x="' + x + '" y="' + y + '" width="' + b.w + '" height="' + b.h + '" style="overflow:hidden"><text x="' + tx + '" y="' + (5 + b.size * 0.95) + '" font-size="' + b.size + '" text-anchor="' + anchor + '" fill="' + esc(tcol) + '">' + tsp + '</text></svg>';
+  }
+  function skArrowSvg(a) {
+    var w = Number(a.width) || 2.5, dx = a.x2 - a.x1, dy = a.y2 - a.y1, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+    var head = Math.min(8 + w * 2.2, len * 0.6), half = head * 0.42, bx = a.x2 - ux * head, by = a.y2 - uy * head;
+    var poly = a.x2 + ',' + a.y2 + ' ' + (bx - uy * half) + ',' + (by + ux * half) + ' ' + (bx + uy * half) + ',' + (by - ux * half);
+    var color = esc(a.color || '#1d6fd1'), op = Number(a.opacity), opA = op > 0 && op < 1 ? ' opacity="' + op + '"' : '';
+    return '<g' + opA + '><line x1="' + a.x1 + '" y1="' + a.y1 + '" x2="' + bx + '" y2="' + by + '" stroke="' + color + '" stroke-width="' + w + '" stroke-linecap="round"/>' +
+      '<polygon points="' + poly + '" fill="' + color + '" stroke="' + color + '" stroke-width="1" stroke-linejoin="round"/></g>';
+  }
+  function buildSketchSVG(d, hiId) {
+    var arr = (d.arrows || []).filter(function (a) { return a && (a.type === 'text' ? num(a.x) && num(a.y) : num(a.x1) && num(a.y1) && num(a.x2) && num(a.y2)); });
+    var s = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="' + [SK.x, SK.y, SK.w, SK.h].join(' ') + '" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style="display:block;font-family:Tahoma,\'Leelawadee UI\',\'Noto Sans Thai\',Arial,sans-serif">';
+    s += '<defs><clipPath id="skc"><rect x="' + SK.x + '" y="' + SK.y + '" width="' + SK.w + '" height="' + SK.h + '"/></clipPath></defs>';
+    s += '<rect x="' + SK.x + '" y="' + SK.y + '" width="' + SK.w + '" height="' + SK.h + '" fill="#fff"/>';
+    s += '<image x="' + SK.x + '" y="' + SK.y + '" width="' + SK.w + '" height="' + SK.h + '" preserveAspectRatio="xMidYMid slice" clip-path="url(#skc)" xlink:href="' + d.img + '"/>';
+    arr.forEach(function (a) { s += a.type === 'text' ? skTextSvg(a) : skArrowSvg(a); });
+    d.pts.forEach(function (q) {
+      var hi = hiId != null && String(q.id) === String(hiId), col = hi ? '#d00000' : '#1f3a5f';
+      s += '<g transform="translate(' + q.x + ',' + q.y + ')"><circle r="' + (hi ? 15 : 13) + '" fill="' + col + '" fill-opacity=".14" stroke="' + col + '" stroke-width="' + (hi ? 2 : 1.2) + '"/>' +
+        '<circle r="8" fill="' + col + '" stroke="#fff" stroke-width="1.5"/><text y="3.4" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="Arial,Helvetica,sans-serif">' + q.n + '</text></g>';
+    });
+    return s + '</svg>';
+  }
+  /* กลับสีรูป (ต้นฉบับพื้นดำ เส้นขาว) → พื้นขาว เส้นดำ — ทำที่ canvas โดยตรง ไม่พึ่ง CSS filter */
+  function invertImg(src) {
+    return new Promise(function (res) {
+      var im = new Image();
+      im.onload = function () {
+        try {
+          var k = Math.min(1, 1600 / im.naturalWidth), w = Math.max(1, Math.round(im.naturalWidth * k)), h = Math.max(1, Math.round(im.naturalHeight * k));
+          var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+          var cx = cv.getContext('2d'); cx.fillStyle = '#000'; cx.fillRect(0, 0, w, h); cx.drawImage(im, 0, 0, w, h);
+          var id = cx.getImageData(0, 0, w, h), p = id.data;
+          for (var i = 0; i < p.length; i += 4) { p[i] = 255 - p[i]; p[i + 1] = 255 - p[i + 1]; p[i + 2] = 255 - p[i + 2]; p[i + 3] = 255; }
+          cx.putImageData(id, 0, 0);
+          res(cv.toDataURL('image/jpeg', 0.92));
+        } catch (e) { res(src); }
+      };
+      im.onerror = function () { res(src); };
+      im.src = src;
+    });
+  }
+  async function urlToDataURL(u) {
     if (/^data:/i.test(u)) return u;
     try {
       var r = await fetch(u, { mode: 'cors' }), b = await r.blob();
       return await new Promise(function (res, rej) { var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.onerror = rej; fr.readAsDataURL(b); });
     } catch (e) { return u; }
   }
-  async function getPartImg(id) {
+  async function getSketchData(id) {
     if (id == null) return null;
-    if (imgCache[id] !== undefined) return imgCache[id];
+    if (skCache[id] !== undefined) return skCache[id];
     var out = null;
     try {
       if (typeof sb !== 'undefined') {
-        var r = await sb.from('jigs').select('*').eq('id', id).maybeSingle();
-        var u = pickImg(r && r.data);
-        if (u) {
-          if (!/^(data:|https?:)/i.test(u)) { try { u = sb.storage.from('jig-images').getPublicUrl(u).data.publicUrl; } catch (e) { } }
-          out = await toDataURL(u);
+        var j = await sb.from('jigs').select('bg_image,arrows').eq('id', id).maybeSingle();
+        if (j.error) j = await sb.from('jigs').select('bg_image').eq('id', id).maybeSingle();   /* ยังไม่มีคอลัมน์ arrows */
+        var row = j && j.data;
+        if (row && typeof row.bg_image === 'string' && row.bg_image.length > 8) {
+          var cp = await sb.from('checkpoints').select('item_id,x,y').eq('jig_id', id);
+          var all = (cp.data || []).slice().sort(function (a, b) { return Number(a.item_id) - Number(b.item_id); });
+          var pts = []; all.forEach(function (q, i) { if (num(q.x) && num(q.y)) pts.push({ id: q.item_id, x: +q.x, y: +q.y, n: i + 1 }); });   /* เลขหมุด = ลำดับในรายการจุดตรวจ เหมือนหน้าตรวจสอบ */
+          out = { img: await invertImg(await urlToDataURL(row.bg_image)), arrows: Array.isArray(row.arrows) ? row.arrows : [], pts: pts };
         }
       }
-    } catch (e) { console.warn('spc-export img:', e); }
-    imgCache[id] = out; return out;
+    } catch (e) { console.warn('spc-export sketch:', e); }
+    skCache[id] = out; return out;
+  }
+  async function getSketch(id, hiId) {
+    var d = await getSketchData(id);
+    return d ? buildSketchSVG(d, hiId) : '';
   }
 
   var busy = false;
@@ -444,7 +523,7 @@
     var fr = null;
     try {
       setLab('กำลังสร้าง…');
-      c.img = await getPartImg(c.part.id);
+      c.sketch = await getSketch(c.part.id, c.it.id);
       var doc = buildDoc(c);
       fr = await makeFrame(doc.html);
       var libsOk = true;
