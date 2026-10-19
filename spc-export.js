@@ -202,7 +202,7 @@
           '<td class="k">PART NO :</td><td class="v w1">' + esc(p.no || '') + '</td>' +
           '<td class="k">MODEL :</td><td class="v w2">' + esc(p.model || '') + '</td>' +
           '<td class="k">DEPT. :</td><td class="v w3">' + esc(p.dept || '') + '</td>' +
-          '<td class="k">MEASUREMENT :</td><td class="v w4"></td>' +
+          '<td class="k">MEASUREMENT :</td><td class="v w4">' + esc(c.method || '') + '</td>' +
           '<td class="k">SPECIFICATION :</td><td class="v w5">' + (nom == null ? '' : f3(nom)) + '</td><td class="k r">USL =</td><td class="v w6">' + (hasMax ? f3(mx) : '') + '</td>' +
         '</tr><tr>' +
           '<td class="k">PART NAME :</td><td class="v">' + esc(p.name || '') + '</td>' +
@@ -507,6 +507,14 @@
     } catch (e) { console.warn('spc-export sketch:', e); }
     skCache[id] = out; return out;
   }
+  /* วิธีตรวจ/เครื่องมือวัด ของจุดตรวจที่เลือก (checkpoints.method → ช่อง MEASUREMENT) */
+  async function getMethod(jigId, itemId) {
+    try {
+      if (typeof sb === 'undefined' || jigId == null || itemId == null) return '';
+      var r = await sb.from('checkpoints').select('method').eq('jig_id', jigId).eq('item_id', itemId).maybeSingle();
+      return r && r.data && typeof r.data.method === 'string' ? r.data.method.trim() : '';
+    } catch (e) { console.warn('spc-export method:', e); return ''; }
+  }
   async function getSketch(id, hiId) {
     var d = await getSketchData(id);
     return d ? buildSketchSVG(d, hiId) : '';
@@ -524,6 +532,7 @@
     try {
       setLab('กำลังสร้าง…');
       c.sketch = await getSketch(c.part.id, c.it.id);
+      c.method = await getMethod(c.part.id, c.it.id);
       var doc = buildDoc(c);
       fr = await makeFrame(doc.html);
       var libsOk = true;
