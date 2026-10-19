@@ -446,6 +446,18 @@ html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg
 .ai-err small{display:block;color:var(--muted);font-size:12px;margin-top:4px}
 @media (max-width:560px){.ai-hero{padding:16px}.ai-body{padding:14px}.ai-btn{width:100%}.ai-verdict{flex-direction:column;align-items:flex-start}}
 @media (prefers-reduced-motion:reduce){.ai-logo,.ai-in,.ai-sk,.ai-btn.busy svg,.ai-load-msg i{animation:none!important}}
+
+/* ===== เปรียบเทียบ ===== */
+.cmp-row{display:flex;gap:7px;flex-wrap:wrap;margin:6px 0 4px}
+.cmp-lbl{font-size:12.5px;font-weight:700;color:var(--muted);margin-top:12px}
+.cmp-chip{font:inherit;font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--ink);cursor:pointer;transition:all .15s}
+.cmp-chip:hover{border-color:var(--accent)}.cmp-chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+#cmp-wrap[data-mode=month] .cmp-parts{display:none}
+.cmp-go{margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cmp-go .ai-btn{color:#fff;background:linear-gradient(120deg,var(--accent),var(--brand-navy-600));box-shadow:0 8px 18px -8px var(--accent)}
+.cmp-hint{font-size:12px;color:var(--muted)}
+.cmp-tbl{margin:14px 0 4px}.cmp-tbl h3{font-size:14px;margin:0 0 6px}
+.cmp-up{color:var(--good);font-size:11.5px}.cmp-dn{color:var(--bad);font-size:11.5px}
 </style>
 </head>
 <body>
@@ -568,9 +580,9 @@ function itemLabel(it){
 }
 
 // สร้างกลุ่มย่อย (1 ชุดตรวจ = 1 จุด, ค่า S/M/E = สมาชิกในกลุ่ม) ของหัวข้อที่เลือก
-function buildSubgroups(key){
+function buildSubgroups(key,src){
   const raw=[];let skipped=0;
-  rows.forEach(r=>{
+  (src||rows).forEach(r=>{
     const it=(r.items||[]).find(i=>i.type==='numeric'&&(i.id+'|'+i.label)===key);if(!it)return;
     const vals=(it.pieces||[]).map(p=>p&&p.value!=null&&p.value!==''&&isFinite(+p.value)?+p.value:null);
     const got=vals.filter(v=>v!==null);
@@ -815,7 +827,7 @@ function draw(){
       +'<td class="'+(g.oocX?'bad':'')+'">'+fmt(g.mean)+(g.oocX?' ▲':'')+'</td><td class="'+(g.oocR?'bad':'')+'">'+fmt(g.range)+(g.oocR?' ▲':'')+'</td><td>'+(g.oos?'ค่านอกเกณฑ์':g.oocX||g.oocR?'นอกเส้นควบคุม':'ปกติ')+'</td></tr>').join('')
     +'</tbody></table></div></details></div>';
   h+='<div class="card note"><details id="how-calc"'+(howOpen()?' open':'')+'><summary>วิธีคำนวณ <span class="note" style="font-weight:400">(กดเพื่อย่อ/ขยาย)</span></summary><div style="margin-top:8px">X̄ = ค่าเฉลี่ยของ S/M/E ในแต่ละชุด, R = ค่ามากสุด − น้อยสุด · <code>UCL/LCL = X̿ ± A₂·R̄</code> (n='+n+', A₂='+K[n].A2+') · R chart: <code>UCL = D₄·R̄</code> (D₄='+K[n].D4+'), LCL = 0 · Cpk ใช้ σ = R̄/d₂ (d₂='+K[n].d2+') เทียบกับเกณฑ์ LSL/USL ที่ตั้งไว้ · <b>UCL/LCL</b> (เส้นควบคุม) มาจากข้อมูลจริงของกระบวนการ ต่างจาก <b>USL/LSL</b> (เกณฑ์ที่ตั้งไว้ในระบบ) · <b>Cpk</b> = ความสามารถระยะสั้น (σ ภายในชุด) ส่วน <b>Ppk</b> ใน Capability Histogram ใช้ S.D. รวมของทุกค่า (ระยะยาว) · ควรมีข้อมูลอย่างน้อย 25 ชุดและกระบวนการนิ่งก่อนเชื่อถือค่า Cpk/Ppk</div></details></div>';
-  h+=aiCardHTML(aiCtx);
+  h+=aiCardHTML(aiCtx)+cmpCardHTML();
   body.innerHTML=h;
   if($('c-h'))hist($('c-h'),hs,u);
   const cap=g=>'<b>'+esc(dt(g))+'</b>'+(g.r.production_order?'<div class="r"><span>Production Order</span><span>'+esc(g.r.production_order)+'</span></div>':'');
@@ -964,6 +976,100 @@ function aiCardHTML(ctx){
    +'<div class="ai-ttl"><h2>AI วิเคราะห์ข้อมูล SPC <span class="ai-badge">BETA</span></h2><p>สรุปสถานการณ์ สาเหตุที่เป็นไปได้ และสิ่งที่ควรทำ จากกราฟของหัวข้อนี้</p></div>'
    +'<button type="button" class="ai-btn" id="ai-btn">'+AI_IC.spark+'<span>'+(c?'วิเคราะห์ใหม่':'วิเคราะห์ด้วย AI')+'</span></button></div>'
    +'<div class="ai-body">'+aiRulesHTML(ctx.rules)+'<div class="ai-out" id="ai-out">'+(c?c.html:'')+'</div></div></section>';
+}
+
+
+// ═══════════ เปรียบเทียบข้ามเดือน / ราย Part ═══════════
+const cmp={mode:'month',months:new Set(),parts:new Set(),key:'',html:''};
+const cmpShort=m=>new Date(m+'-01T00:00:00').toLocaleDateString('th-TH',{month:'short',year:'2-digit'});
+function cmpMonthList(){const o=[];let[y,m]=thisMonth().split('-').map(Number);for(let i=0;i<12;i++){o.push(y+'-'+String(m).padStart(2,'0'));if(--m<1){m=12;y--}}
+  const sel=$('f-month').value;if(sel&&!o.includes(sel)){o.push(sel);o.sort().reverse()}return o}
+const cmpKey=()=>[cmp.mode,$('f-part').value,[...cmp.months].sort(),cmp.mode==='part'?[...cmp.parts].sort():''].join('|');
+const cpb=v=>v==null?'—':'<b style="color:var(--'+(v>=1.33?'good':v>=1?'amber':'bad')+')">'+fmt(Math.round(v*100)/100)+'</b>';
+const r4=v=>v==null||!isFinite(v)?null:+(+v).toFixed(4);
+
+async function cmpFetch(pid,months){
+  const ms=[...months].sort(),lo=ms[0]+'-01',hi=nextMonth(ms[ms.length-1])+'-01';
+  const h=await sb.from('history').select('ts,insp_date,items').eq('jig_id',pid).gte('insp_date',lo).lt('insp_date',hi).order('ts',{ascending:true}).limit(1000);
+  let c=await sb.from('checkpoints').select('item_id,type,spc').eq('jig_id',pid);
+  if(c.error)c=await sb.from('checkpoints').select('item_id,type').eq('jig_id',pid);
+  if(h.error)throw new Error(h.error.message);
+  const cm=new Map((c.data||[]).map(x=>[x.item_id,x])),use=!c.error&&cm.size>0,mset=new Set(months);
+  const rs=(h.data||[]).filter(r=>mset.has(String(r.insp_date).slice(0,7)));
+  const im=new Map();
+  rs.forEach(r=>(r.items||[]).forEach((it,ix)=>{if(it.type!=='numeric')return;
+    if(use){const x=cm.get(it.id);if(!x||x.type!=='numeric'||x.spc===false)return}
+    const k=it.id+'|'+it.label,o=im.get(k)||{key:k,label:it.label,unit:it.unit||'',no:ix+1};o.min=it.min;o.max=it.max;im.set(k,o)}));
+  return{rs,items:[...im.values()].sort((a,b)=>a.no-b.no).slice(0,8)};
+}
+function cmpStat(rs,it){
+  const{sg,n}=buildSubgroups(it.key,rs);if(!sg.length)return null;
+  const a=analyse(it,sg,n),hs=histStats(sg.flatMap(g=>g.got),it);
+  return{N:a.N,xbb:r4(a.xbb),cpk:r4(a.cpk),ppk:r4(hs.ppk),sd:r4(hs.s),ooc:a.nOoc,oos:a.nOos};
+}
+const cmpTbl=(title,head,body)=>'<div class="cmp-tbl ai-in"><h3>'+title+'</h3><div class="tblwrap"><table><thead><tr>'+head.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+body.map(r=>'<tr>'+r.map(c=>'<td>'+c+'</td>').join('')+'</tr>').join('')+'</tbody></table></div></div>';
+
+async function runCmp(){
+  if(aiBusy)return;
+  const btn=$('cmp-btn'),out=$('cmp-out'),months=[...cmp.months].sort();
+  const pids=cmp.mode==='part'?[...cmp.parts]:[$('f-part').value];
+  if(!months.length||!pids[0]||(cmp.mode==='part'&&pids.length<2)){out.innerHTML='<div class="ai-err"><div>'+(cmp.mode==='part'?'เลือกอย่างน้อย 2 Part และ 1 เดือน':'เลือก Part ด้านบนและอย่างน้อย 1 เดือน')+'</div></div>';return}
+  aiBusy=true;btn.disabled=true;btn.classList.add('busy');btn.querySelector('span').textContent='กำลังเปรียบเทียบ…';
+  out.innerHTML=aiLoading();
+  const pname=id=>{const x=parts.find(y=>String(y.id)===String(id));return x?x.no+' · '+x.name:String(id)};
+  try{
+    const data=await Promise.all(pids.map(id=>cmpFetch(id,months)));
+    const rowsOut=[];let tbl='';
+    if(cmp.mode==='month'){
+      const{rs,items}=data[0];if(!items.length)throw new Error('ไม่พบข้อมูลตัวเลขในเดือนที่เลือก');
+      items.forEach(it=>months.forEach(mo=>{const st=cmpStat(rs.filter(r=>String(r.insp_date).slice(0,7)===mo),it);
+        if(st)rowsOut.push({item:it.label,unit:it.unit,lsl:r4(it.min),usl:r4(it.max),month:mo,...st})}));
+      const cur=items.find(i=>i.key===$('f-item').value)||items[0],mine=rowsOut.filter(r=>r.item===cur.label);
+      tbl=cmpTbl('เทียบรายเดือน — '+esc(cur.label)+(cur.unit?' ('+esc(cur.unit)+')':''),['เดือน','ชุด','X̄','Cpk','Ppk','NG','นอกเส้น'],
+        mine.map((r,i)=>{const pv=mine[i-1],d=pv&&pv.cpk!=null&&r.cpk!=null?r.cpk-pv.cpk:null;
+          return[esc(cmpShort(r.month)),r.N,fmt(r.xbb),cpb(r.cpk)+(d==null?'':' <span class="'+(d>=0?'cmp-up">▲':'cmp-dn">▼')+Math.abs(d).toFixed(2)+'</span>'),cpb(r.ppk),r.oos||'0',r.ooc||'0']}));
+    }else{
+      pids.forEach((id,i)=>{const{rs,items}=data[i];items.forEach(it=>{const st=cmpStat(rs,it);
+        if(st)rowsOut.push({part:pname(id),item:it.label,unit:it.unit,lsl:r4(it.min),usl:r4(it.max),...st})})});
+      const sorted=rowsOut.slice().sort((a,b)=>(a.cpk??99)-(b.cpk??99)).slice(0,12);
+      tbl=cmpTbl('เทียบราย Part (รวมเดือนที่เลือก) — เรียงจาก Cpk ต่ำสุด',['Part','หัวข้อ','ชุด','Cpk','Ppk','NG','นอกเส้น'],
+        sorted.map(r=>[esc(r.part),esc(r.item),r.N,cpb(r.cpk),cpb(r.ppk),r.oos||'0',r.ooc||'0']));
+    }
+    if(!rowsOut.length)throw new Error('ข้อมูลไม่พอสำหรับเปรียบเทียบ (ต้องมีอย่างน้อย 1 ชุดที่กรอกครบ S/M/E)');
+    out.innerHTML=tbl+'<div id="cmp-ai">'+aiLoading()+'</div>';
+    let html=tbl;
+    try{
+      const res=await fetch(AI_URL,{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+SB_KEY},body:JSON.stringify({mode:'compare',kind:cmp.mode,months,rows:rowsOut})});
+      const j=await res.json().catch(()=>({}));
+      if(!res.ok||!j.text)throw new Error(j.error||('HTTP '+res.status));
+      aiLastText=j.text;html+=aiRender(j.text);
+    }catch(e){html+='<div class="ai-err"><div><b>ตารางเปรียบเทียบพร้อมแล้ว แต่เรียก AI ไม่สำเร็จ</b><br>'+esc(e.message)+'</div></div>'}
+    out.innerHTML=html;cmp.key=cmpKey();cmp.html=html;
+    out.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }catch(e){out.innerHTML='<div class="ai-err"><div><b>เปรียบเทียบไม่สำเร็จ</b><br>'+esc(e.message)+'</div></div>'}
+  finally{clearInterval(aiTimer);aiBusy=false;btn.disabled=false;btn.classList.remove('busy');btn.querySelector('span').textContent='เปรียบเทียบอีกครั้ง'}
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest?e.target:null;if(!t)return;
+  const w=$('cmp-wrap');if(!w)return;
+  const md=t.closest('.cmp-mode');if(md){cmp.mode=md.dataset.v;w.dataset.mode=cmp.mode;w.querySelectorAll('.cmp-mode').forEach(b=>b.classList.toggle('on',b===md))}
+  const mc=t.closest('.cmp-m');if(mc){const v=mc.dataset.v;if(cmp.months.has(v)){if(cmp.months.size>1)cmp.months.delete(v)}else if(cmp.months.size<12)cmp.months.add(v);mc.classList.toggle('on',cmp.months.has(v))}
+  const pc=t.closest('.cmp-p');if(pc){const v=pc.dataset.v;if(cmp.parts.has(v))cmp.parts.delete(v);else if(cmp.parts.size<5)cmp.parts.add(v);pc.classList.toggle('on',cmp.parts.has(v));$('cmp-pn').textContent=cmp.parts.size}
+  if(t.closest('#cmp-btn'))runCmp();
+});
+function cmpCardHTML(){
+  const L=cmpMonthList();
+  if(!cmp.months.size){let i=L.indexOf($('f-month').value);if(i<0)i=0;L.slice(i,i+3).forEach(m=>cmp.months.add(m))}
+  if(!cmp.parts.size)cmp.parts.add($('f-part').value);
+  const mchips=L.map(m=>'<button type="button" class="cmp-chip cmp-m'+(cmp.months.has(m)?' on':'')+'" data-v="'+m+'">'+esc(cmpShort(m))+'</button>').join('');
+  const pchips=parts.map(x=>'<button type="button" class="cmp-chip cmp-p'+(cmp.parts.has(String(x.id))?' on':'')+'" data-v="'+esc(x.id)+'" title="'+esc(x.model)+'">'+esc(x.no+' · '+x.name).slice(0,34)+'</button>').join('');
+  const show=cmp.key===cmpKey()&&cmp.html;
+  return '<section class="ai-wrap" id="cmp-wrap" data-mode="'+cmp.mode+'"><div class="ai-hero"><span class="ai-logo">'+AI_IC.find+'</span><div class="ai-ttl"><h2>เปรียบเทียบด้วย AI <span class="ai-badge">BETA</span></h2><p>เทียบข้ามเดือนของ Part นี้ หรือเทียบหลาย Part พร้อมกัน แล้วให้ AI สรุปแนวโน้มและจุดที่ต้องจับตา</p></div></div>'
+   +'<div class="ai-body"><div class="cmp-row"><button type="button" class="cmp-chip cmp-mode'+(cmp.mode==='month'?' on':'')+'" data-v="month">ข้ามเดือน (Part ที่เลือก)</button><button type="button" class="cmp-chip cmp-mode'+(cmp.mode==='part'?' on':'')+'" data-v="part">ราย Part</button></div>'
+   +'<div class="cmp-lbl">เลือกเดือน (สูงสุด 12)</div><div class="cmp-row">'+mchips+'</div>'
+   +'<div class="cmp-parts"><div class="cmp-lbl">เลือก Part (2–5 รายการ) · เลือกแล้ว <span id="cmp-pn">'+cmp.parts.size+'</span></div><div class="cmp-row">'+pchips+'</div></div>'
+   +'<div class="cmp-go"><button type="button" class="ai-btn" id="cmp-btn">'+AI_IC.spark+'<span>'+(show?'เปรียบเทียบอีกครั้ง':'เปรียบเทียบด้วย AI')+'</span></button><span class="cmp-hint">ข้ามเดือน: ใช้ Part ที่เลือกด้านบน · ราย Part: รวมข้อมูลของเดือนที่เลือก</span></div>'
+   +'<div class="ai-out" id="cmp-out">'+(show?cmp.html:'')+'</div></div></section>';
 }
 
 // ── Events ──
