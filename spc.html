@@ -432,7 +432,8 @@ html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg
 .ai-hero::before{background:radial-gradient(circle,color-mix(in srgb,var(--accent) 40%,#fff),transparent 68%);opacity:.55}
 .ai-hero .ai-logo{background:linear-gradient(135deg,#fff,color-mix(in srgb,var(--accent) 24%,#fff));animation-name:aiPulseCool}
 @keyframes aiPulseCool{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.5)}50%{box-shadow:0 0 0 11px rgba(255,255,255,0)}}
-.ai-hero .ai-btn{background:linear-gradient(120deg,#fff,color-mix(in srgb,var(--accent) 16%,#fff))}
+.ai-hero .ai-btn{color:#fff;background:linear-gradient(120deg,color-mix(in srgb,var(--accent) 78%,#fff),var(--accent));box-shadow:inset 0 0 0 1px rgba(255,255,255,.38),0 8px 20px -8px rgba(0,0,0,.55)}
+.ai-hero .ai-btn:hover{box-shadow:inset 0 0 0 1px rgba(255,255,255,.6),0 12px 24px -8px rgba(0,0,0,.6)}
 @keyframes aiSpin{to{transform:rotate(360deg)}}
 .ai-body{padding:18px 22px 20px}
 .ai-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
@@ -504,6 +505,7 @@ html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg
 .cmp-grp{margin-top:10px;padding:10px 12px 8px;border:1px solid var(--border);border-radius:14px;background:color-mix(in srgb,var(--accent) 4%,var(--card))}
 .cmp-gt{font-size:13px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px}
 .cmp-gt::before{content:"";width:4px;height:15px;border-radius:2px;background:linear-gradient(180deg,var(--accent),var(--brand-gold))}
+.cmp-gt::before{background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 45%,#fff))}
 .cmp-gt em{font-style:normal;font-size:11.5px;font-weight:600;color:var(--muted)}
 .cmp-mt{font-style:normal;font-size:10.5px;font-weight:700;margin-left:7px;padding:1px 7px;border-radius:999px;background:var(--accent-dim);color:var(--accent)}.cmp-chip.on .cmp-mt{background:rgba(255,255,255,.22);color:#fff}
 /* ── แถบหัว: สว่างขึ้น/สีชุดธีมเด่นขึ้น (ไล่ navy-800 → 700 → 600 + แสง accent สองข้าง + แสงบนบาง ๆ) ── */
