@@ -55,7 +55,7 @@
     return t;
   }
   function chartSVG(o) {
-    var W = COL_L, H = o.H, mt = 12, mb = 8, ml = ML, pw = W - ml - 1, cw = pw / PER_PAGE, ph = H - mt - mb;
+    var W = COL_L, H = o.H, mt = 12, mb = o.dates ? 22 : 8, ml = ML, pw = W - ml - 1, cw = pw / PER_PAGE, ph = H - mt - mb;
     var vals = o.pts.map(function (p) { return p.v; }), all = vals.slice();
     o.lines.forEach(function (l) { if (num(l.v)) all.push(+l.v); });
     var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
@@ -66,13 +66,17 @@
     var FF = 'Arial,Helvetica,sans-serif';
     var s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="display:block">';
     s += '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#fff"/>';
-    for (var i = 0; i <= PER_PAGE; i++) s += '<line x1="' + (ml + i * cw).toFixed(1) + '" x2="' + (ml + i * cw).toFixed(1) + '" y1="' + mt + '" y2="' + (H - mb) + '" stroke="#e1e1e1" stroke-width="1"/>';
     niceTicks(lo, hi, 5).forEach(function (t) {
       var y = Y(t).toFixed(1);
-      s += '<line x1="' + ml + '" x2="' + (W - 1) + '" y1="' + y + '" y2="' + y + '" stroke="#e1e1e1" stroke-width="1"/>';
+      s += '<line x1="' + (ml - 3) + '" x2="' + ml + '" y1="' + y + '" y2="' + y + '" stroke="#000" stroke-width="1"/>';
       s += '<text x="' + (ml - 5) + '" y="' + (+y + 3) + '" text-anchor="end" font-size="8.5" fill="#777" font-family="' + FF + '">' + f3(t) + '</text>';
     });
     s += '<rect x="' + ml + '" y="' + mt + '" width="' + pw + '" height="' + ph + '" fill="none" stroke="#000" stroke-width="1"/>';
+    if (o.dates) o.pts.forEach(function (p, i) {
+      var x = X(i).toFixed(1);
+      s += '<line x1="' + x + '" x2="' + x + '" y1="' + (H - mb) + '" y2="' + (H - mb + 3) + '" stroke="#000" stroke-width="1"/>';
+      s += '<text x="' + x + '" y="' + (H - mb + 13) + '" text-anchor="middle" font-size="8" font-weight="600" fill="#000" font-family="' + FF + '">' + esc(p.d || '') + '</text>';
+    });
     var labs = [];
     o.lines.forEach(function (l) {
       if (!num(l.v)) return;
@@ -129,8 +133,8 @@
 
     /* ── กราฟ ── */
     var offs = pi * PER_PAGE;
-    var xPts = sg.map(function (g) { return { v: g.mean, ooc: !!g.oocX, oos: !!g.oos }; });
-    var rPts = sg.map(function (g) { return { v: g.range, ooc: !!g.oocR }; });
+    var xPts = sg.map(function (g) { return { v: g.mean, d: shortDate(g.t), ooc: !!g.oocX, oos: !!g.oos }; });
+    var rPts = sg.map(function (g) { return { v: g.range, d: shortDate(g.t), ooc: !!g.oocR }; });
     var xLines = [
       { v: hasLim ? a.uclX : null, label: 'UCL', color: '#d00000', w: 1.5 },
       { v: a.xbb, label: 'X̿', color: '#2f8f4e', dash: '6 4', w: 1.3 },
@@ -141,8 +145,8 @@
       { v: a.rbar, label: 'R̄', color: '#2f8f4e', dash: '6 4', w: 1.3 }
     ];
     if (hasLim && a.lclR > 0) rLines.push({ v: a.lclR, label: 'LCL', color: '#d00000', w: 1.5 });
-    var svgX = chartSVG({ H: 250, pts: xPts, lines: xLines });
-    var svgR = chartSVG({ H: 190, pts: rPts, lines: rLines, floor0: true });
+    var svgX = chartSVG({ H: 250, dates: true, pts: xPts, lines: xLines });
+    var svgR = chartSVG({ H: 190, dates: true, pts: rPts, lines: rLines, floor0: true });
 
     /* ── ตารางข้อมูล ── */
     var cells = function (fn) { var s = ''; for (var i = 0; i < PER_PAGE; i++) s += fn(sg[i], i); return s; };
@@ -223,7 +227,7 @@
 
     /* คอลัมน์กลาง: SKETCH / ค่าคงที่ / สูตร / Judgement */
     h += '<div class="mid">' +
-      '<div class="box sketch"><b class="u">SKETCH</b></div>' +
+      '<div class="box sketch"><b class="u">SKETCH</b><div class="skw">' + (c.img ? '<img src="' + esc(c.img) + '" alt="">' : '') + '</div></div>' +
       '<div class="box konst">' + kTbl + '<div class="kn">ใช้ n = ' + n + ' ชิ้น / กลุ่ม</div></div>' +
       '<div class="box formula">' +
         '<div class="fr"><span class="fk">n =</span><span class="fb">' + a.N + '</span><span class="fn">Subgroup</span></div>' +
@@ -322,7 +326,7 @@
     '.ct td{border:1px solid #000;padding:3px 8px;font-size:9.5px;line-height:1.35}.ct td.k{text-align:center;font-weight:700;font-size:15px}',
     /* กลาง */
     '.mid{grid-column:2;grid-row:2/5;display:flex;flex-direction:column}',
-    '.sketch{height:196px;padding:6px 8px}.u{text-decoration:underline;font-size:12px}',
+    '.sketch{height:196px;padding:6px 8px;display:flex;flex-direction:column}.sketch .skw{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding-top:4px}.sketch img{max-width:100%;max-height:100%;object-fit:contain;display:block}.u{text-decoration:underline;font-size:12px}',
     '.konst{height:118px;padding:6px 8px;display:flex;flex-direction:column}',
     '.kt{width:100%}.kt th,.kt td{border:1px solid #000;text-align:center;padding:1px 2px;font-size:11px;height:19px}.kt th{background:#fff;font-weight:700}.kt .cy{background:#ccffff}.kt .b{font-weight:700}.kt .hl{background:#ffe38a;font-weight:700}',
     '.kt sub,.formula sub{font-size:.7em;vertical-align:baseline;position:relative;top:.25em}',
@@ -392,6 +396,43 @@
     return s.replace(/[\\/:*?"<>|\s]+/g, '_').replace(/_+/g, '_') + '.pdf';
   }
 
+  /* ───────── รูปของ Part (ดึงจากตาราง jigs — หาคอลัมน์รูปให้อัตโนมัติ) ───────── */
+  var imgCache = {};
+  function pickImg(row) {
+    if (!row) return null;
+    var pref = ['image', 'img', 'photo', 'picture', 'pic', 'thumbnail', 'thumb', 'image_url', 'img_url', 'photo_url', 'picture_url', 'thumbnail_url'], k, v;
+    for (var i = 0; i < pref.length; i++) { v = row[pref[i]]; if (typeof v === 'string' && v.length > 8) return v; }
+    for (k in row) {
+      v = row[k];
+      if (typeof v !== 'string') continue;
+      if (/^data:image\//i.test(v) || /^https?:\/\/\S+\.(png|jpe?g|webp|gif)(\?|$)/i.test(v) || (/(image|img|photo|pic|thumb)/i.test(k) && v.length > 8)) return v;
+    }
+    return null;
+  }
+  async function toDataURL(u) {
+    if (/^data:/i.test(u)) return u;
+    try {
+      var r = await fetch(u, { mode: 'cors' }), b = await r.blob();
+      return await new Promise(function (res, rej) { var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.onerror = rej; fr.readAsDataURL(b); });
+    } catch (e) { return u; }
+  }
+  async function getPartImg(id) {
+    if (id == null) return null;
+    if (imgCache[id] !== undefined) return imgCache[id];
+    var out = null;
+    try {
+      if (typeof sb !== 'undefined') {
+        var r = await sb.from('jigs').select('*').eq('id', id).maybeSingle();
+        var u = pickImg(r && r.data);
+        if (u) {
+          if (!/^(data:|https?:)/i.test(u)) { try { u = sb.storage.from('jig-images').getPublicUrl(u).data.publicUrl; } catch (e) { } }
+          out = await toDataURL(u);
+        }
+      }
+    } catch (e) { console.warn('spc-export img:', e); }
+    imgCache[id] = out; return out;
+  }
+
   var busy = false;
   async function exportPDF() {
     if (busy) return;
@@ -403,6 +444,7 @@
     var fr = null;
     try {
       setLab('กำลังสร้าง…');
+      c.img = await getPartImg(c.part.id);
       var doc = buildDoc(c);
       fr = await makeFrame(doc.html);
       var libsOk = true;
