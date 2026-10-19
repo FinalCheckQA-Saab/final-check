@@ -501,6 +501,10 @@ html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg
 .cmp-gt::before{content:"";width:4px;height:15px;border-radius:2px;background:linear-gradient(180deg,var(--accent),var(--brand-gold))}
 .cmp-gt em{font-style:normal;font-size:11.5px;font-weight:600;color:var(--muted)}
 .cmp-mt{font-style:normal;font-size:10.5px;font-weight:700;margin-left:7px;padding:1px 7px;border-radius:999px;background:var(--accent-dim);color:var(--accent)}.cmp-chip.on .cmp-mt{background:rgba(255,255,255,.22);color:#fff}
+/* ── แถบหัว: สว่างขึ้น/สีชุดธีมเด่นขึ้น (ไล่ navy-800 → 700 → 600 + แสง accent สองข้าง + แสงบนบาง ๆ) ── */
+header{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,0) 55%),radial-gradient(520px 140px at 92% -20px,color-mix(in srgb,var(--accent) 58%,transparent),transparent 72%),radial-gradient(520px 140px at 4% -30px,color-mix(in srgb,var(--brand-gold) 22%,transparent),transparent 70%),linear-gradient(120deg,var(--brand-navy-800),var(--brand-navy-700) 50%,color-mix(in srgb,var(--brand-navy-600) 88%,var(--brand-navy-700)))}
+/* ── หัวหน้า SPC: ให้สว่างและเห็นสีของชุดสีชัดขึ้น (ไล่เฉด navy-800 → 700 → 600 + แสงสีหลักสองมุม) ── */
+header{background:radial-gradient(520px 170px at 90% -40px,color-mix(in srgb,var(--accent) 55%,transparent),transparent 70%),radial-gradient(460px 150px at 8% 120%,color-mix(in srgb,var(--brand-gold) 22%,transparent),transparent 70%),linear-gradient(120deg,var(--brand-navy-800),var(--brand-navy-700) 52%,color-mix(in srgb,var(--brand-navy-600) 85%,var(--brand-navy-700)))}
 </style>
 </head>
 <body>
