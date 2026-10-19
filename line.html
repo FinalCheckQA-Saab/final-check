@@ -295,6 +295,16 @@ html[data-theme=dark] .lnh{background:linear-gradient(100deg,color-mix(in srgb,v
 html[data-theme=dark] .row{box-shadow:none}
 @media(max-width:640px){.lnh-st{margin-left:0;width:100%;flex-direction:row;align-items:center;gap:10px}.lnh-st i{flex:1}.lnh-ic{margin-left:4px}.row .nm{min-width:0;flex-basis:calc(100% - 60px)}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* 🆕 รูปจุดตรวจที่ NG (ย่อเล็ก กดขยายได้) */
+.ngp{margin-top:6px}
+.ngp-ph{display:block;width:84px;aspect-ratio:480/304;border-radius:8px;background:rgba(127,127,127,.18);animation:ngpPulse 1.2s ease-in-out infinite}
+.ngp-img{display:block;width:84px;max-width:100%;aspect-ratio:480/304;object-fit:cover;border-radius:8px;border:1px solid rgba(220,38,38,.45);cursor:zoom-in;background:#000}
+@keyframes ngpPulse{50%{opacity:.5}}
+.ng-lb{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.85)}
+.ng-lb.open{display:flex}
+.ng-lb img{max-width:100%;max-height:86vh;border-radius:12px;background:#000}
+.ng-lb-close{position:absolute;top:14px;right:14px;width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.95);color:#111;font-size:20px;line-height:1;cursor:pointer}
 </style>
 </head>
 <body>
@@ -408,7 +418,7 @@ async function loadStatus(){
     (sk.data||[]).forEach(r=>{const d=String(r.skip_date).slice(0,10);(skp[d]=skp[d]||new Set()).add(r.jig_id)});
     if(hs.error)er.push('อ่านข้อมูลการตรวจไม่สำเร็จ: '+hs.error.message);
     // ตัวสุดท้ายของ Part ในแต่ละวันทับ = ชุดล่าสุดของวันนั้น
-    (hs.data||[]).forEach(r=>{const d=String(r.insp_date).slice(0,10);(st[d]=st[d]||{})[r.jig_id]={st:stageStates(r),ts:r.ts,items:r.items||[],po:r.production_order||'',by:r.inspector||''}});
+    (hs.data||[]).forEach(r=>{const d=String(r.insp_date).slice(0,10);(st[d]=st[d]||{})[r.jig_id]={id:r.id,st:stageStates(r),ts:r.ts,items:r.items||[],po:r.production_order||'',by:r.inspector||''}});
   }
   if(tk!==loadTk)return false; // มีการเลือกช่วงใหม่ระหว่างโหลด — ทิ้งผลเก่า
   status=st;skipsBy=skp;errs=er;rangeBad=bad;return true;
@@ -444,7 +454,7 @@ function detail(p,date,r){
     const first=(r.items[0].pieces||[]);
     h+='<div class="stg">'+STAGES.map((l,i)=>l+' '+(first[i]&&first[i].at?hm(first[i].at)+(first[i].by?' ('+esc(first[i].by)+')':''):'ยังไม่ตรวจ')).join(' · ')+'</div>';
     h+='<div class="tw"><table class="ct"><thead><tr><th>#</th><th class="l">จุดตรวจ</th><th>เกณฑ์</th>'+STAGES.map(l=>'<th>'+l+'</th>').join('')+'<th>ผล</th></tr></thead><tbody>'
-      +r.items.map((it,ix)=>'<tr><td class="no">'+(ix+1)+'</td><td class="l">'+esc(it.label)+(it.sub?'<span class="sp"> · '+esc(it.sub)+'</span>':'')+(it.note?'<span class="nt">หมายเหตุ: '+esc(it.note)+'</span>':'')+'</td><td class="sp">'+specText(it)+'</td>'
+      +r.items.map((it,ix)=>'<tr><td class="no">'+(ix+1)+'</td><td class="l">'+esc(it.label)+(it.sub?'<span class="sp"> · '+esc(it.sub)+'</span>':'')+(it.note?'<span class="nt">หมายเหตุ: '+esc(it.note)+'</span>':'')+ngSlot(r,it)+'</td><td class="sp">'+specText(it)+'</td>'
         +STAGES.map((l,i)=>pcell(it,(it.pieces||[])[i])).join('')+'<td>'+itemResult(it)+'</td></tr>').join('')
       +'</tbody></table></div>';
   }
@@ -505,7 +515,56 @@ function render(){
     else if(hidden)h+='<div class="skip">ไม่มีข้อมูลการตรวจ '+hidden+' วัน (ไม่แสดง)</div>';
   }else if(!h)h='<div class="empty">ยังไม่ถึงวันที่เลือก</div>';
   $('body').innerHTML=h;
+  hydrateNg(); // 🆕 เติมรูปจุด NG (เฉพาะ Part ที่กางดูอยู่)
 }
+// ══ 🆕 รูปจุดตรวจที่ NG (ย่อเล็ก กดขยายได้) — แสดงตั้งแต่รอบ S ไม่ต้องรอครบ S/M/E ══
+// ดึงจากตาราง history_ng_images เฉพาะจุดที่ NG + มีธง hasNgImg และเฉพาะ Part ที่กางดูอยู่ · ดึงครั้งเดียวแล้ว cache (รีเฟรชทุก 60 วิไม่ดึงซ้ำ)
+const NG_PFX='data:image/jpeg;base64,',NGC=new Map(),NGMISS=new Map();let ngQ=Promise.resolve();
+function ngSlot(r,it){
+  if(!r||!r.id||!it||it.id==null||!it.hasNgImg)return '';
+  if(!(it.status==='ng'||(it.pieces||[]).some(x=>x&&x.status==='ng')))return '';
+  return '<div class="ngp" data-h="'+esc(r.id)+'" data-i="'+esc(it.id)+'"><span class="ngp-ph"></span></div>';
+}
+function fillNg(el,src){
+  if(!el||!el.isConnected)return;
+  if(!src||typeof src!=='string'||!src.startsWith(NG_PFX)){el.remove();return}
+  const im=document.createElement('img');im.className='ngp-img';im.alt='รูปจุดตรวจที่ NG';im.title='กดเพื่อดูภาพขยาย';im.src=src;
+  el.replaceChildren(im);
+}
+function hydrateNg(){ngQ=ngQ.then(doHydrateNg).catch(e=>console.warn('hydrateNg',e))}
+async function doHydrateNg(){
+  const need=[];
+  document.querySelectorAll('#body .ngp[data-h]').forEach(el=>{
+    const k=el.dataset.h+'|'+el.dataset.i;
+    if(NGC.has(k))fillNg(el,NGC.get(k));else need.push(el);
+  });
+  if(!need.length)return;
+  const now=Date.now(),go=need.filter(el=>{const m=NGMISS.get(el.dataset.h+'|'+el.dataset.i);return !(m&&now-m<120000)});
+  need.filter(el=>!go.includes(el)).forEach(el=>el.remove());
+  if(!go.length)return;
+  const hids=[...new Set(go.map(el=>el.dataset.h))],iids=[...new Set(go.map(el=>el.dataset.i))];let rows=[];
+  try{
+    for(let i=0;i<hids.length;i+=20){
+      const {data,error}=await sb.from('history_ng_images').select('history_id,item_id,img').in('history_id',hids.slice(i,i+20)).in('item_id',iids);
+      if(error)throw error;rows=rows.concat(data||[]);
+    }
+  }catch(e){console.warn('โหลดรูปจุด NG ไม่สำเร็จ',e);go.forEach(el=>{NGMISS.set(el.dataset.h+'|'+el.dataset.i,Date.now());el.remove()});return}
+  rows.forEach(r=>{if(r&&typeof r.img==='string'&&r.img.startsWith(NG_PFX))NGC.set(String(r.history_id)+'|'+String(r.item_id),r.img)});
+  go.forEach(el=>{const k=el.dataset.h+'|'+el.dataset.i;if(NGC.has(k))fillNg(el,NGC.get(k));else{NGMISS.set(k,Date.now());el.remove()}});
+}
+// กดรูปเล็ก → ดูภาพขยาย (กดพื้นหลัง / ปุ่ม ✕ / Esc เพื่อปิด)
+(function(){
+  let lb=null;
+  function ensure(){
+    if(lb)return lb;
+    lb=document.createElement('div');lb.className='ng-lb';
+    lb.innerHTML='<button type="button" class="ng-lb-close" aria-label="ปิด">✕</button><img alt="รูปจุดตรวจที่ NG">';
+    lb.addEventListener('click',e=>{if(e.target.tagName!=='IMG')lb.classList.remove('open')});
+    document.body.appendChild(lb);return lb;
+  }
+  document.addEventListener('click',e=>{const t=e.target;if(t&&t.tagName==='IMG'&&t.closest&&t.closest('.ngp')){const b=ensure();b.querySelector('img').src=t.src;b.classList.add('open')}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&lb)lb.classList.remove('open')});
+})();
 async function refresh(silent){
   if(!silent){$('body').innerHTML=SK;$('body').classList.add('fresh')}
   const rb=$('btn-refresh');rb.classList.add('busy');

@@ -4205,3 +4205,11 @@ html[data-palette="silver"] .sidebar {
   box-shadow: 0 8px 26px hsla(214, 22%, 16%, 0.32), inset 0 1px 0 rgba(255,255,255,.28);
 }
 html[data-palette="silver"] .sidebar-brand-logo { box-shadow: 0 0 0 2px hsla(214, 30%, 85%, .45), 0 4px 12px -2px hsla(214, 30%, 85%, .5); }
+
+/* 🆕 รูปจุดตรวจที่ NG ในการ์ด "NG วันนี้" (รูปเล็ก กดแล้วขยาย) */
+.ng-today-item .ngp{margin:6px 0 4px}
+.ngp-ph{display:block;width:88px;aspect-ratio:480/304;border-radius:8px;background:rgba(127,127,127,.18);animation:ngpPulse 1.2s ease-in-out infinite}
+.ngp-img{display:block;width:88px;max-width:100%;aspect-ratio:480/304;object-fit:cover;border-radius:8px;border:1px solid rgba(220,38,38,.45);cursor:zoom-in;background:#000;transition:transform .15s}
+.ngp-img:hover{transform:scale(1.04)}
+@keyframes ngpPulse{50%{opacity:.5}}
+@media (prefers-reduced-motion:reduce){.ngp-ph{animation:none}}

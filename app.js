@@ -8227,11 +8227,83 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
           value: it.value != null ? `${it.value}${it.unit ? ' ' + it.unit : ''}` : '',
           note: it.note || '',
           inspector: h.inspector || '',
+          hid: h.id != null ? String(h.id) : '',            // 🆕 ใช้ดึงรูปจุด NG
+          iid: it.id,                                        // 🆕
+          hasImg: !!(it.hasNgImg || it.ngImg),               // 🆕
+          imgLocal: it.ngImg || '',                          // 🆕 รูปที่ยังค้างในเครื่อง (ยังไม่อัปขึ้นระบบ) แสดงได้ทันที ไม่ต้องดึง
         });
       });
     });
     rows.sort((a, b) => new Date(b.ts) - new Date(a.ts)); // ล่าสุดขึ้นก่อน
     return rows;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     🆕 รูปจุดตรวจที่ NG ในการ์ด "NG วันนี้" (รูปเล็ก กดแล้วขยาย) — ไม่ต้องรอตรวจครบ S/M/E
+     - รูปเก็บในตาราง history_ng_images (ไม่ได้อยู่ใน history.items) → ดึงเฉพาะรายการ NG ที่มีธง hasNgImg
+     - ดึงครั้งเดียวต่อรูป แล้วเก็บ cache ในหน้านี้ (การ์ดรีเฟรชบ่อยก็ไม่ดึงซ้ำ = ไม่กิน Egress เพิ่ม)
+     - ถ้ารูปยังค้างในเครื่อง (ยังไม่ซิงก์) ใช้รูปนั้นแสดงเลย ไม่ต้องยิง request
+  ══════════════════════════════════════════════════════════════ */
+  const _ngPicCache = new Map();   // "historyId|itemId" -> dataURL
+  const _ngPicMiss  = new Map();   // "historyId|itemId" -> เวลาที่หาไม่เจอล่าสุด (ลองใหม่ได้หลังผ่านไป 2 นาที เผื่ออัปรูปยังไม่เสร็จ)
+  let _ngPicQ = Promise.resolve();
+
+  function ngPicSlot(r) {
+    if (!r || !r.hasImg || !r.hid || r.iid == null) return '';
+    if (r.imgLocal && String(r.imgLocal).startsWith(NG_IMG_PREFIX)) _ngPicCache.set(r.hid + '|' + r.iid, r.imgLocal);
+    return `<div class="ngp" data-h="${escHtml(r.hid)}" data-i="${escHtml(String(r.iid))}"><span class="ngp-ph"></span></div>`;
+  }
+  function fillNgPic(el, src) {
+    if (!el || !el.isConnected) return;
+    if (!src || typeof src !== 'string' || !src.startsWith(NG_IMG_PREFIX)) { el.remove(); return; }
+    const im = document.createElement('img');
+    im.className = 'ngp-img'; im.alt = 'รูปจุดตรวจที่ NG'; im.title = 'กดเพื่อดูภาพขยาย'; im.src = src;
+    im.addEventListener('click', () => openLightbox(im.src));
+    el.replaceChildren(im);
+  }
+  function hydrateNgPics(root) {
+    _ngPicQ = _ngPicQ.then(() => doHydrateNgPics(root)).catch(e => console.warn('hydrateNgPics error:', e));
+    return _ngPicQ;
+  }
+  async function doHydrateNgPics(root) {
+    if (!root) return;
+    const need = [];
+    root.querySelectorAll('.ngp[data-h]').forEach(el => {
+      const k = el.dataset.h + '|' + el.dataset.i;
+      if (_ngPicCache.has(k)) fillNgPic(el, _ngPicCache.get(k)); else need.push(el);
+    });
+    if (!need.length) return;
+    const now = Date.now();
+    const fetchable = need.filter(el => {
+      const m = _ngPicMiss.get(el.dataset.h + '|' + el.dataset.i);
+      return !(m && now - m < 120000);
+    });
+    need.filter(el => !fetchable.includes(el)).forEach(el => el.remove());
+    if (!fetchable.length) return;
+    if (!sb || _ngImgTableMissing) { fetchable.forEach(el => el.remove()); return; }
+    const hids = [...new Set(fetchable.map(el => el.dataset.h))];
+    const iids = [...new Set(fetchable.map(el => el.dataset.i))];
+    let rows = [];
+    try {
+      for (let i = 0; i < hids.length; i += 20) {
+        const { data, error } = await sb.from('history_ng_images').select('history_id,item_id,img')
+          .in('history_id', hids.slice(i, i + 20)).in('item_id', iids);
+        if (error) throw error;
+        rows = rows.concat(data || []);
+      }
+    } catch (e) {
+      console.warn('โหลดรูปจุด NG ไม่สำเร็จ:', e);
+      fetchable.forEach(el => { _ngPicMiss.set(el.dataset.h + '|' + el.dataset.i, Date.now()); el.remove(); });
+      return;
+    }
+    rows.forEach(r => {
+      if (r && typeof r.img === 'string' && r.img.startsWith(NG_IMG_PREFIX)) _ngPicCache.set(String(r.history_id) + '|' + String(r.item_id), r.img);
+    });
+    fetchable.forEach(el => {
+      const k = el.dataset.h + '|' + el.dataset.i;
+      if (_ngPicCache.has(k)) fillNgPic(el, _ngPicCache.get(k));
+      else { _ngPicMiss.set(k, Date.now()); el.remove(); }
+    });
   }
 
   // ── รายการ NG ที่พบ "วันนี้" แบบละเอียด (Part ไหน ข้อไหน ใครตรวจ กี่โมง) ──
@@ -8260,9 +8332,11 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
           <div class="ng-today-jig">${escHtml(r.jigName)} <span class="ng-today-line">(${escHtml(r.lineName)})</span></div>
           <div class="ng-today-checkpoint">${escHtml(r.label)}${r.value ? ` — <strong>${escHtml(r.value)}</strong>` : ''}</div>
           ${r.note ? `<div class="ng-today-note">"${escHtml(r.note)}"</div>` : ''}
+          ${ngPicSlot(r)}
           <div class="ng-today-inspector">👤 ${escHtml(r.inspector)}</div>
         </div>
       </div>`).join('')}</div>`;
+    hydrateNgPics(listEl); // 🆕 เติมรูปจุด NG (ย่อเล็ก กดขยายได้) — ดึงเฉพาะที่ยังไม่เคยดึง
   }
 
   // ── 🆕 Modal "รายการ NG ทั้งหมด" — เปิดจากคลิกการ์ด KPI สีแดง ใช้ hist เดียวกับที่ใช้คำนวณตัวเลขบนการ์ด ──
