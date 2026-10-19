@@ -68,6 +68,33 @@ a.back{color:#fff;font-size:13px;text-decoration:none;opacity:.9}
 @media (max-width:640px){.hbtn-back{margin-left:0}}
 @keyframes hbackGlow{0%,100%{opacity:0;transform:scale(1)}50%{opacity:.9;transform:scale(1.06)}}
 @media (prefers-reduced-motion:reduce){.hbtn-back::after{animation:none}.hbtn-back .ico-back{transition:none}}
+/* ── ชื่อหน้า SPC + โลโก้: ไฮไลต์ทอง / ชิป UCL-LCL / กราฟวาดเส้น + วงแสงหายใจ (เพิ่มเติม ไม่แก้ของเดิม) ── */
+header .logo{position:relative;isolation:isolate;transition:transform .25s cubic-bezier(.34,1.56,.64,1),box-shadow .25s ease}
+header .logo::before{content:"";position:absolute;inset:-5px;border-radius:inherit;z-index:-1;
+  background:radial-gradient(circle,rgba(236,201,114,.55),transparent 70%);animation:logoBreath 3.4s ease-in-out infinite}
+header .logo::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;overflow:hidden;
+  background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.65) 50%,transparent 65%);background-size:250% 100%;background-position:160% 0;
+  animation:logoSheen 5.5s ease-in-out 1.2s infinite}
+header .logo:hover{transform:rotate(-6deg) scale(1.08)}
+header .logo .lg-lim{stroke-dasharray:2.2 2.2;opacity:.55;animation:limMarch 2.4s linear infinite}
+header .logo .lg-line{stroke-dasharray:1;stroke-dashoffset:1;animation:lineDraw 1.3s .25s cubic-bezier(.4,0,.2,1) forwards}
+header h1{display:flex;align-items:center;gap:0;letter-spacing:.01em;text-shadow:0 2px 14px rgba(0,0,0,.35)}
+.ttl-spc{font-weight:800;letter-spacing:.06em;background:linear-gradient(100deg,#f7e2a1 10%,#e8b84a 50%,#fff1c2 90%);background-size:220% 100%;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#ecc972;animation:ttlShine 6s ease-in-out infinite}
+.ttl-sep{opacity:.45;white-space:pre}
+.ttl-rest{font-weight:600;white-space:nowrap}
+.ttl-ucl,.ttl-lcl{font-style:normal;font-weight:800;font-size:.72em;letter-spacing:.06em;padding:2px 8px;border-radius:7px;vertical-align:2px;border:1px solid;
+  font-family:'Noto Sans Thai',Tahoma,sans-serif}
+.ttl-ucl{color:#fecaca;background:linear-gradient(135deg,rgba(248,113,113,.32),rgba(248,113,113,.12));border-color:rgba(248,113,113,.5);box-shadow:0 0 12px -2px rgba(248,113,113,.45)}
+.ttl-lcl{color:#a5f3fc;background:linear-gradient(135deg,rgba(34,211,238,.28),rgba(34,211,238,.1));border-color:rgba(34,211,238,.5);box-shadow:0 0 12px -2px rgba(34,211,238,.4)}
+.ttl-sl{opacity:.4;margin:0 5px}
+@keyframes lineDraw{to{stroke-dashoffset:0}}
+@keyframes limMarch{to{stroke-dashoffset:-4.4}}
+@keyframes logoBreath{0%,100%{opacity:.35;transform:scale(.95)}50%{opacity:.85;transform:scale(1.12)}}
+@keyframes logoSheen{0%,55%{background-position:160% 0}100%{background-position:-60% 0}}
+@keyframes ttlShine{0%,100%{background-position:0 0}50%{background-position:100% 0}}
+@media (max-width:640px){.ttl-ucl,.ttl-lcl{padding:1px 5px;font-size:.7em}.ttl-sl{margin:0 3px}.ttl-rest{overflow:hidden;text-overflow:ellipsis}}
+@media (prefers-reduced-motion:reduce){header .logo::before,header .logo::after,header .logo .lg-lim,.ttl-spc{animation:none}header .logo .lg-line{animation-duration:.01s;animation-delay:0s}}
 @media (prefers-reduced-motion:reduce){.hbtn,.hbtn *{transition:none!important}#btn-refresh.spin .ico-refresh{animation-duration:2s}}
 @media (max-width:480px){.hbtn{padding-right:12px}}
 /* ── ส่วนหัวย่อ/ขยายได้ (ค่าเริ่มต้น = ย่อ) ── */
@@ -479,7 +506,7 @@ html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg
 <body>
 <header id="hdr" class="collapsed">
   <div class="hd-left">
-    <div class="hd-top"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 18h18"/><path d="m4 14 4-4 4 3 5-6 3 2"/></svg></span><h1>SPC — กราฟควบคุม UCL / LCL</h1></div>
+    <div class="hd-top"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path class="lg-lim" d="M3 6h18M3 18h18"/><path class="lg-line" pathLength="1" d="m4 14 4-4 4 3 5-6 3 2"/></svg></span><h1><span class="ttl-spc">SPC</span><span class="ttl-sep"> — </span><span class="ttl-rest">กราฟควบคุม <em class="ttl-ucl">UCL</em><span class="ttl-sl"> / </span><em class="ttl-lcl">LCL</em></span></h1></div>
     <div class="hd-more" id="hd-more"><div class="hd-more-in"><small>X̄–R Chart ของหัวข้อที่ตรวจเป็นตัวเลข (ชิ้น S / M / E เป็น 1 กลุ่มย่อย) แยกตาม Part Number และเดือน</small></div></div>
   </div>
   <div class="hactions">
