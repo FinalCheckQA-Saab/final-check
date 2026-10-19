@@ -411,9 +411,8 @@ function dayHTML(date,fp,multi){
     const kp=(k,l)=>'<span class="kp '+k+(cnt[k]?'':' z')+'"><b>'+cnt[k]+'</b>'+l+'</span>';
     h+='<div class="card hero"><div class="hero-top"><div class="ring '+rc+'" style="--p:'+pct+'" role="img" aria-label="ผ่านแล้ว '+pct+' เปอร์เซ็นต์"><b>'+pct+'<small>%</small></b><span>ผ่านแล้ว</span></div><div class="hero-info"><h2>'+(whole?'สรุปทั้ง Line':'สรุปตามตัวกรอง')+' ('+act.length+'/'+fp.length+' Part ที่ผลิต'+(multi?'':'วันนี้')+')</h2><div class="kpis">'+kp('ok','ผ่านครบ')+kp('partial','ตรวจไม่ครบ')+kp('none','ยังไม่ตรวจ')+kp('ng','NG')+'</div></div></div><div class="sum">'+STAGES.map((l,i)=>'<div class="sbox '+s[i]+'"><b>'+l+'</b><div class="st"><span>'+T[s[i]]+'</span><em>'+rows.filter(r=>r[i]==='ok').length+'/'+act.length+' Part ผ่าน</em></div><div class="seg">'+rows.map((r,k)=>'<i class="'+r[i]+'" title="'+esc(act[k].name)+'"></i>').join('')+'</div></div>').join('')+'</div></div>';
     const byDept={};act.forEach(p=>{const d=(byDept[p.dept]=byDept[p.dept]||{});(d[p.model]=d[p.model]||[]).push(p)});
-    const multiLine=Object.keys(byDept).length>1;
     h+='<div class="card"><h2>รายละเอียดราย Part</h2>'+Object.entries(byDept).map(([di,bm])=>
-      (multiLine?'<div class="lnh">Line: '+esc(deptMap[di].name)+(deptMap[di].section?' <small>· แผนก '+esc(deptMap[di].section)+'</small>':'')+'</div>':'')
+      ('<div class="lnh">Line: '+esc(deptMap[di].name)+(deptMap[di].section?' <small>· แผนก '+esc(deptMap[di].section)+'</small>':'')+'</div>')
       +Object.entries(bm).map(([m,a])=>'<div class="model">Model: '+esc(m)+'</div>'+a.map(p=>rowHTML(p,date,stm[p.id]||none)).join('')).join('')
     ).join('')+'</div>';
   }
