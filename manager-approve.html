@@ -611,6 +611,21 @@ a.wc-item:hover{transform:translateX(4px);border-color:var(--accent);box-shadow:
 .rp-ng .item-row:last-child{border-bottom:1px solid #fde0e0;margin-bottom:0}
 .rp-ng .item-row:hover{background:#fffafa}
 
+/* --- 🆕 เกณฑ์ + รูปจุดตรวจที่ NG (ย่อเล็ก กดขยายได้) --- */
+.rp-card .item-crit{display:block;width:fit-content;max-width:100%;margin-top:6px;padding:2px 10px;border-radius:8px;font-size:12px;font-weight:600;background:#eaf2ff;color:#1d4ed8;line-height:1.5}
+.ng-thumb{display:none;margin-top:8px}
+.ng-thumb.is-loading,.ng-thumb.has-img{display:block}
+.ng-thumb-ph{display:block;width:104px;aspect-ratio:480/304;border-radius:10px;background:linear-gradient(90deg,#fde8e8,#fff3f3,#fde8e8);background-size:200% 100%;animation:ngThumbSh 1.2s linear infinite}
+.ng-thumb img{display:block;width:104px;max-width:100%;aspect-ratio:480/304;object-fit:cover;border-radius:10px;border:1px solid #fecaca;cursor:zoom-in;background:#000;box-shadow:0 6px 14px -8px rgba(220,38,38,.55);transition:transform .15s}
+.ng-thumb img:hover{transform:scale(1.03)}
+.ng-thumb .ng-thumb-cap{display:block;margin-top:3px;font-size:11px;color:#b91c1c;font-weight:600}
+@keyframes ngThumbSh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.ng-lb{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.85)}
+.ng-lb.open{display:flex}
+.ng-lb img{max-width:100%;max-height:86vh;border-radius:12px;background:#000;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.ng-lb-close{position:absolute;top:14px;right:14px;width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.95);color:#111;font-size:20px;line-height:1;cursor:pointer}
+@media (prefers-reduced-motion:reduce){.ng-thumb-ph{animation:none}}
+
 /* --- หัวข้อตรวจทั้งหมด (พับได้) --- */
 .rp-card details summary.section-title{position:relative;cursor:pointer;margin:0;padding:2px;border-radius:14px;transition:background .15s}
 .rp-card details summary.section-title:hover{background:var(--accent-dim)}
@@ -955,6 +970,71 @@ a.wc-item:hover{transform:translateX(4px);border-color:var(--accent);box-shadow:
     }
   }
 
+  // ══ 🆕 เกณฑ์ + รูปจุดตรวจที่ NG ══
+  // เกณฑ์: ตัวเลข = min ถึง max (+หน่วย) / Pass-Fail = ข้อความเกณฑ์ตรวจ (sub)
+  function critText(item) {
+    if (!item) return '';
+    if (item.type === 'numeric' || item.min != null || item.max != null) {
+      const mn = item.min != null ? item.min : '—';
+      const mx = item.max != null ? item.max : '—';
+      return `${mn} ถึง ${mx}${item.unit ? ' ' + item.unit : ''}`;
+    }
+    return item.sub ? String(item.sub) : '';
+  }
+  // รูปจุด NG: ดึง "ครั้งเดียวต่อรายงาน" เฉพาะหัวข้อที่ NG และมีธง hasNgImg (select แค่ item_id,img) + เก็บ cache ไว้ในหน้า กันดึงซ้ำ (ประหยัด Egress)
+  const _ngImgCache = {};
+  async function loadNgImages(row) {
+    try {
+      const ids = ((row && row.items) || []).filter(i => i.status === 'ng' && i.hasNgImg).map(i => i.id);
+      if (!ids.length || !sb) return;
+      const key = String(row.id);
+      let map = _ngImgCache[key];
+      if (!map) {
+        const { data, error } = await sb.from('history_ng_images').select('item_id,img').eq('history_id', key).in('item_id', ids);
+        if (error) throw error;
+        map = {};
+        (data || []).forEach(r => { map[String(r.item_id)] = r.img; });
+        _ngImgCache[key] = map;
+      }
+      document.querySelectorAll('.ng-thumb[data-item]').forEach(el => {
+        const img = map[el.dataset.item];
+        if (img && typeof img === 'string' && img.startsWith('data:image/jpeg;base64,')) {
+          const im = document.createElement('img');
+          im.src = img; im.alt = 'รูปจุดตรวจที่ NG'; im.title = 'แตะเพื่อดูภาพขยาย';
+          const cap = document.createElement('span');
+          cap.className = 'ng-thumb-cap'; cap.textContent = 'แตะเพื่อขยาย';
+          el.replaceChildren(im, cap);
+          el.classList.remove('is-loading'); el.classList.add('has-img');
+        } else {
+          el.remove(); // ไม่มีรูป (รายงานเก่า / อัปรูปไม่สำเร็จ) — ซ่อนไปเฉยๆ ไม่กระทบส่วนอื่น
+        }
+      });
+    } catch (e) {
+      console.warn('loadNgImages error:', e);
+      document.querySelectorAll('.ng-thumb.is-loading').forEach(el => el.remove());
+    }
+  }
+  // กดรูปเล็ก → ดูภาพขยาย (กดพื้นหลัง / ปุ่ม ✕ / Esc เพื่อปิด)
+  (function () {
+    let lb = null;
+    function ensure() {
+      if (lb) return lb;
+      lb = document.createElement('div');
+      lb.className = 'ng-lb';
+      lb.innerHTML = '<button type="button" class="ng-lb-close" aria-label="ปิด">✕</button><img alt="รูปจุดตรวจที่ NG">';
+      lb.addEventListener('click', e => { if (e.target.tagName !== 'IMG') lb.classList.remove('open'); });
+      document.body.appendChild(lb);
+      return lb;
+    }
+    document.addEventListener('click', e => {
+      const t = e.target;
+      if (t && t.tagName === 'IMG' && t.closest && t.closest('.ng-thumb')) {
+        const box = ensure(); box.querySelector('img').src = t.src; box.classList.add('open');
+      }
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && lb) lb.classList.remove('open'); });
+  })();
+
   async function loadReport() {
     if (!recordId) return; // ไม่มี id ไม่เป็นไร — มี dashboard ให้เลือกรายการแทน
     app.innerHTML = `<div class="center-msg"><div class="spinner"></div>กำลังโหลดรายงาน...</div>`;
@@ -964,6 +1044,7 @@ a.wc-item:hover{transform:translateX(4px);border-color:var(--accent);box-shadow:
       return;
     }
     render(data);
+    loadNgImages(data); // 🆕 ดึงรูปจุด NG (ถ้ามี) มาแสดงหลัง render
   }
 
   function render(row) {
@@ -1003,8 +1084,10 @@ a.wc-item:hover{transform:translateX(4px);border-color:var(--accent);box-shadow:
           <div class="item-row">
             <div class="item-label">
               ${esc(i.label)}
+              ${critText(i) ? `<div class="item-crit">เกณฑ์: ${esc(critText(i))}</div>` : ''}
               ${(i.pieces && i.pieces.length) ? `<div class="item-note">ผลแต่ละชิ้น: ${esc(pieceSummaryText(i))}</div>` : ''}
               ${i.note ? `<div class="item-note">${esc(i.note)}</div>` : ''}
+              ${i.hasNgImg ? `<div class="ng-thumb is-loading" data-item="${esc(i.id)}"><span class="ng-thumb-ph"></span></div>` : ''}
             </div>
             <div class="item-status st-ng">NG</div>
           </div>
