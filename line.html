@@ -267,7 +267,7 @@ const $=id=>document.getElementById(id);
 const SK='<div class="card"><div class="sk" style="width:38%;height:20px"></div><div class="sum" style="margin-top:14px"><div class="sk" style="height:118px"></div><div class="sk" style="height:118px"></div><div class="sk" style="height:118px"></div></div></div><div class="card"><div class="sk" style="width:28%;height:18px"></div><div class="sk" style="height:62px"></div><div class="sk" style="height:62px"></div></div>';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const STAGES=['S','M','E'];
-const T={off:'ไม่ผลิตวันนี้',none:'ยังไม่ตรวจ',ok:'ผ่าน',ng:'NG',partial:'ตรวจยังไม่ครบ'};
+const T={off:'ไม่ผลิตวันนี้',none:'ยังไม่ตรวจ',ok:'ผ่าน',ng:'NG',partial:'กำลังตรวจ (ยังไม่ครบ)'};
 const q=new URLSearchParams(location.search), LINE=q.get('line');
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 const opened=new Set(); // Part ที่พี่บีกดขยายเอง (ค่าเริ่มต้น = ยุบทั้งหมด)
