@@ -462,6 +462,7 @@ html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg
 .cmp-gt{font-size:13px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px}
 .cmp-gt::before{content:"";width:4px;height:15px;border-radius:2px;background:linear-gradient(180deg,var(--accent),var(--brand-gold))}
 .cmp-gt em{font-style:normal;font-size:11.5px;font-weight:600;color:var(--muted)}
+.cmp-mt{font-style:normal;font-size:10.5px;font-weight:700;margin-left:7px;padding:1px 7px;border-radius:999px;background:var(--accent-dim);color:var(--accent)}.cmp-chip.on .cmp-mt{background:rgba(255,255,255,.22);color:#fff}
 </style>
 </head>
 <body>
@@ -535,10 +536,10 @@ const nextMonth=m=>{let[y,mo]=m.split('-').map(Number);mo++;if(mo>12){mo=1;y++}r
 const thMonth=m=>new Date(m+'-01T00:00:00').toLocaleDateString('th-TH',{month:'long',year:'numeric'});
 
 async function loadMaster(){
-  const [l,j]=await Promise.all([sb.from('lines').select('id,name'),sb.from('jigs').select('id,name,line_id')]);
+  const [l,j,dp]=await Promise.all([sb.from('lines').select('id,name,dept_id'),sb.from('jigs').select('id,name,line_id'),sb.from('departments').select('id,name')]);
   if(j.error){$('warn').innerHTML='<div class="warn">โหลดรายการ Part ไม่สำเร็จ: '+esc(j.error.message)+'</div>';return}
-  const ln={};(l.data||[]).forEach(x=>ln[x.id]=x.name);
-  parts=(j.data||[]).map(p=>({id:p.id,name:p.name,no:String(p.id),model:ln[p.line_id]||'ไม่ระบุ Model'}))
+  const ln={},ld={},dn={};(l.data||[]).forEach(x=>{ln[x.id]=x.name;ld[x.id]=x.dept_id});(dp.data||[]).forEach(x=>dn[x.id]=x.name);
+  parts=(j.data||[]).map(p=>({id:p.id,name:p.name,no:String(p.id),model:ln[p.line_id]||'ไม่ระบุ Model',dept:dn[ld[p.line_id]]||'ไม่ระบุ Line'}))
     .sort((a,b)=>a.model.localeCompare(b.model,'th')||a.no.localeCompare(b.no,'th',{numeric:true})||a.name.localeCompare(b.name,'th',{numeric:true}));
   const by={};parts.forEach(p=>(by[p.model]=by[p.model]||[]).push(p));
   $('f-part').innerHTML='<option value="">— เลือก Part Number —</option>'+Object.entries(by).map(([m,a])=>'<optgroup label="Model: '+esc(m)+'">'+a.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.no)+' · '+esc(p.name)+'</option>').join('')+'</optgroup>').join('');
@@ -1066,9 +1067,9 @@ function cmpCardHTML(){
   if(!cmp.months.size){let i=L.indexOf($('f-month').value);if(i<0)i=0;L.slice(i,i+3).forEach(m=>cmp.months.add(m))}
   if(!cmp.parts.size)cmp.parts.add($('f-part').value);
   const mchips=L.map(m=>'<button type="button" class="cmp-chip cmp-m'+(cmp.months.has(m)?' on':'')+'" data-v="'+m+'">'+esc(cmpShort(m))+'</button>').join('');
-  const by={};parts.forEach(x=>(by[x.model]=by[x.model]||[]).push(x));
-  const chip=x=>'<button type="button" class="cmp-chip cmp-p'+(cmp.parts.has(String(x.id))?' on':'')+'" data-v="'+esc(x.id)+'">'+esc(x.no+' · '+x.name)+'</button>';
-  const pchips=Object.entries(by).map(([m,a])=>'<div class="cmp-grp"><div class="cmp-gt">Line: '+esc(m)+' <em>'+a.length+' Part</em></div><div class="cmp-row">'+a.map(chip).join('')+'</div></div>').join('');
+  const by={};parts.forEach(x=>(by[x.dept]=by[x.dept]||[]).push(x));
+  const chip=x=>'<button type="button" class="cmp-chip cmp-p'+(cmp.parts.has(String(x.id))?' on':'')+'" data-v="'+esc(x.id)+'">'+esc(x.no+' · '+x.name)+'<em class="cmp-mt">'+esc(x.model)+'</em></button>';
+  const pchips=Object.entries(by).sort((a,b)=>a[0].localeCompare(b[0],'th')).map(([m,a])=>'<div class="cmp-grp"><div class="cmp-gt">Line: '+esc(m)+' <em>'+a.length+' Part</em></div><div class="cmp-row">'+a.map(chip).join('')+'</div></div>').join('');
   const show=cmp.key===cmpKey()&&cmp.html;
   return '<section class="ai-wrap" id="cmp-wrap" data-mode="'+cmp.mode+'"><div class="ai-hero"><span class="ai-logo">'+AI_IC.find+'</span><div class="ai-ttl"><h2>เปรียบเทียบด้วย AI <span class="ai-badge">BETA</span></h2><p>เทียบข้ามเดือนของ Part นี้ หรือเทียบหลาย Part พร้อมกัน แล้วให้ AI สรุปแนวโน้มและจุดที่ต้องจับตา</p></div></div>'
    +'<div class="ai-body"><div class="cmp-row"><button type="button" class="cmp-chip cmp-mode'+(cmp.mode==='month'?' on':'')+'" data-v="month">ข้ามเดือน (Part ที่เลือก)</button><button type="button" class="cmp-chip cmp-mode'+(cmp.mode==='part'?' on':'')+'" data-v="part">ราย Part</button></div>'

@@ -527,6 +527,10 @@ a.wc-item:hover{transform:translateX(4px);border-color:var(--accent);box-shadow:
 .wc-empty{text-align:center;padding:36px 16px;border-radius:22px;background:#fff;border:1px dashed var(--border);color:var(--muted)}
 @media (max-width:560px){.wc-hero{padding:20px;gap:18px}.wc-ring{width:120px;height:120px}.wc-ring b{font-size:30px}.wc-lines{grid-template-columns:1fr 1fr}.wc-cta{display:none}}
 @media (prefers-reduced-motion:reduce){.wc-line,.wc-group,.wc-ring,.wc-pct{animation:none!important}}
+
+.wc-model{display:inline-block;margin-left:8px;padding:1px 9px;border-radius:999px;font-size:11px;font-weight:700;vertical-align:2px;color:hsl(var(--lh,210) 60% 34%);background:hsl(var(--lh,210) 75% 93%)}
+.wc-models{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:11px;color:var(--muted)}
+.wc-models i{font-style:normal;font-weight:700;padding:1px 8px;border-radius:999px;background:hsl(var(--lh) 70% 94%);color:hsl(var(--lh) 55% 32%)}
 </style>
 </head>
 <body>
@@ -649,7 +653,7 @@ a.wc-item:hover{transform:translateX(4px);border-color:var(--accent);box-shadow:
     // หน้านี้ดูเฉพาะรายงานที่ "Leaderตรวจสอบแล้ว" เท่านั้น (approval_status = 'approved')
     // ที่เหลือรอ Supervisor อนุมัติต่อ (manager_approval_status)
     const { data, error } = await sb.from('history')
-      .select('id, jig_name, line_name, insp_date, ts, approval_status, manager_approval_status, inspector, items')
+      .select('id, jig_name, line_name, dept_name, insp_date, ts, approval_status, manager_approval_status, inspector, items')
       .eq('approval_status', 'approved')
       .gte('insp_date', since)
       .order('ts', { ascending: false });
@@ -667,9 +671,9 @@ a.wc-item:hover{transform:translateX(4px);border-color:var(--accent);box-shadow:
     // จัดกลุ่มตาม Model นับ pending / approved (นับเฉพาะขั้น Supervisor)
     const byLine = new Map();
     rows.forEach(r => {
-      const key = r.line_name || 'ไม่ระบุ Line';
-      if (!byLine.has(key)) byLine.set(key, { pending: 0, approved: 0 });
-      const g = byLine.get(key);
+      const key = r.dept_name || 'ไม่ระบุ Line';
+      if (!byLine.has(key)) byLine.set(key, { pending: 0, approved: 0, models: new Set() });
+      const g = byLine.get(key); if (r.line_name) g.models.add(r.line_name);
       if (r.manager_approval_status === 'approved') g.approved++; else g.pending++;
     });
     // เรียง Model ที่มีรออนุมัติเยอะสุดไว้บนสุด (สำคัญที่สุดก่อน)
@@ -686,7 +690,7 @@ a.wc-item:hover{transform:translateX(4px);border-color:var(--accent);box-shadow:
     // กับ "มี NG" (ต้องเปิดดูทีละรายการ)
     const pendingByLine = new Map();
     pendingList.forEach(r => {
-      const key = r.line_name || 'ไม่ระบุ Line';
+      const key = r.dept_name || 'ไม่ระบุ Line';
       if (!pendingByLine.has(key)) pendingByLine.set(key, { clean: [], ng: [] });
       (r.ngCount === 0 ? pendingByLine.get(key).clean : pendingByLine.get(key).ng).push(r);
     });
@@ -719,6 +723,7 @@ a.wc-item:hover{transform:translateX(4px);border-color:var(--accent);box-shadow:
           <div class="wc-line-top"><span class="wc-ico">${IF}</span><div><small>LINE</small><b>${esc(name)}</b></div><span class="wc-pct" style="--p:${p}">${p}%</span></div>
           <div class="wc-bar"><i style="width:${p}%"></i></div>
           <div class="wc-stats"><span class="pend">รออนุมัติ <b>${g.pending}</b></span><span class="done">อนุมัติแล้ว <b>${g.approved}</b></span></div>
+          ${g.models.size ? `<div class="wc-models">Model: ${[...g.models].sort().map(m => `<i>${esc(m)}</i>`).join('')}</div>` : ''}
         </button>`; }).join('')}</div>` : `<div class="wc-empty">ยังไม่มีข้อมูลการตรวจในช่วงนี้</div>`}
 
       <div class="wc-sec">รายการที่รอ Supervisor อนุมัติ <em>${pendingList.length}</em></div>
@@ -727,11 +732,11 @@ a.wc-item:hover{transform:translateX(4px);border-color:var(--accent);box-shadow:
           <summary><span class="wc-ico">${IF}</span><b>${esc(lineName)}</b><span class="wc-chip">${g.clean.length + g.ng.length} รายการ</span>${g.ng.length ? `<span class="wc-chip ng">NG ${g.ng.length}</span>` : ''}<i class="wc-chev"></i></summary>
           ${g.clean.length ? `<div class="wc-sub clean">
             <div class="wc-sub-head"><span>${IK}ไม่มี NG — อนุมัติทีเดียวได้ (${g.clean.length})</span><button class="btn-bulk" data-line="${escAttr(lineName)}" data-ids="${g.clean.map(r => r.id).join(',')}">อนุมัติทั้งหมด</button></div>
-            ${g.clean.map(r => `<div class="wc-item"><span class="wc-dot"></span><div><b>${esc(r.jig_name)}</b><small>${IC}${esc(r.insp_date)} · ${IU}${esc(r.inspector)}</small></div></div>`).join('')}
+            ${g.clean.map(r => `<div class="wc-item"><span class="wc-dot"></span><div><b>${esc(r.jig_name)}${r.line_name ? `<span class="wc-model">${esc(r.line_name)}</span>` : ''}</b><small>${IC}${esc(r.insp_date)} · ${IU}${esc(r.inspector)}</small></div></div>`).join('')}
           </div>` : ''}
           ${g.ng.length ? `<div class="wc-sub ng">
             <div class="wc-sub-head"><span>${IW}มี NG — ต้องเปิดดูทีละรายการ (${g.ng.length})</span></div>
-            ${g.ng.map(r => `<a class="wc-item" href="manager-approve.html?id=${encodeURIComponent(r.id)}"><span class="wc-dot ng"></span><div><b>${esc(r.jig_name)}</b><small>${IC}${esc(r.insp_date)} · ${IU}${esc(r.inspector)}</small></div><span class="wc-badge">NG ${r.ngCount}</span><span class="wc-cta">ตรวจสอบ & อนุมัติ ›</span></a>`).join('')}
+            ${g.ng.map(r => `<a class="wc-item" href="manager-approve.html?id=${encodeURIComponent(r.id)}"><span class="wc-dot ng"></span><div><b>${esc(r.jig_name)}${r.line_name ? `<span class="wc-model">${esc(r.line_name)}</span>` : ''}</b><small>${IC}${esc(r.insp_date)} · ${IU}${esc(r.inspector)}</small></div><span class="wc-badge">NG ${r.ngCount}</span><span class="wc-cta">ตรวจสอบ & อนุมัติ ›</span></a>`).join('')}
           </div>` : ''}
         </details>`).join('') : `<div class="wc-empty">🎉 ไม่มีรายการค้างอนุมัติ</div>`}
     `;
