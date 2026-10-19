@@ -449,6 +449,9 @@ html{--tg-hi:color-mix(in srgb,var(--gold) 45%,#fff);--tg-lt:color-mix(in srgb,v
 /* Header: เปลี่ยนโทนเหลืองทองเป็นฟ้าอ่อน (ตัวแปรสีมีผลเฉพาะใน .top) */
 .top{--brand-gold:color-mix(in srgb,var(--accent) 55%,#fff);--gold:var(--brand-gold);--tg-hi:color-mix(in srgb,var(--gold) 45%,#fff);--tg-lt:color-mix(in srgb,var(--gold) 62%,#fff);--tg-pale:color-mix(in srgb,var(--gold) 30%,#fff)}
 .top::after{background:linear-gradient(90deg,transparent,var(--gold) 20%,color-mix(in srgb,var(--gold) 15%,transparent) 60%,transparent)}
+/* โลโก้ใน header: สีขาวคงที่ ไม่เปลี่ยนตาม Theme */
+.top .logo{background:linear-gradient(135deg,#fff,#e8eef6);box-shadow:0 6px 18px -4px rgba(0,0,0,.45),inset 0 1px 0 #fff}
+.top .logo::before{background:radial-gradient(circle,rgba(255,255,255,.5),transparent 70%)}
 </style>
 </head>
 <body>

@@ -437,6 +437,9 @@ html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg
 /* Header: เปลี่ยนโทนเหลืองทองเป็นฟ้าอ่อน (ตัวแปรสีมีผลเฉพาะใน header) */
 header{--brand-gold:color-mix(in srgb,var(--accent) 55%,#fff);--gold:var(--brand-gold);--tg-hi:color-mix(in srgb,var(--gold) 45%,#fff);--tg-lt:color-mix(in srgb,var(--gold) 62%,#fff);--tg-pale:color-mix(in srgb,var(--gold) 30%,#fff)}
 .ttl-spc{background-image:linear-gradient(100deg,color-mix(in srgb,var(--accent) 25%,#fff) 10%,color-mix(in srgb,var(--accent) 62%,#fff) 50%,#fff 90%)}
+/* โลโก้ใน header: สีขาวคงที่ ไม่เปลี่ยนตาม Theme */
+header .logo{background:linear-gradient(135deg,#fff,#e8eef6)}
+header .logo::before{background:radial-gradient(circle,rgba(255,255,255,.5),transparent 70%)}
 @keyframes aiSpin{to{transform:rotate(360deg)}}
 .ai-body{padding:18px 22px 20px}
 .ai-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
