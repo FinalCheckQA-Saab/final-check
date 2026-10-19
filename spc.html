@@ -458,6 +458,10 @@ html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg
 .cmp-hint{font-size:12px;color:var(--muted)}
 .cmp-tbl{margin:14px 0 4px}.cmp-tbl h3{font-size:14px;margin:0 0 6px}
 .cmp-up{color:var(--good);font-size:11.5px}.cmp-dn{color:var(--bad);font-size:11.5px}
+.cmp-grp{margin-top:10px;padding:10px 12px 8px;border:1px solid var(--border);border-radius:14px;background:color-mix(in srgb,var(--accent) 4%,var(--card))}
+.cmp-gt{font-size:13px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px}
+.cmp-gt::before{content:"";width:4px;height:15px;border-radius:2px;background:linear-gradient(180deg,var(--accent),var(--brand-gold))}
+.cmp-gt em{font-style:normal;font-size:11.5px;font-weight:600;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -1062,12 +1066,14 @@ function cmpCardHTML(){
   if(!cmp.months.size){let i=L.indexOf($('f-month').value);if(i<0)i=0;L.slice(i,i+3).forEach(m=>cmp.months.add(m))}
   if(!cmp.parts.size)cmp.parts.add($('f-part').value);
   const mchips=L.map(m=>'<button type="button" class="cmp-chip cmp-m'+(cmp.months.has(m)?' on':'')+'" data-v="'+m+'">'+esc(cmpShort(m))+'</button>').join('');
-  const pchips=parts.map(x=>'<button type="button" class="cmp-chip cmp-p'+(cmp.parts.has(String(x.id))?' on':'')+'" data-v="'+esc(x.id)+'" title="'+esc(x.model)+'">'+esc(x.no+' · '+x.name).slice(0,34)+'</button>').join('');
+  const by={};parts.forEach(x=>(by[x.model]=by[x.model]||[]).push(x));
+  const chip=x=>'<button type="button" class="cmp-chip cmp-p'+(cmp.parts.has(String(x.id))?' on':'')+'" data-v="'+esc(x.id)+'">'+esc(x.no+' · '+x.name)+'</button>';
+  const pchips=Object.entries(by).map(([m,a])=>'<div class="cmp-grp"><div class="cmp-gt">Line: '+esc(m)+' <em>'+a.length+' Part</em></div><div class="cmp-row">'+a.map(chip).join('')+'</div></div>').join('');
   const show=cmp.key===cmpKey()&&cmp.html;
   return '<section class="ai-wrap" id="cmp-wrap" data-mode="'+cmp.mode+'"><div class="ai-hero"><span class="ai-logo">'+AI_IC.find+'</span><div class="ai-ttl"><h2>เปรียบเทียบด้วย AI <span class="ai-badge">BETA</span></h2><p>เทียบข้ามเดือนของ Part นี้ หรือเทียบหลาย Part พร้อมกัน แล้วให้ AI สรุปแนวโน้มและจุดที่ต้องจับตา</p></div></div>'
    +'<div class="ai-body"><div class="cmp-row"><button type="button" class="cmp-chip cmp-mode'+(cmp.mode==='month'?' on':'')+'" data-v="month">ข้ามเดือน (Part ที่เลือก)</button><button type="button" class="cmp-chip cmp-mode'+(cmp.mode==='part'?' on':'')+'" data-v="part">ราย Part</button></div>'
    +'<div class="cmp-lbl">เลือกเดือน (สูงสุด 12)</div><div class="cmp-row">'+mchips+'</div>'
-   +'<div class="cmp-parts"><div class="cmp-lbl">เลือก Part (2–5 รายการ) · เลือกแล้ว <span id="cmp-pn">'+cmp.parts.size+'</span></div><div class="cmp-row">'+pchips+'</div></div>'
+   +'<div class="cmp-parts"><div class="cmp-lbl">เลือก Part (2–5 รายการ) · เลือกแล้ว <span id="cmp-pn">'+cmp.parts.size+'</span></div>'+pchips+'</div>'
    +'<div class="cmp-go"><button type="button" class="ai-btn" id="cmp-btn">'+AI_IC.spark+'<span>'+(show?'เปรียบเทียบอีกครั้ง':'เปรียบเทียบด้วย AI')+'</span></button><span class="cmp-hint">ข้ามเดือน: ใช้ Part ที่เลือกด้านบน · ราย Part: รวมข้อมูลของเดือนที่เลือก</span></div>'
    +'<div class="ai-out" id="cmp-out">'+(show?cmp.html:'')+'</div></div></section>';
 }
