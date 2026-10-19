@@ -446,6 +446,9 @@ html[data-theme="light"] .tools.min .tb-tg:hover,html[data-theme="light"] .legen
 html{--tg-hi:color-mix(in srgb,var(--gold) 45%,#fff);--tg-lt:color-mix(in srgb,var(--gold) 62%,#fff);--tg-pale:color-mix(in srgb,var(--gold) 30%,#fff)}
 /* ── แถบหัว Dashboard: สว่างขึ้น เห็นสีชุดสีชัด ── */
 .top{background:radial-gradient(720px 200px at 92% -50px,color-mix(in srgb,var(--brand-navy-600,var(--brand-navy-700)) 55%,transparent),transparent 72%),linear-gradient(120deg,var(--brand-navy-800),var(--brand-navy-700) 52%,color-mix(in srgb,var(--brand-navy-600,var(--brand-navy-700)) 85%,var(--brand-navy-700)))}
+/* Header: เปลี่ยนโทนเหลืองทองเป็นฟ้าอ่อน (ตัวแปรสีมีผลเฉพาะใน .top) */
+.top{--brand-gold:color-mix(in srgb,var(--accent) 55%,#fff);--gold:var(--brand-gold);--tg-hi:color-mix(in srgb,var(--gold) 45%,#fff);--tg-lt:color-mix(in srgb,var(--gold) 62%,#fff);--tg-pale:color-mix(in srgb,var(--gold) 30%,#fff)}
+.top::after{background:linear-gradient(90deg,transparent,var(--gold) 20%,color-mix(in srgb,var(--gold) 15%,transparent) 60%,transparent)}
 </style>
 </head>
 <body>
