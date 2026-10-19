@@ -57,6 +57,17 @@ a.back{color:#fff;font-size:13px;text-decoration:none;opacity:.9}
 #btn-refresh.spin{pointer-events:none;border-color:rgba(236,201,114,.75)}
 #btn-refresh.spin .ico-refresh{animation:hspin .85s linear infinite}
 @keyframes hspin{to{transform:rotate(360deg)}}
+/* ── ปุ่ม "กลับแอปหลัก" (ขวาสุด): สไตล์เดียวกับปุ่มหัวหน้า + ไล่สีทอง + ลูกศรเลื่อนเมื่อ hover ── */
+.hbtn-back{text-decoration:none;margin-left:4px;position:relative;
+  background:linear-gradient(135deg,rgba(236,201,114,.22),rgba(255,255,255,.07));border-color:rgba(236,201,114,.5)}
+.hbtn-back .ico{background:linear-gradient(135deg,#f0d283,var(--brand-gold,#c9a24a));color:#0f2137;box-shadow:0 0 10px rgba(236,201,114,.4)}
+.hbtn-back .ico-back{transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.hbtn-back:hover{background:linear-gradient(135deg,rgba(236,201,114,.34),rgba(255,255,255,.1))}
+.hbtn-back:hover .ico-back{transform:translateX(-3px)}
+.hbtn-back::after{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;border:1px solid rgba(236,201,114,.55);opacity:0;animation:hbackGlow 3.2s ease-in-out 1s 2}
+@media (max-width:640px){.hbtn-back{margin-left:0}}
+@keyframes hbackGlow{0%,100%{opacity:0;transform:scale(1)}50%{opacity:.9;transform:scale(1.06)}}
+@media (prefers-reduced-motion:reduce){.hbtn-back::after{animation:none}.hbtn-back .ico-back{transition:none}}
 @media (prefers-reduced-motion:reduce){.hbtn,.hbtn *{transition:none!important}#btn-refresh.spin .ico-refresh{animation-duration:2s}}
 @media (max-width:480px){.hbtn{padding-right:12px}}
 /* ── ส่วนหัวย่อ/ขยายได้ (ค่าเริ่มต้น = ย่อ) ── */
@@ -468,7 +479,7 @@ html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg
 <body>
 <header id="hdr" class="collapsed">
   <div class="hd-left">
-    <div class="hd-top"><a class="back" id="back" href="index.html">‹<span class="back-txt"> กลับแอปหลัก</span></a><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 18h18"/><path d="m4 14 4-4 4 3 5-6 3 2"/></svg></span><h1>SPC — กราฟควบคุม UCL / LCL</h1></div>
+    <div class="hd-top"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 18h18"/><path d="m4 14 4-4 4 3 5-6 3 2"/></svg></span><h1>SPC — กราฟควบคุม UCL / LCL</h1></div>
     <div class="hd-more" id="hd-more"><div class="hd-more-in"><small>X̄–R Chart ของหัวข้อที่ตรวจเป็นตัวเลข (ชิ้น S / M / E เป็น 1 กลุ่มย่อย) แยกตาม Part Number และเดือน</small></div></div>
   </div>
   <div class="hactions">
@@ -487,6 +498,9 @@ html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg
         <svg class="ico-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
       </span><span>รีเฟรช</span>
     </button>
+    <a class="hbtn hbtn-back" id="back" href="index.html" title="กลับแอปหลัก" aria-label="กลับแอปหลัก">
+      <span class="ico" aria-hidden="true"><svg class="ico-back" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m11 6-6 6 6 6"/></svg></span><span>กลับแอปหลัก</span>
+    </a>
   </div>
 </header>
 <main>
