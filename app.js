@@ -4266,12 +4266,12 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
      ทุก RPC ต้องแนบรหัสผ่าน Admin ไปด้วยเสมอ (getAdminPass) — DB เป็นคนตัดสินสุดท้าย
   ══════════════════════════════════════ */
   function roleLabelTh(role) {
-    return { inspector: 'ผู้ตรวจสอบ', supervisor: 'หัวหน้างาน', manager: 'หัวหน้าส่วนงาน (Supervisor)' }[role] || role;
+    return { inspector: 'ผู้ตรวจสอบ', supervisor: 'หัวหน้างาน', manager: 'หัวหน้าส่วนงาน (Supervisor)', admin: 'Admin' }[role] || role;
   }
 
   // ข้อความในช่องเลือกสิทธิ์: แสดงเป็นชื่อบทบาทที่คนใช้เรียกจริง (ค่าที่เก็บในฐานข้อมูลยังเป็น inspector/supervisor/manager เหมือนเดิม)
   function roleOptionTh(role) {
-    return { inspector: 'ผู้ตรวจสอบ (Inspector)', supervisor: 'หัวหน้างาน (Leader)', manager: 'หัวหน้าส่วนงาน (Supervisor)' }[role] || role;
+    return { inspector: 'ผู้ตรวจสอบ (Inspector)', supervisor: 'หัวหน้างาน (Leader)', manager: 'หัวหน้าส่วนงาน (Supervisor)', admin: 'Admin' }[role] || role;
   }
 
   // 🆕 ค้นหา + เรียงลำดับรายการบัญชีผู้ใช้ (ทำฝั่งหน้าเว็บ — ย้าย/ซ่อนแถวเดิม ปุ่มในแถวยังทำงานครบ)
@@ -4286,7 +4286,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     if (!rows.length) { if (cEl) cEl.hidden = true; return; }
     const cmp = (a, b) => String(a).localeCompare(String(b), 'th', { sensitivity: 'base', numeric: true });
     const cTime = r => { const t = Date.parse(r.dataset.created); return isNaN(t) ? Number(r.dataset.idx) : t; };
-    const ROLE_ORDER = { inspector: 0, supervisor: 1, manager: 2 };
+    const ROLE_ORDER = { inspector: 0, supervisor: 1, manager: 2, admin: 3 };
     const by = {
       'name': (a, b) => cmp(a.dataset.name, b.dataset.name),
       'name-desc': (a, b) => cmp(b.dataset.name, a.dataset.name),
@@ -4334,7 +4334,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       const { data: md, error: me } = await sb.rpc('admin_get_app_user_menus', { p_admin_password: pass });
       if (!me && Array.isArray(md)) { menuSupported = true; md.forEach(r => menuMap.set(String(r.id), Array.isArray(r.menu) ? r.menu : null)); }
     } catch (e) { console.warn('admin_get_app_user_menus:', e); }
-    const roleDefaultMenu = r => r === 'supervisor' ? ['leader'] : r === 'manager' ? ['supervisor'] : [];
+    const roleDefaultMenu = r => r === 'supervisor' ? ['leader'] : r === 'manager' ? ['supervisor'] : r === 'admin' ? ['leader', 'supervisor'] : [];
     const menuTagText = m => m === null || m === undefined ? '' : (m.length ? 'เมนู: ' + m.map(x => x === 'leader' ? 'Leader Check' : 'Supervisor Approved').join(' · ') : 'เมนู: ไม่แสดง');
     if (!users.length) {
       box.innerHTML = '<span class="chip-empty">ยังไม่มีบัญชีผู้ใช้งาน — เพิ่มด้านบนได้เลย</span>';
@@ -4405,7 +4405,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
             </div>
             <div class="admin-input-row">
               <select class="eu-role adm-sel">
-                ${['inspector', 'supervisor', 'manager'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${roleOptionTh(r)}</option>`).join('')}
+                ${['inspector', 'supervisor', 'manager', 'admin'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${roleOptionTh(r)}</option>`).join('')}
               </select>
               <button class="btn-adm-add eu-save">💾 บันทึก</button>
               <button class="adm-item-edit eu-cancel" type="button">ยกเลิก</button>
@@ -5760,8 +5760,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     const role = currentAppUser && currentAppUser.role;
     // ถ้า Admin กำหนดเมนูรายคนไว้ (currentAppUser.menu เป็น array) ใช้ตามนั้น · ไม่ได้กำหนด = ตามสิทธิ์ของบัญชี
     const explicit = currentAppUser && Array.isArray(currentAppUser.menu) ? currentAppUser.menu : null;
-    const showLeader = admLoggedIn || (explicit ? explicit.includes('leader') : role === 'supervisor');
-    const showSup = admLoggedIn || (explicit ? explicit.includes('supervisor') : role === 'manager');
+    const showLeader = admLoggedIn || (explicit ? explicit.includes('leader') : (role === 'supervisor' || role === 'admin'));
+    const showSup = admLoggedIn || (explicit ? explicit.includes('supervisor') : (role === 'manager' || role === 'admin'));
     const setShow = (el, on) => { if (el) el.style.display = on ? '' : 'none'; };
     setShow($('nav-leader-check'), showLeader);
     setShow($('nav-sup-approved'), showSup);
