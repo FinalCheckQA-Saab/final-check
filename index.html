@@ -998,6 +998,24 @@ html .adm-sys-act .adm-sys-ok:disabled::after{content:'';width:16px;height:16px;
       <div class="admin-list admin-list-scroll" id="adm-login-log-list" style="margin-top:8px;"></div>
     </div>
 
+    <!-- 🆕 จัดการบัญชี Admin Panel (ตาราง admin_users) — เฉพาะผู้ดูแลระบบ • โค้ดอยู่ใน admin-accounts.js -->
+    <div class="admin-section" id="adm-admins-section">
+      <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8.1 7.5 9.5 4.4-1.4 7.5-4.9 7.5-9.5V6z"/><circle cx="12" cy="10.5" r="2"/><path d="M8.5 16a3.5 3.5 0 0 1 7 0"/></svg> จัดการบัญชี Admin Panel</div>
+      <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+        บัญชีสำหรับล็อกอินเข้า Admin Panel — ต้องกรอกรหัสผ่านผู้ดูแลระบบยืนยันทุกครั้งที่เพิ่ม / ลบ
+      </div>
+      <div class="admin-input-row">
+        <input type="password" id="adm-admins-syspass" placeholder="รหัสผ่านผู้ดูแลระบบ (ยืนยันสิทธิ์)" autocomplete="new-password">
+        <button class="btn-sec" id="btn-adm-admins-refresh" type="button">โหลดรายชื่อ</button>
+      </div>
+      <div class="admin-input-row">
+        <input type="text" id="adm-admins-username" placeholder="Username Admin ใหม่ (eng, ไม่ซ้ำ)" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <input type="password" id="adm-admins-password" placeholder="รหัสผ่านของ Admin ใหม่ (6 ตัวขึ้นไป)" autocomplete="new-password">
+        <button class="btn-adm-add" id="btn-adm-admins-add" type="button">+ เพิ่ม Admin</button>
+      </div>
+      <div class="admin-list admin-list-scroll" id="adm-admins-list"></div>
+    </div>
+
     <!-- 🆕 Add แผนก -->
     <div class="admin-section">
       <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 21v-4h6v4"/><path d="M8 7h.01M12 7h.01M16 7h.01M8 11h.01M12 11h.01M16 11h.01"/></svg> เพิ่มแผนก</div>
@@ -1512,8 +1530,9 @@ html .adm-sys-act .adm-sys-ok:disabled::after{content:'';width:16px;height:16px;
      ค้างนานผิดปกติ) โหลด app.js ก้อนใหม่ทุกครั้งที่มีการอัปเดตโค้ด — ให้เปลี่ยนเลขนี้ทุกครั้งที่แก้ app.js
      แล้ว push ขึ้นใหม่ ไม่งั้นเครื่องที่เคยเข้าเว็บมาก่อนจะยังใช้ไฟล์เก่าจากแคชอยู่ -->
 <script src="app.js?v=fc-ngimg1"></script>
-<script src="admin-console.js?v=3"></script>
+<script src="admin-console.js?v=4"></script>
 <script src="manual.js?v=4"></script>
+<script src="admin-accounts.js?v=1"></script>
 <script>
 (function () {
   var collapseBtn = document.getElementById('sidebar-collapse-toggle');
