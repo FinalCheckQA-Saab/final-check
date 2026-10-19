@@ -430,6 +430,16 @@ html[data-theme="light"] .legend .lgb>span:not(:last-child):hover{background:rgb
 html[data-theme="light"] .legend .lgb>span:last-child{color:#64748b}
 html[data-theme="light"] #leg-tg{color:#1f2937;border:1px solid color-mix(in srgb,var(--gold) 60%,transparent);background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 26%,#fff),#fff)}
 html[data-theme="light"] #leg-tg:hover{color:#0f2137;background:linear-gradient(135deg,#f7e2a1,var(--gold))}
+/* ── โหมดย่อ (เหลือแต่ปุ่มหัว): ไม่ใส่สี/ไม่เรืองแสง เพื่อไม่รบกวนสายตาตอนดู S/M/E ── */
+.tools.min,.legend.min,html[data-theme="light"] .tools.min,html[data-theme="light"] .legend.min{border-color:var(--line);box-shadow:0 6px 16px -8px rgba(0,0,0,.45)}
+html[data-theme="light"] .tools.min,html[data-theme="light"] .legend.min{border-color:rgba(15,33,55,.16);box-shadow:0 6px 16px -8px rgba(15,33,55,.3)}
+.tools.min,.legend.min{background:rgba(10,21,36,.74)}
+html[data-theme="light"] .tools.min,html[data-theme="light"] .legend.min{background:rgba(255,255,255,.9)}
+.tools.min .tb-tg,.legend.min #leg-tg{color:inherit;background:rgba(255,255,255,.08);border:1px solid var(--line);box-shadow:none}
+html[data-theme="light"] .tools.min .tb-tg,html[data-theme="light"] .legend.min #leg-tg{color:#1f2937;background:rgba(15,33,55,.07);border:1px solid rgba(15,33,55,.16)}
+.tools.min .tb-tg:hover,.legend.min #leg-tg:hover{transform:none;color:inherit;background:rgba(255,255,255,.2);box-shadow:none}
+html[data-theme="light"] .tools.min .tb-tg:hover,html[data-theme="light"] .legend.min #leg-tg:hover{color:#1f2937;background:rgba(15,33,55,.15)}
+.tools.min .tb-tg:focus-visible{outline-color:currentColor}
 @media (prefers-reduced-motion:reduce){.legend .lgb>span:nth-child(4) i{animation:none}.tools button,.tools button .tbi,#leg-tg{transition:none}}
 </style>
 </head>
