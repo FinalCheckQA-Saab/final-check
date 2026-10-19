@@ -135,4 +135,31 @@
       b.disabled = false;
     }
   });
+  /* ── 👤 แสดงชื่อ Admin ที่กำลังล็อกอินในหัว Admin Panel (ข้างปุ่ม "ออกจากระบบ") ──
+     ชื่อมาจาก localStorage 'fc_admin_user' ที่ app.js บันทึกหลังล็อกอินสำเร็จ — อ่านทุกครั้งที่เปิดแผง ไม่แตะโค้ดล็อกอินเดิม */
+  (function () {
+    var panel = $('admin-panel'), out = $('btn-admin-logout');
+    if (!panel || !out || !out.parentNode) return;
+    var chip = document.createElement('span');
+    chip.id = 'adm-whoami';
+    chip.hidden = true;
+    chip.title = 'Admin ที่กำลังล็อกอิน';
+    chip.style.cssText = 'display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 12px;border-radius:10px;' +
+      'font-size:12.5px;font-weight:600;line-height:1;max-width:200px;white-space:nowrap;' +
+      'color:var(--text-heading);background:var(--accent-dim);border:1px solid var(--border-input);';
+    chip.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span class="adm-whoami-name" style="overflow:hidden;text-overflow:ellipsis"></span>';
+    out.parentNode.insertBefore(chip, out);
+    var nameEl = chip.querySelector('.adm-whoami-name');
+    function refresh() {
+      var n = '';
+      if (panel.classList.contains('open') && client()) {   /* โหมด local (ไม่มี Supabase) ไม่มีชื่อจริงให้แสดง */
+        try { n = (localStorage.getItem('fc_admin_user') || '').trim(); } catch (e) {}
+      }
+      chip.hidden = !n;
+      nameEl.textContent = n;
+      chip.title = n ? 'Admin ที่กำลังล็อกอิน: ' + n : '';
+    }
+    new MutationObserver(refresh).observe(panel, { attributes: true, attributeFilter: ['class'] });
+    refresh();
+  })();
 })();
