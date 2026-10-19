@@ -370,6 +370,31 @@ tbody tr:hover{background:var(--accent-dim)}th{font-weight:600}
 header .lsc-clock{margin-right:2px}
 /* 🆕 Silver — แถบหัวเมทัลลิกเหมือนหน้าหลัก */
 html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg,rgba(255,255,255,0) 28%,rgba(255,255,255,.2) 46%,rgba(255,255,255,0) 62%),linear-gradient(120deg,#44505f,#5f6c7e 55%,#4a5666);box-shadow:0 8px 24px -10px rgba(30,40,55,.55),inset 0 1px 0 rgba(255,255,255,.3)}
+
+/* ===== AI วิเคราะห์ SPC ===== */
+.ai-card{position:relative;overflow:hidden}
+.ai-card::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:linear-gradient(180deg,var(--accent),var(--brand-gold))}
+.ai-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ai-head h2{margin:0;font-size:17px;display:flex;align-items:center;gap:8px}
+.ai-head .sub{margin-top:2px}
+.ai-btn{display:inline-flex;align-items:center;gap:8px;font:inherit;font-weight:700;font-size:14px;padding:10px 18px;border-radius:999px;border:0;cursor:pointer;color:#fff;background:linear-gradient(120deg,var(--accent),color-mix(in srgb,var(--accent) 55%,var(--brand-gold)));box-shadow:0 6px 16px -6px var(--accent);transition:transform .15s,filter .15s}
+.ai-btn:hover{transform:translateY(-1px);filter:brightness(1.08)}
+.ai-btn:disabled{opacity:.6;cursor:wait;transform:none}
+.ai-btn svg{width:16px;height:16px}
+.ai-btn.busy svg{animation:aispin 1s linear infinite}
+@keyframes aispin{to{transform:rotate(360deg)}}
+.ai-out{margin-top:14px;font-size:14.5px;line-height:1.8}
+.ai-out h3{font-size:15px;margin:14px 0 4px;color:var(--ink)}
+.ai-out ul{margin:4px 0 8px;padding-left:20px}
+.ai-out li{margin:2px 0}
+.ai-rules{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.ai-rule{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:var(--card);font-size:13.5px;line-height:1.6}
+.ai-rule b{display:block;font-size:14px}
+.ai-rule i{flex:none;width:10px;height:10px;border-radius:50%;margin-top:7px;background:var(--good)}
+.ai-rule.bad{background:var(--bad-bg);border-color:color-mix(in srgb,var(--bad) 40%,transparent)}.ai-rule.bad i{background:var(--bad)}
+.ai-rule.warn{background:var(--warn-bg);border-color:color-mix(in srgb,var(--amber) 40%,transparent)}.ai-rule.warn i{background:var(--amber)}
+.ai-err{color:var(--bad);font-size:13.5px;margin-top:10px}
+.ai-foot{margin-top:10px;font-size:12px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -718,6 +743,9 @@ function draw(){
     +tile('Cpk',cp==null?'—':fmt(Math.round(cp*100)/100),cp==null?'':cp>=1.33?'✔ ≥ 1.33':'✖ < 1.33',cpkC,'ok')
     +tile('จุดนอกเส้นควบคุม',hasLim?a.nOoc:'—','ชุด',a.nOoc?'bad':'','lim')
     +tile('ค่านอกเกณฑ์ (NG)',a.nOos,'ชุด',a.nOos?'bad':'','spec')+'</div>';
+  const hsAI=histStats(sg.flatMap(g=>g.got),it);
+  aiCtx={it,sg,a,hs:hsAI,partName,month,rules:spcRules(it,sg,a)};
+  h+=aiCardHTML(aiCtx);
   const lg=(s,t)=>'<span><svg viewBox="0 0 26 10">'+s+'</svg>'+t+'</span>';
   const legend='<div class="legend">'
     +lg('<line x1="0" x2="26" y1="5" y2="5" stroke="var(--series)" stroke-width="2.5"/><circle cx="13" cy="5" r="4" fill="var(--series)" stroke="var(--card)" stroke-width="2"/>','ค่าเฉลี่ยของแต่ละชุด')
@@ -748,6 +776,96 @@ function draw(){
   chart($('c-r'),{title:'R chart',anim,sg,val:g=>g.range,ooc:g=>g.oocR,floor0:true,band:hasLim?[0,a.uclR]:null,
     lines:[{v:hasLim?a.uclR:null,label:'UCL',cls:'ucl'},{v:a.rbar,label:'R̄',cls:'cl'}],
     tip:g=>cap(g)+pieceRows(g,u)+'<div class="r"><span>R</span><b>'+fmt(g.range)+'</b></div>'+status(g.oocR,g.oocR?'เกิน UCL ของ R':'อยู่ในเส้นควบคุม')});
+}
+
+
+// ═══════════ AI วิเคราะห์ SPC ═══════════
+// Edge Function ที่เรียก Claude (ตั้งค่า ANTHROPIC_API_KEY ไว้ฝั่ง Supabase — ห้ามใส่ key ในหน้าเว็บ)
+const AI_URL=SB_URL+'/functions/v1/spc-ai';
+let aiCtx=null,aiBusy=false;
+
+// ตรวจกฎ Western Electric / Nelson แบบคำนวณในเครื่อง (ไม่ต้องใช้เน็ต / ไม่เสีย token)
+function spcRules(it,sg,a){
+  const out=[];if(sg.length<2||a.uclX==null)return out;
+  const cl=a.xbb,s3=(a.uclX-cl),s1=s3/3,s2=s3*2/3,m=sg.map(g=>g.mean),N=m.length;
+  const idx=a=>a.map(i=>'#'+(i+1)).join(', ');
+  const run=(test,len)=>{const hit=[];let c=0;for(let i=0;i<N;i++){c=test(i,c)?c+1:0;if(c>=len)hit.push(i)}return hit};
+  // R1: จุดเดียวเกิน 3σ
+  const r1=m.map((v,i)=>Math.abs(v-cl)>s3+1e-9?i:-1).filter(i=>i>=0);
+  if(r1.length)out.push({sev:'bad',t:'กฎ 1 — จุดเกินเส้น UCL/LCL',d:'ชุดที่ '+idx(r1)+' อยู่นอก ±3σ'});
+  // R2: 2 ใน 3 จุดเกิน 2σ ข้างเดียวกัน
+  const r2=[];for(let i=2;i<N;i++){const w=m.slice(i-2,i+1);if(w.filter(v=>v-cl>s2).length>=2||w.filter(v=>cl-v>s2).length>=2)r2.push(i)}
+  if(r2.length)out.push({sev:'warn',t:'กฎ 2 — 2 ใน 3 จุดเกิน 2σ',d:'ใกล้ขอบเส้นควบคุมฝั่งเดียวกัน ที่ชุด '+idx(r2)});
+  // R3: 4 ใน 5 จุดเกิน 1σ
+  const r3=[];for(let i=4;i<N;i++){const w=m.slice(i-4,i+1);if(w.filter(v=>v-cl>s1).length>=4||w.filter(v=>cl-v>s1).length>=4)r3.push(i)}
+  if(r3.length)out.push({sev:'warn',t:'กฎ 3 — 4 ใน 5 จุดเกิน 1σ',d:'กระบวนการเริ่มเบี่ยงจากค่ากลาง ที่ชุด '+idx(r3)});
+  // R4: 8 จุดติดกันข้างเดียวกันของเส้นกลาง (Shift)
+  const up=run((i)=>m[i]>cl,8),dn=run((i)=>m[i]<cl,8);
+  if(up.length||dn.length)out.push({sev:'warn',t:'กฎ 4 — ค่าอยู่ฝั่งเดียวของเส้นกลาง ≥ 8 ชุดติด',d:'บ่งชี้ว่า Mean เลื่อน (Shift) ไปทาง'+(up.length?'สูง':'ต่ำ')});
+  // R5: 6 จุดไต่ขึ้น/ลงต่อเนื่อง (Trend)
+  let t=1,tr=[];for(let i=1;i<N;i++){const d=Math.sign(m[i]-m[i-1]);if(i>1&&d!==0&&d===Math.sign(m[i-1]-m[i-2]))t++;else t=2;if(t>=6)tr.push(i)}
+  if(tr.length)out.push({sev:'warn',t:'กฎ 5 — แนวโน้มขึ้น/ลงต่อเนื่อง ≥ 6 ชุด',d:'อาจเกิดจากเครื่องมือสึกหรอ / อุณหภูมิ / วัตถุดิบเปลี่ยน'});
+  // R6: R chart เกิน UCL
+  const rr=sg.map((g,i)=>g.oocR?i:-1).filter(i=>i>=0);
+  if(rr.length)out.push({sev:'bad',t:'R chart เกิน UCL',d:'ความผันแปรภายในชุด S/M/E สูงผิดปกติ ที่ชุด '+idx(rr)});
+  // Spec / Centering
+  if(a.nOos)out.push({sev:'bad',t:'มีค่านอกเกณฑ์ LSL/USL '+a.nOos+' ชุด',d:'ต้องแยกชิ้นงานและแจ้งหัวหน้างานทันที'});
+  if(a.cp!=null&&a.cpk!=null&&a.cp-a.cpk>0.25)out.push({sev:'warn',t:'ค่ากลางเบี่ยงจากกึ่งกลางเกณฑ์',d:'Cp = '+fmt(Math.round(a.cp*100)/100)+' แต่ Cpk = '+fmt(Math.round(a.cpk*100)/100)+' → ปรับ Mean เข้าหากึ่งกลางจะได้ผลดีกว่าลดความกระจาย'});
+  return out;
+}
+
+function aiRulesHTML(rules){
+  if(!rules.length)return '<div class="ai-rule"><i></i><div><b>ไม่พบสัญญาณผิดปกติจากกฎ SPC</b>ไม่พบรูปแบบ Shift / Trend / จุดนอกเส้นควบคุมในข้อมูลชุดนี้</div></div>';
+  return rules.map(r=>'<div class="ai-rule '+r.sev+'"><i></i><div><b>'+esc(r.t)+'</b>'+esc(r.d)+'</div></div>').join('');
+}
+
+// สร้างข้อมูลสรุปขนาดเล็กส่งให้ AI (ไม่ส่งชื่อผู้ตรวจ)
+function aiPayload(ctx){
+  const {it,sg,a,hs,partName,month,rules}=ctx,r4=v=>v==null||!isFinite(v)?null:+(+v).toFixed(4);
+  return{
+    part:partName,month,item:it.label,unit:it.unit||'',lsl:r4(it.min),usl:r4(it.max),
+    subgroupSize:a.n,subgroups:a.N,
+    stats:{xbb:r4(a.xbb),rbar:r4(a.rbar),uclX:r4(a.uclX),lclX:r4(a.lclX),uclR:r4(a.uclR),sigmaWithin:r4(a.sigma),cp:r4(a.cp),cpk:r4(a.cpk),ppk:r4(hs.ppk),sdOverall:r4(hs.s),skew:r4(hs.skew),expectedOutPct:hs.pOut==null?null:+(hs.pOut*100).toFixed(4),ooc:a.nOoc,oos:a.nOos},
+    ruleFindings:rules.map(r=>r.t+' — '+r.d),
+    series:sg.slice(-60).map((g,i)=>({n:i+1,date:g.t.toISOString().slice(0,16),shift:g.r.shift||null,po:g.r.production_order||null,v:g.vals.map(r4),mean:r4(g.mean),range:r4(g.range),flag:g.oos?'NG':(g.oocX||g.oocR)?'OOC':''}))
+  };
+}
+
+// แปลง markdown แบบง่าย (หัวข้อ ## / รายการ - / **ตัวหนา**) เป็น HTML อย่างปลอดภัย
+function aiMd(t){
+  const inl=x=>esc(x).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`(.+?)`/g,'<code>$1</code>');
+  let h='',ul=false;
+  String(t||'').split('\n').forEach(l=>{
+    l=l.trim();
+    const li=/^[-*•]\s+(.*)/.exec(l);
+    if(li){if(!ul){h+='<ul>';ul=true}h+='<li>'+inl(li[1])+'</li>';return}
+    if(ul){h+='</ul>';ul=false}
+    const hd=/^#{1,4}\s+(.*)/.exec(l);
+    if(hd)h+='<h3>'+inl(hd[1])+'</h3>';else if(l)h+='<p style="margin:4px 0">'+inl(l)+'</p>';
+  });
+  return h+(ul?'</ul>':'');
+}
+
+async function runAI(){
+  if(aiBusy||!aiCtx)return;
+  const btn=$('ai-btn'),out=$('ai-out');
+  aiBusy=true;btn.disabled=true;btn.classList.add('busy');btn.querySelector('span').textContent='กำลังวิเคราะห์...';
+  out.innerHTML='<div class="ai-foot">AI กำลังอ่านกราฟและตัวเลข อาจใช้เวลา 5–15 วินาที…</div>';
+  try{
+    const res=await fetch(AI_URL,{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+SB_KEY},body:JSON.stringify(aiPayload(aiCtx))});
+    const j=await res.json().catch(()=>({}));
+    if(!res.ok||!j.text)throw new Error(j.error||('HTTP '+res.status));
+    out.innerHTML='<div class="ai-md">'+aiMd(j.text)+'</div><div class="ai-foot">วิเคราะห์โดย AI จากข้อมูลที่แสดงในหน้านี้ · ใช้ประกอบการตัดสินใจ ไม่ใช่ข้อสรุปสุดท้าย — โปรดยืนยันกับวิศวกร/QC ก่อนปรับกระบวนการ</div>';
+  }catch(e){
+    out.innerHTML='<div class="ai-err">เรียก AI ไม่สำเร็จ: '+esc(e.message)+'<br><span class="ai-foot">ถ้ายังไม่ได้ deploy Edge Function “spc-ai” ดูวิธีตั้งค่าในไฟล์ SETUP-AI.md · ผลตรวจกฎ SPC ด้านบนยังใช้งานได้ตามปกติ</span></div>';
+  }finally{aiBusy=false;btn.disabled=false;btn.classList.remove('busy');btn.querySelector('span').textContent='วิเคราะห์ใหม่'}
+}
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#ai-btn'))runAI()});
+
+function aiCardHTML(ctx){
+  return '<div class="card ai-card"><div class="ai-head"><div><h2>✨ AI วิเคราะห์ข้อมูล SPC</h2><div class="sub">สรุปสถานการณ์ สาเหตุที่เป็นไปได้ และสิ่งที่ควรทำ จากกราฟของหัวข้อนี้</div></div>'
+   +'<button type="button" class="ai-btn" id="ai-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17l.7 1.8L21.5 19.5l-1.8.7L19 22l-.7-1.8-1.8-.7 1.8-.7z"/></svg><span>วิเคราะห์ด้วย AI</span></button></div>'
+   +'<div class="ai-rules">'+aiRulesHTML(ctx.rules)+'</div><div class="ai-out" id="ai-out"></div></div>';
 }
 
 // ── Events ──
