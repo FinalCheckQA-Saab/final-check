@@ -371,30 +371,81 @@ header .lsc-clock{margin-right:2px}
 /* 🆕 Silver — แถบหัวเมทัลลิกเหมือนหน้าหลัก */
 html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg,rgba(255,255,255,0) 28%,rgba(255,255,255,.2) 46%,rgba(255,255,255,0) 62%),linear-gradient(120deg,#44505f,#5f6c7e 55%,#4a5666);box-shadow:0 8px 24px -10px rgba(30,40,55,.55),inset 0 1px 0 rgba(255,255,255,.3)}
 
-/* ===== AI วิเคราะห์ SPC ===== */
-.ai-card{position:relative;overflow:hidden}
-.ai-card::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:linear-gradient(180deg,var(--accent),var(--brand-gold))}
-.ai-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.ai-head h2{margin:0;font-size:17px;display:flex;align-items:center;gap:8px}
-.ai-head .sub{margin-top:2px}
-.ai-btn{display:inline-flex;align-items:center;gap:8px;font:inherit;font-weight:700;font-size:14px;padding:10px 18px;border-radius:999px;border:0;cursor:pointer;color:#fff;background:linear-gradient(120deg,var(--accent),color-mix(in srgb,var(--accent) 55%,var(--brand-gold)));box-shadow:0 6px 16px -6px var(--accent);transition:transform .15s,filter .15s}
-.ai-btn:hover{transform:translateY(-1px);filter:brightness(1.08)}
-.ai-btn:disabled{opacity:.6;cursor:wait;transform:none}
-.ai-btn svg{width:16px;height:16px}
-.ai-btn.busy svg{animation:aispin 1s linear infinite}
-@keyframes aispin{to{transform:rotate(360deg)}}
-.ai-out{margin-top:14px;font-size:14.5px;line-height:1.8}
-.ai-out h3{font-size:15px;margin:14px 0 4px;color:var(--ink)}
-.ai-out ul{margin:4px 0 8px;padding-left:20px}
-.ai-out li{margin:2px 0}
-.ai-rules{display:flex;flex-direction:column;gap:8px;margin-top:14px}
-.ai-rule{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:var(--card);font-size:13.5px;line-height:1.6}
-.ai-rule b{display:block;font-size:14px}
-.ai-rule i{flex:none;width:10px;height:10px;border-radius:50%;margin-top:7px;background:var(--good)}
-.ai-rule.bad{background:var(--bad-bg);border-color:color-mix(in srgb,var(--bad) 40%,transparent)}.ai-rule.bad i{background:var(--bad)}
-.ai-rule.warn{background:var(--warn-bg);border-color:color-mix(in srgb,var(--amber) 40%,transparent)}.ai-rule.warn i{background:var(--amber)}
-.ai-err{color:var(--bad);font-size:13.5px;margin-top:10px}
-.ai-foot{margin-top:10px;font-size:12px;color:var(--muted)}
+/* ===== AI วิเคราะห์ SPC (v2) ===== */
+.ai-wrap{background:var(--card);border:1px solid var(--border);border-radius:22px;box-shadow:var(--sh);overflow:hidden;margin-bottom:16px}
+.ai-hero{position:relative;overflow:hidden;display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:20px 24px;color:#fff;
+  background:linear-gradient(120deg,var(--brand-navy-900),var(--brand-navy-700) 58%,color-mix(in srgb,var(--accent) 55%,var(--brand-navy-700)))}
+.ai-hero::before{content:"";position:absolute;width:260px;height:260px;right:-60px;top:-140px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--brand-gold) 55%,transparent),transparent 68%);pointer-events:none}
+.ai-hero::after{content:"";position:absolute;width:220px;height:220px;left:30%;bottom:-150px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 60%,transparent),transparent 70%);pointer-events:none}
+.ai-hero>*{position:relative;z-index:1}
+.ai-logo{flex:none;width:48px;height:48px;border-radius:15px;display:grid;place-items:center;color:#16324f;background:linear-gradient(135deg,#f6dc8c,var(--brand-gold));animation:aiPulse 2.8s ease-in-out infinite}
+.ai-logo svg{width:25px;height:25px}
+@keyframes aiPulse{0%,100%{box-shadow:0 0 0 0 rgba(236,201,114,.55)}50%{box-shadow:0 0 0 11px rgba(236,201,114,0)}}
+.ai-ttl{flex:1;min-width:200px}
+.ai-ttl h2{margin:0;font-size:19px;line-height:1.3;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ai-badge{font-size:10.5px;font-weight:700;letter-spacing:.6px;padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28)}
+.ai-ttl p{margin:4px 0 0;font-size:13px;opacity:.82;line-height:1.55}
+.ai-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:inherit;font-weight:700;font-size:14px;padding:11px 20px;border-radius:999px;border:0;cursor:pointer;color:#16324f;background:linear-gradient(120deg,#fff,#fbeec3);box-shadow:0 8px 20px -8px rgba(0,0,0,.55);transition:transform .15s,box-shadow .15s}
+.ai-btn:hover{transform:translateY(-2px);box-shadow:0 12px 24px -8px rgba(0,0,0,.6)}
+.ai-btn:disabled{opacity:.75;cursor:wait;transform:none}
+.ai-btn svg{width:17px;height:17px}
+.ai-btn.busy svg{animation:aiSpin 1s linear infinite}
+@keyframes aiSpin{to{transform:rotate(360deg)}}
+.ai-body{padding:18px 22px 20px}
+.ai-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.ai-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 13px;border-radius:999px;font-size:12.5px;font-weight:700;border:1px solid var(--border);color:var(--ink);background:var(--card)}
+.ai-pill i{width:9px;height:9px;border-radius:50%;background:var(--good)}
+.ai-pill.pb{background:var(--bad-bg);border-color:color-mix(in srgb,var(--bad) 40%,transparent)}.ai-pill.pb i{background:var(--bad)}
+.ai-pill.pw{background:var(--warn-bg);border-color:color-mix(in srgb,var(--amber) 40%,transparent)}.ai-pill.pw i{background:var(--amber)}
+.ai-rules{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
+.ai-rule{position:relative;display:flex;gap:12px;align-items:flex-start;padding:12px 14px 12px 16px;border-radius:14px;border:1px solid var(--border);background:var(--card);overflow:hidden;transition:transform .15s,box-shadow .15s}
+.ai-rule:hover{transform:translateY(-2px);box-shadow:0 8px 20px -12px rgba(0,0,0,.4)}
+.ai-rule::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--rc)}
+.ai-rule .ri{flex:none;width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:var(--rc);background:color-mix(in srgb,var(--rc) 14%,transparent)}
+.ai-rule .ri svg{width:18px;height:18px}
+.ai-rule b{display:block;font-size:13.5px;line-height:1.45;color:var(--ink)}
+.ai-rule span{display:block;font-size:12.5px;line-height:1.55;color:var(--muted);margin-top:2px}
+.ai-rule.sv-bad{--rc:var(--bad);background:color-mix(in srgb,var(--bad) 7%,var(--card))}
+.ai-rule.sv-warn{--rc:var(--amber);background:color-mix(in srgb,var(--amber) 8%,var(--card))}
+.ai-rule.sv-ok{--rc:var(--good);background:color-mix(in srgb,var(--good) 7%,var(--card))}
+.ai-out{margin-top:16px}
+.ai-in{animation:aiIn .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0ms)}
+@keyframes aiIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.ai-verdict{display:flex;gap:16px;align-items:center;padding:16px 18px;border-radius:16px;margin-bottom:12px;border:1px solid color-mix(in srgb,var(--vc) 45%,transparent);background:linear-gradient(100deg,color-mix(in srgb,var(--vc) 16%,var(--card)),var(--card) 85%)}
+.ai-verdict .ai-vi{flex:none;width:48px;height:48px;border-radius:15px;display:grid;place-items:center;color:#fff;background:var(--vc);box-shadow:0 8px 18px -8px var(--vc)}
+.ai-verdict .ai-vi svg{width:25px;height:25px}
+.ai-verdict small{display:block;font-size:11.5px;color:var(--muted);font-weight:600}
+.ai-verdict b{display:block;font-size:19px;line-height:1.3;color:var(--vc)}
+.ai-verdict p{margin:4px 0 0;font-size:13.5px;line-height:1.7;color:var(--ink)}
+.v-bad{--vc:var(--bad)}.v-warn{--vc:var(--amber)}.v-good{--vc:var(--good)}.v-info{--vc:var(--accent)}
+.ai-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:12px}
+.ai-sec{border:1px solid var(--border);border-radius:16px;padding:14px 16px;background:var(--card)}
+.ai-sec h3{margin:0 0 8px;font-size:14.5px;display:flex;align-items:center;gap:9px;color:var(--ink)}
+.ai-sec h3 .hi{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;color:var(--sc);background:color-mix(in srgb,var(--sc) 15%,transparent)}
+.ai-sec h3 .hi svg{width:16px;height:16px}
+.ai-sec.sc-find{--sc:var(--accent)}.ai-sec.sc-cause{--sc:var(--amber)}.ai-sec.sc-act{--sc:var(--good)}
+.ai-ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.ai-ul li{position:relative;padding-left:18px;font-size:13.5px;line-height:1.7}
+.ai-ul li::before{content:"";position:absolute;left:2px;top:.7em;width:8px;height:8px;border-radius:50%;background:var(--sc)}
+.ai-steps{list-style:none;counter-reset:st;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ai-steps li{counter-increment:st;display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-radius:12px;font-size:13.5px;line-height:1.7;background:color-mix(in srgb,var(--good) 7%,var(--card));border:1px solid color-mix(in srgb,var(--good) 25%,transparent)}
+.ai-steps li::before{content:counter(st);flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff;background:var(--good)}
+.ai-steps li:first-child{background:color-mix(in srgb,var(--bad) 8%,var(--card));border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.ai-steps li:first-child::before{background:var(--bad)}
+.ai-sec b{color:var(--ink)}.ai-sec code{font-size:12.5px;padding:1px 6px;border-radius:6px;background:var(--accent-dim)}
+.ai-load{padding:6px 2px}
+.ai-load-msg{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;color:var(--accent);margin-bottom:12px}
+.ai-load-msg i{width:16px;height:16px;border-radius:50%;border:3px solid color-mix(in srgb,var(--accent) 25%,transparent);border-top-color:var(--accent);animation:aiSpin .8s linear infinite}
+.ai-sk{height:56px;border-radius:14px;margin-bottom:10px;background:linear-gradient(90deg,var(--accent-dim) 25%,color-mix(in srgb,var(--accent) 22%,transparent) 50%,var(--accent-dim) 75%);background-size:200% 100%;animation:aiSh 1.3s linear infinite}
+.ai-sk.s2{height:92px;width:88%}.ai-sk.s3{height:40px;width:70%}
+@keyframes aiSh{to{background-position:-200% 0}}
+.ai-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6}
+.ai-copy{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12px;font-weight:600;padding:5px 12px;border-radius:999px;cursor:pointer;color:var(--ink);background:var(--card);border:1px solid var(--border)}
+.ai-copy:hover{border-color:var(--accent);color:var(--accent)}.ai-copy svg{width:13px;height:13px}
+.ai-err{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;color:var(--ink);font-size:13.5px;line-height:1.7;background:var(--bad-bg);border:1px solid color-mix(in srgb,var(--bad) 40%,transparent)}
+.ai-err small{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+@media (max-width:560px){.ai-hero{padding:16px}.ai-body{padding:14px}.ai-btn{width:100%}.ai-verdict{flex-direction:column;align-items:flex-start}}
+@media (prefers-reduced-motion:reduce){.ai-logo,.ai-in,.ai-sk,.ai-btn.busy svg,.ai-load-msg i{animation:none!important}}
 </style>
 </head>
 <body>
@@ -745,7 +796,6 @@ function draw(){
     +tile('ค่านอกเกณฑ์ (NG)',a.nOos,'ชุด',a.nOos?'bad':'','spec')+'</div>';
   const hsAI=histStats(sg.flatMap(g=>g.got),it);
   aiCtx={it,sg,a,hs:hsAI,partName,month,rules:spcRules(it,sg,a)};
-  h+=aiCardHTML(aiCtx);
   const lg=(s,t)=>'<span><svg viewBox="0 0 26 10">'+s+'</svg>'+t+'</span>';
   const legend='<div class="legend">'
     +lg('<line x1="0" x2="26" y1="5" y2="5" stroke="var(--series)" stroke-width="2.5"/><circle cx="13" cy="5" r="4" fill="var(--series)" stroke="var(--card)" stroke-width="2"/>','ค่าเฉลี่ยของแต่ละชุด')
@@ -765,6 +815,7 @@ function draw(){
       +'<td class="'+(g.oocX?'bad':'')+'">'+fmt(g.mean)+(g.oocX?' ▲':'')+'</td><td class="'+(g.oocR?'bad':'')+'">'+fmt(g.range)+(g.oocR?' ▲':'')+'</td><td>'+(g.oos?'ค่านอกเกณฑ์':g.oocX||g.oocR?'นอกเส้นควบคุม':'ปกติ')+'</td></tr>').join('')
     +'</tbody></table></div></details></div>';
   h+='<div class="card note"><details id="how-calc"'+(howOpen()?' open':'')+'><summary>วิธีคำนวณ <span class="note" style="font-weight:400">(กดเพื่อย่อ/ขยาย)</span></summary><div style="margin-top:8px">X̄ = ค่าเฉลี่ยของ S/M/E ในแต่ละชุด, R = ค่ามากสุด − น้อยสุด · <code>UCL/LCL = X̿ ± A₂·R̄</code> (n='+n+', A₂='+K[n].A2+') · R chart: <code>UCL = D₄·R̄</code> (D₄='+K[n].D4+'), LCL = 0 · Cpk ใช้ σ = R̄/d₂ (d₂='+K[n].d2+') เทียบกับเกณฑ์ LSL/USL ที่ตั้งไว้ · <b>UCL/LCL</b> (เส้นควบคุม) มาจากข้อมูลจริงของกระบวนการ ต่างจาก <b>USL/LSL</b> (เกณฑ์ที่ตั้งไว้ในระบบ) · <b>Cpk</b> = ความสามารถระยะสั้น (σ ภายในชุด) ส่วน <b>Ppk</b> ใน Capability Histogram ใช้ S.D. รวมของทุกค่า (ระยะยาว) · ควรมีข้อมูลอย่างน้อย 25 ชุดและกระบวนการนิ่งก่อนเชื่อถือค่า Cpk/Ppk</div></details></div>';
+  h+=aiCardHTML(aiCtx);
   body.innerHTML=h;
   if($('c-h'))hist($('c-h'),hs,u);
   const cap=g=>'<b>'+esc(dt(g))+'</b>'+(g.r.production_order?'<div class="r"><span>Production Order</span><span>'+esc(g.r.production_order)+'</span></div>':'');
@@ -814,11 +865,6 @@ function spcRules(it,sg,a){
   return out;
 }
 
-function aiRulesHTML(rules){
-  if(!rules.length)return '<div class="ai-rule"><i></i><div><b>ไม่พบสัญญาณผิดปกติจากกฎ SPC</b>ไม่พบรูปแบบ Shift / Trend / จุดนอกเส้นควบคุมในข้อมูลชุดนี้</div></div>';
-  return rules.map(r=>'<div class="ai-rule '+r.sev+'"><i></i><div><b>'+esc(r.t)+'</b>'+esc(r.d)+'</div></div>').join('');
-}
-
 // สร้างข้อมูลสรุปขนาดเล็กส่งให้ AI (ไม่ส่งชื่อผู้ตรวจ)
 function aiPayload(ctx){
   const {it,sg,a,hs,partName,month,rules}=ctx,r4=v=>v==null||!isFinite(v)?null:+(+v).toFixed(4);
@@ -831,41 +877,93 @@ function aiPayload(ctx){
   };
 }
 
-// แปลง markdown แบบง่าย (หัวข้อ ## / รายการ - / **ตัวหนา**) เป็น HTML อย่างปลอดภัย
-function aiMd(t){
-  const inl=x=>esc(x).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`(.+?)`/g,'<code>$1</code>');
-  let h='',ul=false;
-  String(t||'').split('\n').forEach(l=>{
-    l=l.trim();
-    const li=/^[-*•]\s+(.*)/.exec(l);
-    if(li){if(!ul){h+='<ul>';ul=true}h+='<li>'+inl(li[1])+'</li>';return}
-    if(ul){h+='</ul>';ul=false}
-    const hd=/^#{1,4}\s+(.*)/.exec(l);
-    if(hd)h+='<h3>'+inl(hd[1])+'</h3>';else if(l)h+='<p style="margin:4px 0">'+inl(l)+'</p>';
+
+const aiSvg=p=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
+const AI_IC={
+  spark:aiSvg('<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17l.7 1.8 1.8.7-1.8.7L19 22l-.7-1.8-1.8-.7 1.8-.7z"/>'),
+  warn:aiSvg('<path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>'),
+  ok:aiSvg('<path d="M20 6 9 17l-5-5"/>'),
+  find:aiSvg('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>'),
+  cause:aiSvg('<path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/>'),
+  act:aiSvg('<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'),
+  copy:aiSvg('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>')
+};
+const aiCache=new Map();let aiLastText='',aiTimer=null;
+const aiKey=c=>[$('f-part').value,$('f-month').value,$('f-item').value,c.a.N,+c.sg[c.sg.length-1].t].join('|');
+const aiInl=x=>esc(x).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\*(.+?)\*/g,'<i>$1</i>').replace(/`(.+?)`/g,'<code>$1</code>');
+
+function aiRulesHTML(rules){
+  const nb=rules.filter(r=>r.sev==='bad').length,nw=rules.filter(r=>r.sev==='warn').length;
+  const pills='<div class="ai-pills">'+(nb?'<span class="ai-pill pb"><i></i>วิกฤต '+nb+' รายการ</span>':'')+(nw?'<span class="ai-pill pw"><i></i>เฝ้าระวัง '+nw+' รายการ</span>':'')+(!nb&&!nw?'<span class="ai-pill"><i></i>ไม่พบสัญญาณผิดปกติ</span>':'')+'<span class="ai-pill">ตรวจด้วยกฎ SPC ในเครื่อง</span></div>';
+  const list=rules.length?rules.map((r,i)=>'<div class="ai-rule sv-'+r.sev+' ai-in" style="--d:'+(i*60)+'ms"><span class="ri">'+(r.sev==='bad'||r.sev==='warn'?AI_IC.warn:AI_IC.ok)+'</span><div><b>'+esc(r.t)+'</b><span>'+esc(r.d)+'</span></div></div>').join('')
+    :'<div class="ai-rule sv-ok ai-in"><span class="ri">'+AI_IC.ok+'</span><div><b>กระบวนการนิ่ง</b><span>ไม่พบรูปแบบ Shift / Trend / จุดนอกเส้นควบคุมในข้อมูลชุดนี้</span></div></div>';
+  return pills+'<div class="ai-rules">'+list+'</div>';
+}
+
+function aiSections(t){const secs=[];let c=null;
+  String(t||'').split('\n').forEach(l=>{l=l.trim();if(!l)return;
+    const h=/^#{1,4}\s+(.*)/.exec(l);
+    if(h){c={title:h[1].replace(/\*+/g,'').trim(),lines:[]};secs.push(c);return}
+    if(!c){c={title:'',lines:[]};secs.push(c)}c.lines.push(l)});
+  return secs}
+
+function aiRender(t){
+  const secs=aiSections(t);let d=0;const dl=()=>'style="--d:'+(d++*100)+'ms"';
+  let top='',grid='',bottom='';
+  const sec=(cls,ic,title,body)=>'<div class="ai-sec '+cls+' ai-in" '+dl()+'><h3><span class="hi">'+ic+'</span>'+esc(title)+'</h3>'+body+'</div>';
+  secs.forEach(s=>{
+    const items=s.lines.map(l=>l.replace(/^[-*•]\s+/,'').replace(/^\d+[.)]\s*/,''));
+    const plain=s.lines.join(' ').replace(/^[-*•]\s+/,'');
+    const ul='<ul class="ai-ul">'+items.map(x=>'<li>'+aiInl(x)+'</li>').join('')+'</ul>';
+    if(/สรุป/.test(s.title)){
+      const k=/ต้องแก้ไขทันที/.test(plain)?'bad':/เฝ้าระวัง/.test(plain)?'warn':/ปกติ/.test(plain)?'good':'info';
+      const lb={bad:'ต้องแก้ไขทันที',warn:'เฝ้าระวัง',good:'ปกติ',info:'ผลการวิเคราะห์'}[k];
+      top+='<div class="ai-verdict v-'+k+' ai-in" '+dl()+'><span class="ai-vi">'+(k==='good'?AI_IC.ok:k==='info'?AI_IC.spark:AI_IC.warn)+'</span><div><small>สถานะจาก AI</small><b>'+lb+'</b><p>'+aiInl(plain)+'</p></div></div>';
+    }else if(/พบ/.test(s.title))grid+=sec('sc-find',AI_IC.find,s.title,ul);
+    else if(/สาเหตุ/.test(s.title))grid+=sec('sc-cause',AI_IC.cause,s.title,ul);
+    else if(/ควรทำ|แนะนำ|ข้อเสนอ/.test(s.title))bottom+=sec('sc-act',AI_IC.act,s.title,'<ol class="ai-steps">'+items.map(x=>'<li><div>'+aiInl(x)+'</div></li>').join('')+'</ol>');
+    else bottom+=sec('sc-find',AI_IC.spark,s.title||'หมายเหตุ',ul);
   });
-  return h+(ul?'</ul>':'');
+  return top+(grid?'<div class="ai-cols">'+grid+'</div>':'')+bottom
+    +'<div class="ai-foot"><span>วิเคราะห์โดย AI จากข้อมูลในหน้านี้ · ใช้ประกอบการตัดสินใจ โปรดยืนยันกับวิศวกร/QC ก่อนปรับกระบวนการ</span><button type="button" class="ai-copy" id="ai-copy">'+AI_IC.copy+'<span>คัดลอกผล</span></button></div>';
+}
+
+function aiLoading(){
+  const msgs=['กำลังอ่านกราฟ X̄ และ R…','ตรวจรูปแบบ Shift / Trend…','ประเมินความสามารถกระบวนการ…','เรียบเรียงข้อเสนอแนะ…'];let i=0;
+  clearInterval(aiTimer);
+  aiTimer=setInterval(()=>{const m=$('ai-msg');if(!m){clearInterval(aiTimer);return}i=(i+1)%msgs.length;m.textContent=msgs[i]},2200);
+  return '<div class="ai-load"><div class="ai-load-msg"><i></i><span id="ai-msg">'+msgs[0]+'</span></div><div class="ai-sk"></div><div class="ai-sk s2"></div><div class="ai-sk s3"></div></div>';
 }
 
 async function runAI(){
   if(aiBusy||!aiCtx)return;
-  const btn=$('ai-btn'),out=$('ai-out');
-  aiBusy=true;btn.disabled=true;btn.classList.add('busy');btn.querySelector('span').textContent='กำลังวิเคราะห์...';
-  out.innerHTML='<div class="ai-foot">AI กำลังอ่านกราฟและตัวเลข อาจใช้เวลา 5–15 วินาที…</div>';
+  const btn=$('ai-btn'),out=$('ai-out'),key=aiKey(aiCtx);
+  aiBusy=true;btn.disabled=true;btn.classList.add('busy');btn.querySelector('span').textContent='กำลังวิเคราะห์…';
+  out.innerHTML=aiLoading();
   try{
     const res=await fetch(AI_URL,{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+SB_KEY},body:JSON.stringify(aiPayload(aiCtx))});
     const j=await res.json().catch(()=>({}));
     if(!res.ok||!j.text)throw new Error(j.error||('HTTP '+res.status));
-    out.innerHTML='<div class="ai-md">'+aiMd(j.text)+'</div><div class="ai-foot">วิเคราะห์โดย AI จากข้อมูลที่แสดงในหน้านี้ · ใช้ประกอบการตัดสินใจ ไม่ใช่ข้อสรุปสุดท้าย — โปรดยืนยันกับวิศวกร/QC ก่อนปรับกระบวนการ</div>';
+    aiLastText=j.text;const html=aiRender(j.text);aiCache.set(key,{html,text:j.text});
+    out.innerHTML=html;
+    out.scrollIntoView({behavior:'smooth',block:'nearest'});
   }catch(e){
-    out.innerHTML='<div class="ai-err">เรียก AI ไม่สำเร็จ: '+esc(e.message)+'<br><span class="ai-foot">ถ้ายังไม่ได้ deploy Edge Function “spc-ai” ดูวิธีตั้งค่าในไฟล์ SETUP-AI.md · ผลตรวจกฎ SPC ด้านบนยังใช้งานได้ตามปกติ</span></div>';
-  }finally{aiBusy=false;btn.disabled=false;btn.classList.remove('busy');btn.querySelector('span').textContent='วิเคราะห์ใหม่'}
+    out.innerHTML='<div class="ai-err"><span style="color:var(--bad);width:22px;flex:none">'+AI_IC.warn+'</span><div><b>เรียก AI ไม่สำเร็จ</b><br>'+esc(e.message)+'<small>ผลตรวจกฎ SPC ด้านบนยังใช้งานได้ตามปกติ · ถ้ายังไม่ได้ตั้งค่า ดูไฟล์ SETUP-AI.md</small></div></div>';
+  }finally{clearInterval(aiTimer);aiBusy=false;btn.disabled=false;btn.classList.remove('busy');btn.querySelector('span').textContent='วิเคราะห์ใหม่'}
 }
-document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#ai-btn'))runAI()});
+document.addEventListener('click',e=>{
+  const t=e.target.closest?e.target:null;if(!t)return;
+  if(t.closest('#ai-btn'))runAI();
+  const cp=t.closest('#ai-copy');
+  if(cp&&navigator.clipboard)navigator.clipboard.writeText(aiLastText).then(()=>{const sp=cp.querySelector('span');sp.textContent='คัดลอกแล้ว ✓';setTimeout(()=>sp.textContent='คัดลอกผล',1600)}).catch(()=>{});
+});
 
 function aiCardHTML(ctx){
-  return '<div class="card ai-card"><div class="ai-head"><div><h2>✨ AI วิเคราะห์ข้อมูล SPC</h2><div class="sub">สรุปสถานการณ์ สาเหตุที่เป็นไปได้ และสิ่งที่ควรทำ จากกราฟของหัวข้อนี้</div></div>'
-   +'<button type="button" class="ai-btn" id="ai-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17l.7 1.8L21.5 19.5l-1.8.7L19 22l-.7-1.8-1.8-.7 1.8-.7z"/></svg><span>วิเคราะห์ด้วย AI</span></button></div>'
-   +'<div class="ai-rules">'+aiRulesHTML(ctx.rules)+'</div><div class="ai-out" id="ai-out"></div></div>';
+  const c=aiCache.get(aiKey(ctx));if(c)aiLastText=c.text;
+  return '<section class="ai-wrap" id="ai-wrap"><div class="ai-hero"><span class="ai-logo">'+AI_IC.spark+'</span>'
+   +'<div class="ai-ttl"><h2>AI วิเคราะห์ข้อมูล SPC <span class="ai-badge">BETA</span></h2><p>สรุปสถานการณ์ สาเหตุที่เป็นไปได้ และสิ่งที่ควรทำ จากกราฟของหัวข้อนี้</p></div>'
+   +'<button type="button" class="ai-btn" id="ai-btn">'+AI_IC.spark+'<span>'+(c?'วิเคราะห์ใหม่':'วิเคราะห์ด้วย AI')+'</span></button></div>'
+   +'<div class="ai-body">'+aiRulesHTML(ctx.rules)+'<div class="ai-out" id="ai-out">'+(c?c.html:'')+'</div></div></section>';
 }
 
 // ── Events ──
