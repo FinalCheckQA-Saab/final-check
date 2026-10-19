@@ -382,6 +382,12 @@ header p{display:inline-block;margin:6px 0 0;padding:2px 12px;border-radius:999p
 .steps span::before{content:attr(data-n);width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-family:var(--num);font-size:11px;border:1.5px solid rgba(255,255,255,.35)}
 .steps .done{color:#9be3b5}.steps .done::before{content:"✓";background:#16a34a;border-color:#16a34a;color:#fff}
 .steps .on{color:#fff}.steps .on::before{background:linear-gradient(135deg,#f3d98b,var(--gold));border-color:transparent;color:#0f2137;box-shadow:0 0 0 4px rgba(201,162,74,.25)}
+/* Header: เอาโทนเหลืองทองออก (ตัวแปรสีมีผลเฉพาะใน header) */
+header{--gold:color-mix(in srgb,var(--accent) 55%,#fff)}
+header p{color:#e6efff}
+.header-logo{background:linear-gradient(135deg,#fff,#e8eef6);box-shadow:0 8px 20px -6px rgba(0,0,0,.45),inset 0 1px 0 #fff}
+.header-back-link:hover{border-color:rgba(255,255,255,.7)}
+.steps .on::before{background:linear-gradient(135deg,#fff,#e8eef6);box-shadow:0 0 0 4px rgba(255,255,255,.22)}
 .steps i{width:34px;height:2px;border-radius:2px;background:rgba(255,255,255,.25)}.steps i.fill{background:#16a34a}
 .wrap{max-width:720px;margin:0 auto;padding:20px 16px}
 .card{border-radius:20px;padding:22px;margin-bottom:18px;border:1px solid rgba(15,33,55,.06);box-shadow:var(--sh)}
