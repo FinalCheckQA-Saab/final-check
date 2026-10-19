@@ -37,14 +37,14 @@ a.back{color:#fff;font-size:13px;text-decoration:none;opacity:.9}
   box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 3px 10px rgba(0,0,0,.28);
   transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease}
 .hbtn .ico{position:relative;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;
-  color:#ecc972;background:radial-gradient(circle at 30% 25%,rgba(236,201,114,.34),rgba(236,201,114,.1));
-  box-shadow:inset 0 0 0 1px rgba(236,201,114,.35);transition:background .2s ease,color .2s ease,box-shadow .2s ease}
+  color:var(--tg-lt);background:radial-gradient(circle at 30% 25%,color-mix(in srgb,var(--gold) 34%,transparent),color-mix(in srgb,var(--gold) 10%,transparent));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--gold) 35%,transparent);transition:background .2s ease,color .2s ease,box-shadow .2s ease}
 .hbtn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.hbtn:hover{transform:translateY(-1px);border-color:rgba(236,201,114,.75);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 6px 16px rgba(0,0,0,.34),0 0 0 3px rgba(201,162,74,.18)}
-.hbtn:hover .ico{background:linear-gradient(135deg,#f0d283,var(--gold));color:#0f2137;box-shadow:0 0 12px rgba(236,201,114,.55)}
+.hbtn:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--gold) 75%,transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 6px 16px rgba(0,0,0,.34),0 0 0 3px color-mix(in srgb,var(--gold) 18%,transparent)}
+.hbtn:hover .ico{background:linear-gradient(135deg,var(--tg-hi),var(--gold));color:#0f2137;box-shadow:0 0 12px color-mix(in srgb,var(--gold) 55%,transparent)}
 .hbtn:active{transform:translateY(0) scale(.96)}
-.hbtn:focus-visible{outline:2px solid #ecc972;outline-offset:3px}
+.hbtn:focus-visible{outline:2px solid var(--tg-lt);outline-offset:3px}
 /* ธีม: ดวงอาทิตย์ ⇄ พระจันทร์ หมุนสลับตามโหมดปัจจุบัน */
 .hbtn .ico-sun,.hbtn .ico-moon{position:absolute;transition:transform .55s cubic-bezier(.34,1.56,.64,1),opacity .3s ease}
 :root[data-theme="light"] .hbtn .ico-moon{opacity:0;transform:rotate(-100deg) scale(.3)}
@@ -54,24 +54,24 @@ a.back{color:#fff;font-size:13px;text-decoration:none;opacity:.9}
 /* รีเฟรช: หมุนเมื่อ hover และหมุนต่อเนื่องระหว่างโหลดข้อมูล */
 .hbtn .ico-refresh{transition:transform .5s cubic-bezier(.34,1.56,.64,1)}
 #btn-refresh:hover .ico-refresh{transform:rotate(180deg)}
-#btn-refresh.spin{pointer-events:none;border-color:rgba(236,201,114,.75)}
+#btn-refresh.spin{pointer-events:none;border-color:color-mix(in srgb,var(--gold) 75%,transparent)}
 #btn-refresh.spin .ico-refresh{animation:hspin .85s linear infinite}
 @keyframes hspin{to{transform:rotate(360deg)}}
 /* ── ปุ่ม "กลับแอปหลัก" (ขวาสุด): สไตล์เดียวกับปุ่มหัวหน้า + ไล่สีทอง + ลูกศรเลื่อนเมื่อ hover ── */
 .hbtn-back{text-decoration:none;margin-left:4px;position:relative;
-  background:linear-gradient(135deg,rgba(236,201,114,.22),rgba(255,255,255,.07));border-color:rgba(236,201,114,.5)}
-.hbtn-back .ico{background:linear-gradient(135deg,#f0d283,var(--brand-gold,#c9a24a));color:#0f2137;box-shadow:0 0 10px rgba(236,201,114,.4)}
+  background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 22%,transparent),rgba(255,255,255,.07));border-color:color-mix(in srgb,var(--gold) 50%,transparent)}
+.hbtn-back .ico{background:linear-gradient(135deg,var(--tg-hi),var(--brand-gold,#c9a24a));color:#0f2137;box-shadow:0 0 10px color-mix(in srgb,var(--gold) 40%,transparent)}
 .hbtn-back .ico-back{transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
-.hbtn-back:hover{background:linear-gradient(135deg,rgba(236,201,114,.34),rgba(255,255,255,.1))}
+.hbtn-back:hover{background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 34%,transparent),rgba(255,255,255,.1))}
 .hbtn-back:hover .ico-back{transform:translateX(-3px)}
-.hbtn-back::after{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;border:1px solid rgba(236,201,114,.55);opacity:0;animation:hbackGlow 3.2s ease-in-out 1s 2}
+.hbtn-back::after{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;border:1px solid color-mix(in srgb,var(--gold) 55%,transparent);opacity:0;animation:hbackGlow 3.2s ease-in-out 1s 2}
 @media (max-width:640px){.hbtn-back{margin-left:0}}
 @keyframes hbackGlow{0%,100%{opacity:0;transform:scale(1)}50%{opacity:.9;transform:scale(1.06)}}
 @media (prefers-reduced-motion:reduce){.hbtn-back::after{animation:none}.hbtn-back .ico-back{transition:none}}
 /* ── ชื่อหน้า SPC + โลโก้: ไฮไลต์ทอง / ชิป UCL-LCL / กราฟวาดเส้น + วงแสงหายใจ (เพิ่มเติม ไม่แก้ของเดิม) ── */
 header .logo{position:relative;isolation:isolate;transition:transform .25s cubic-bezier(.34,1.56,.64,1),box-shadow .25s ease}
 header .logo::before{content:"";position:absolute;inset:-5px;border-radius:inherit;z-index:-1;
-  background:radial-gradient(circle,rgba(236,201,114,.55),transparent 70%);animation:logoBreath 3.4s ease-in-out infinite}
+  background:radial-gradient(circle,color-mix(in srgb,var(--gold) 55%,transparent),transparent 70%);animation:logoBreath 3.4s ease-in-out infinite}
 header .logo::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;overflow:hidden;
   background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.65) 50%,transparent 65%);background-size:250% 100%;background-position:160% 0;
   animation:logoSheen 5.5s ease-in-out 1.2s infinite}
@@ -80,7 +80,7 @@ header .logo .lg-lim{stroke-dasharray:2.2 2.2;opacity:.55;animation:limMarch 2.4
 header .logo .lg-line{stroke-dasharray:1;stroke-dashoffset:1;animation:lineDraw 1.3s .25s cubic-bezier(.4,0,.2,1) forwards}
 header h1{display:flex;align-items:center;gap:0;letter-spacing:.01em;text-shadow:0 2px 14px rgba(0,0,0,.35)}
 .ttl-spc{font-weight:800;letter-spacing:.06em;background:linear-gradient(100deg,#f7e2a1 10%,#e8b84a 50%,#fff1c2 90%);background-size:220% 100%;
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#ecc972;animation:ttlShine 6s ease-in-out infinite}
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:var(--tg-lt);animation:ttlShine 6s ease-in-out infinite}
 .ttl-sep{opacity:.45;white-space:pre}
 .ttl-rest{font-weight:600;white-space:nowrap}
 .ttl-ucl,.ttl-lcl{font-style:normal;font-weight:800;font-size:.72em;letter-spacing:.06em;padding:2px 8px;border-radius:7px;vertical-align:2px;border:1px solid;
@@ -104,7 +104,7 @@ header.collapsed{padding-top:7px;padding-bottom:7px}
 header.collapsed .hd-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 header.collapsed .hd-top h1{font-size:17px;line-height:1.25}
 header.collapsed a.back{padding:3px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);font-size:12px;opacity:1;white-space:nowrap}
-header.collapsed a.back:hover{border-color:rgba(236,201,114,.7)}
+header.collapsed a.back:hover{border-color:color-mix(in srgb,var(--gold) 70%,transparent)}
 .hd-more{display:grid;grid-template-rows:1fr;opacity:1;transition:grid-template-rows .3s ease,opacity .25s ease}
 .hd-more-in{overflow:hidden;min-height:0}
 header.collapsed .hd-more{grid-template-rows:0fr;opacity:0;pointer-events:none}
@@ -299,7 +299,7 @@ header{position:sticky;top:0;z-index:30;border-bottom:0;background:radial-gradie
 header::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,var(--brand-gold),transparent 75%)}
 .hd-top{display:flex!important;align-items:center;gap:12px;flex-wrap:wrap}
 header h1{font-size:20px;font-weight:700}
-.logo{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:none;background:linear-gradient(135deg,#f0d283,var(--brand-gold));color:var(--brand-navy-900);box-shadow:0 4px 12px -2px rgba(0,0,0,.4)}
+.logo{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:none;background:linear-gradient(135deg,var(--tg-hi),var(--brand-gold));color:var(--brand-navy-900);box-shadow:0 4px 12px -2px rgba(0,0,0,.4)}
 .logo svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 header.collapsed .logo{width:28px;height:28px;border-radius:9px}
 @media (max-width:640px){header.collapsed .logo{display:none}}
@@ -504,7 +504,10 @@ html[data-palette="silver"][data-theme] header{background:linear-gradient(115deg
 /* ── แถบหัว: สว่างขึ้น/สีชุดธีมเด่นขึ้น (ไล่ navy-800 → 700 → 600 + แสง accent สองข้าง + แสงบนบาง ๆ) ── */
 header{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,0) 55%),radial-gradient(520px 140px at 92% -20px,color-mix(in srgb,var(--accent) 58%,transparent),transparent 72%),radial-gradient(520px 140px at 4% -30px,color-mix(in srgb,var(--brand-gold) 22%,transparent),transparent 70%),linear-gradient(120deg,var(--brand-navy-800),var(--brand-navy-700) 50%,color-mix(in srgb,var(--brand-navy-600) 88%,var(--brand-navy-700)))}
 /* ── หัวหน้า SPC: ให้สว่างและเห็นสีของชุดสีชัดขึ้น (ไล่เฉด navy-800 → 700 → 600 + แสงสีหลักสองมุม) ── */
-header{background:radial-gradient(520px 170px at 90% -40px,color-mix(in srgb,var(--accent) 55%,transparent),transparent 70%),radial-gradient(460px 150px at 8% 120%,color-mix(in srgb,var(--brand-gold) 22%,transparent),transparent 70%),linear-gradient(120deg,var(--brand-navy-800),var(--brand-navy-700) 52%,color-mix(in srgb,var(--brand-navy-600) 85%,var(--brand-navy-700)))}
+header{background:radial-gradient(520px 170px at 90% -40px,color-mix(in srgb,var(--accent) 55%,transparent),transparent 70%),radial-gradient(460px 150px at 8% 120%,color-mix(in srgb,var(--brand-gold) 22%,transparent),transparent 70%),linear-gradient(120deg,var(--brand-navy-800),var(--brand-navy-700) 52%,color-mix(in srgb,var(--brand-navy-600,var(--brand-navy-700)) 85%,var(--brand-navy-700)))}
+/* ── ปุ่ม / โลโก้ / ชื่อหน้า เปลี่ยนสีตามชุดสี (Theme) ── */
+html[data-palette]{--gold:var(--brand-gold)}
+html{--tg-hi:color-mix(in srgb,var(--gold) 45%,#fff);--tg-lt:color-mix(in srgb,var(--gold) 62%,#fff);--tg-pale:color-mix(in srgb,var(--gold) 30%,#fff)}
 </style>
 </head>
 <body>
