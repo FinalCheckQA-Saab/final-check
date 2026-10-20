@@ -1041,7 +1041,7 @@ html .adm-sys-act .adm-sys-ok:disabled::after{content:'';width:16px;height:16px;
       </div>
       <div class="admin-input-row">
         <label style="display:grid;gap:3px;flex:1;min-width:140px;font-size:11px;font-weight:600;color:var(--text-muted)">Part ที่จะสร้างข้อมูล<select id="adm-demo-part" class="adm-sel" aria-label="เลือก Part"><option value="">— เลือก Part —</option></select></label>
-        <button class="btn-sec" id="btn-adm-demo-load" type="button">โหลดรายการ Part</button>
+        <button class="dm-btn" id="btn-adm-demo-load" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13a9 9 0 1 0 .5-4.5L3 8"/></svg><span>โหลดรายการ Part</span></button>
       </div>
       <div class="admin-input-row">
         <label style="display:grid;gap:3px;flex:1;min-width:140px;font-size:11px;font-weight:600;color:var(--text-muted)">วันย้อนหลัง (นับถึงเมื่อวาน, 1–90)<input type="number" id="adm-demo-days" value="30" min="1" max="90" inputmode="numeric" aria-label="จำนวนวันย้อนหลัง" placeholder="จำนวนวันย้อนหลัง"></label>
@@ -1053,10 +1053,10 @@ html .adm-sys-act .adm-sys-ok:disabled::after{content:'';width:16px;height:16px;
         </select></label>
       </div>
       <label style="display:flex; align-items:center; gap:6px; font-size:12px; margin:4px 0 8px;"><input type="checkbox" id="adm-demo-skipsun" checked> ข้ามวันอาทิตย์</label>
-      <div class="admin-input-row">
-        <button class="btn-adm-add" id="btn-adm-demo-gen" type="button">🧪 สร้างข้อมูลจำลอง</button>
-        <button class="btn-sec" id="btn-adm-demo-refresh" type="button">ดูข้อมูลจำลองที่มีอยู่</button>
-        <button class="btn-sec" id="btn-adm-demo-delall" type="button" disabled>🗑 ลบข้อมูลจำลองทั้งหมด</button>
+      <div class="dm-actions">
+        <button class="dm-btn dm-primary" id="btn-adm-demo-gen" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v6.2L4.6 18.1A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-2.9L14 9.2V3"/><path d="M7.5 15h9"/></svg><span>สร้างข้อมูลจำลอง</span></button>
+        <button class="dm-btn" id="btn-adm-demo-refresh" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg><span>ดูข้อมูลจำลองที่มีอยู่</span></button>
+        <button class="dm-btn dm-danger" id="btn-adm-demo-delall" type="button" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span>ลบข้อมูลจำลองทั้งหมด</span></button>
       </div>
       <div class="admin-list admin-list-scroll" id="adm-demo-list"></div>
     </div>

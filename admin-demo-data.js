@@ -35,6 +35,35 @@
   function pad(n) { return String(n).padStart(2, '0'); }
   function isoDate(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
 
+  /* ── สไตล์ปุ่ม/รายการเฉพาะเมนูนี้ (ผูกกับ #adm-demo-section เท่านั้น — ไม่กระทบส่วนอื่น) ── */
+  var st = document.createElement('style');
+  st.textContent =
+    '#adm-demo-section .dm-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}' +
+    '#adm-demo-section .admin-input-row .dm-btn{align-self:flex-end}' +
+    '#adm-demo-section .dm-btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 18px;border-radius:12px;font:inherit;font-size:13px;font-weight:700;letter-spacing:.2px;white-space:nowrap;cursor:pointer;' +
+      'color:var(--text-heading,#1e3a5f);background:var(--bg-card-solid,#fff);border:1px solid var(--border-input,#cfd8e3);box-shadow:0 1px 2px rgba(15,33,55,.06);' +
+      'transition:transform .15s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease,color .2s ease,filter .2s ease}' +
+    '#adm-demo-section .dm-btn svg{width:17px;height:17px;flex:none;transition:transform .35s cubic-bezier(.2,.9,.3,1.3)}' +
+    '#adm-demo-section .dm-btn:hover:not(:disabled){transform:translateY(-2px);color:var(--accent,#2f6fd1);border-color:var(--accent,#2f6fd1);background:var(--accent-dim,rgba(47,111,209,.1));box-shadow:0 8px 20px rgba(15,33,55,.12)}' +
+    '#adm-demo-section .dm-btn:hover:not(:disabled) svg{transform:rotate(-14deg) scale(1.12)}' +
+    '#adm-demo-section .dm-btn:active:not(:disabled){transform:translateY(0) scale(.97);box-shadow:0 2px 6px rgba(15,33,55,.15)}' +
+    '#adm-demo-section .dm-btn:focus-visible{outline:2px solid var(--brand-gold,#b8903a);outline-offset:2px}' +
+    '#adm-demo-section .dm-btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}' +
+    '#adm-demo-section .dm-primary{color:#fff;border-color:transparent;background:linear-gradient(135deg,var(--accent,#2f6fd1),var(--accent-hover,#1e4fa0));box-shadow:0 8px 20px color-mix(in srgb,var(--accent,#2f6fd1) 42%,transparent)}' +
+    '#adm-demo-section .dm-primary:hover:not(:disabled){color:#fff;border-color:transparent;background:linear-gradient(135deg,var(--accent,#2f6fd1),var(--accent-hover,#1e4fa0));filter:brightness(1.08);box-shadow:0 12px 28px color-mix(in srgb,var(--accent,#2f6fd1) 50%,transparent)}' +
+    '#adm-demo-section .dm-primary::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.38),transparent);transform:skewX(-18deg);animation:dm-shine 3.6s ease-in-out infinite}' +
+    '#adm-demo-section .dm-primary:disabled::after{animation:none;opacity:0}' +
+    '#adm-demo-section .dm-danger{color:#dc2626;border-color:rgba(220,38,38,.35)}' +
+    '#adm-demo-section .dm-danger:hover:not(:disabled){color:#fff;border-color:transparent;background:linear-gradient(135deg,#dc2626,#a31616);box-shadow:0 10px 24px rgba(220,38,38,.38)}' +
+    '#adm-demo-section .dm-sm{height:34px;padding:0 13px;font-size:12px;border-radius:10px}' +
+    '#adm-demo-section .dm-sm svg{width:15px;height:15px}' +
+    '#adm-demo-section .adm-item{transition:transform .15s ease,box-shadow .2s ease,border-color .2s ease}' +
+    '#adm-demo-section .adm-item:hover{transform:translateY(-1px);border-color:var(--accent,#2f6fd1);box-shadow:0 6px 18px rgba(15,33,55,.1)}' +
+    '@keyframes dm-shine{0%,55%{left:-60%}100%{left:130%}}' +
+    '@media (prefers-reduced-motion:reduce){#adm-demo-section .dm-btn,#adm-demo-section .dm-btn svg,#adm-demo-section .adm-item{transition:none}#adm-demo-section .dm-primary::after{animation:none;display:none}}';
+  document.head.appendChild(st);
+  var ICO_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+
   var parts = [];          /* [{id,name,docNo,lineId,lineName,deptId,deptName}] */
   var busy = false;
 
@@ -157,7 +186,7 @@
     var skipSun = $('adm-demo-skipsun').checked;
     if (!(days >= 1)) { toast('ใส่จำนวนวันย้อนหลัง (1–90)', 'ng'); return; }
 
-    var btn = $('btn-adm-demo-gen'), orig = btn.textContent;
+    var btn = $('btn-adm-demo-gen'), orig = btn.innerHTML;
     busy = true; btn.disabled = true; btn.textContent = '🔄 กำลังสร้าง...';
     try {
       var cpRes = await sb.from('checkpoints').select('*').eq('jig_id', partId);
@@ -231,7 +260,7 @@
       console.error('demo generate exception:', e);
       toast('สร้างข้อมูลจำลองไม่สำเร็จ', 'ng');
     } finally {
-      busy = false; btn.disabled = false; btn.textContent = orig;
+      busy = false; btn.disabled = false; btn.innerHTML = orig;
     }
   }
 
@@ -265,7 +294,7 @@
         return '<div class="adm-item" data-batch="' + esc(g.batch) + '">' +
           '<div class="adm-item-main"><div class="adm-item-info"><div>🧪 ' + esc(g.part || '') + ' · ' + g.ids.length + ' ชุด</div>' +
           '<div style="font-size:11px;color:var(--text-muted)">' + esc(g.from) + ' ถึง ' + esc(g.to) + ' • รหัสชุด ' + esc(g.batch) + '</div></div></div>' +
-          '<button type="button" class="btn-sec btn-demo-delbatch" title="ลบเฉพาะชุดที่สร้างครั้งนี้">🗑 ลบชุดนี้</button></div>';
+          '<button type="button" class="dm-btn dm-danger dm-sm btn-demo-delbatch" title="ลบเฉพาะชุดที่สร้างครั้งนี้">' + ICO_TRASH + '<span>ลบชุดนี้</span></button></div>';
       }).join('');
   }
 
