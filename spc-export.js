@@ -533,17 +533,15 @@
   /* ชื่อผู้ลงนามของชุดข้อมูลที่ใช้ทำกราฟ:
      REPORTED = ผู้ตรวจ (history.inspector) · CHECKED = Leader (approved_by) · APPROVED = Supervisor (manager_approved_by)
      ช่อง CHECKED/APPROVED จะกรอกชื่อก็ต่อเมื่อ "ทุกชุด" ที่ใช้ทำกราฟอนุมัติครบแล้ว — ถ้ายังค้างอยู่ เว้นว่างไว้ให้เซ็นมือ */
-  function packNames(list) {
-    var cnt = {}, order = [], latest = null;
+  function packNames(list) {   /* เลือกคนเดียว: ชื่อของรายการ "ล่าสุด" (เวลามากสุด) + วันที่ของรายการนั้น */
+    var best = null;
     list.forEach(function (o) {
       var n = String(o.n || '').trim(); if (!n) return;
-      if (!(n in cnt)) { cnt[n] = 0; order.push(n); }
-      cnt[n]++;
-      var t = o.t instanceof Date ? o.t : new Date(o.t);
-      if (!isNaN(t) && (!latest || t > latest)) latest = t;
+      var t = o.t instanceof Date ? o.t : (o.t ? new Date(o.t) : null);
+      if (t && isNaN(t)) t = null;
+      if (!best || (t && (!best.t || t >= best.t))) best = { n: n, t: t };
     });
-    order.sort(function (a, b) { return cnt[b] - cnt[a]; });
-    return order.length ? { names: order, date: latest } : null;
+    return best ? { names: [best.n], date: best.t } : null;
   }
   async function getSignoff(c) {
     var out = { rep: null, chk: null, app: null };
