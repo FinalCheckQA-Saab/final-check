@@ -580,6 +580,7 @@
       c.sketch = await getSketch(c.part.id, c.it.id);
       c.method = await getMethod(c.part.id, c.it.id);
       c.sign = await getSignoff(c);
+      console.info('[spc-export v3] sign-off:', c.sign);
       var doc = buildDoc(c);
       fr = await makeFrame(doc.html);
       var libsOk = true;
