@@ -69,6 +69,31 @@
     '#adm-inspedit-section .ie-bar{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}' +
     '#adm-inspedit-section .ie-log{margin-top:8px;font-size:12px;line-height:1.6}' +
     '#adm-inspedit-section .ie-log-i{padding:8px 10px;border-radius:10px;border:1px solid var(--border-card);margin-top:6px}' +
+
+    '.ie-dlg-back{position:fixed;inset:0;z-index:1600;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(8,18,34,.55);backdrop-filter:blur(4px);opacity:0;transition:opacity .18s ease}' +
+    '.ie-dlg-back.show{opacity:1}' +
+    '.ie-dlg{width:min(440px,100%);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;border-radius:20px;background:var(--bg-card-solid,#fff);color:var(--text-main,#1d2433);border:1px solid var(--border-card,#dbe2ec);box-shadow:0 24px 70px rgba(8,18,34,.45);font-family:var(--font-thai,"Noto Sans Thai",sans-serif);transform:translateY(14px) scale(.96);transition:transform .22s cubic-bezier(.2,.9,.3,1.2)}' +
+    '.ie-dlg-back.show .ie-dlg{transform:none}' +
+    '.ie-dlg-top{display:flex;gap:12px;align-items:center;padding:18px 20px 14px;background:linear-gradient(135deg,var(--brand-navy-900,#0f2137),var(--brand-navy-700,#1e3a5f));border-bottom:2px solid var(--brand-gold,#b8903a);color:#fff}' +
+    '.ie-dlg-ico{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:14px;font-size:22px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);animation:ie-pop .5s cubic-bezier(.2,1.4,.4,1)}' +
+    '.ie-dlg-top h3{margin:0;font-size:16.5px;font-weight:700;color:#fff}' +
+    '.ie-dlg-top p{margin:2px 0 0;font-size:12px;color:rgba(255,255,255,.75)}' +
+    '.ie-dlg-body{padding:14px 20px 4px;overflow:auto;font-size:13px;line-height:1.6}' +
+    '.ie-dlg-chg{display:grid;gap:6px;margin:0 0 10px}' +
+    '.ie-dlg-c{padding:8px 11px;border-radius:12px;background:var(--bg-input,#f1f4f9);border:1px solid var(--border-card,#dbe2ec);font-size:12.5px}' +
+    '.ie-dlg-c small{display:block;color:var(--text-muted);font-size:11px}' +
+    '.ie-dlg-c .a{color:#b91c1c;text-decoration:line-through;opacity:.8}' +
+    '.ie-dlg-c .b{color:#15803d;font-weight:700}' +
+    '.ie-dlg-lock{display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border-radius:12px;font-size:12px;background:var(--accent-dim,rgba(47,111,209,.1));color:var(--text-heading);margin-bottom:8px}' +
+    '.ie-dlg-why{font-size:12px;color:var(--text-muted);margin-bottom:6px}' +
+    '.ie-dlg-act{display:flex;gap:10px;justify-content:flex-end;padding:12px 20px 18px}' +
+    '.ie-dlg-act button{cursor:pointer;font:inherit;font-size:13.5px;font-weight:700;padding:10px 20px;border-radius:12px;border:1px solid var(--border-input,#cfd8e3);background:var(--bg-input,#f1f4f9);color:var(--text-main);transition:transform .12s ease,box-shadow .15s ease,filter .15s ease}' +
+    '.ie-dlg-act button:hover{transform:translateY(-1px)}' +
+    '.ie-dlg-act .ok{color:#fff;border-color:transparent;background:linear-gradient(135deg,#2f6fd1,#1e4fa0);box-shadow:0 6px 16px rgba(47,111,209,.4)}' +
+    '.ie-dlg-act .ok:hover{filter:brightness(1.08)}' +
+    '.ie-dlg-act button:focus-visible{outline:2px solid var(--brand-gold,#b8903a);outline-offset:2px}' +
+    '@keyframes ie-pop{0%{transform:scale(.4) rotate(-12deg);opacity:0}100%{transform:none;opacity:1}}' +
+    '@media (prefers-reduced-motion:reduce){.ie-dlg,.ie-dlg-back,.ie-dlg-ico{transition:none;animation:none}}' +
     '#adm-inspedit-section .ie-log-i code{font-size:11.5px}';
   document.head.appendChild(st);
 
@@ -191,6 +216,41 @@
     return filled.some(function (p) { return p.status === 'fixed'; }) ? 'fixed' : 'ok';
   }
 
+
+  /* ── กล่องยืนยันแบบสวย (แทน window.confirm) — แสดงสรุปค่าเดิม→ค่าใหม่ + เหตุผล ── */
+  function ieConfirm(changes, reason) {
+    return new Promise(function (resolve) {
+      var ov = document.createElement('div');
+      ov.className = 'ie-dlg-back';
+      var list = changes.slice(0, 8).map(function (ch) {
+        var lab = ch.field === 'value' ? 'ค่าที่วัด' : ch.field === 'status' ? 'ผลตรวจ' : 'หมายเหตุ';
+        return '<div class="ie-dlg-c"><small>' + esc(ch.item) + (ch.piece ? ' · ชิ้น ' + esc(ch.piece) : '') + ' · ' + lab + '</small>' +
+          '<span class="a">' + esc(fmtVal(ch.field, ch.from)) + '</span> → <span class="b">' + esc(fmtVal(ch.field, ch.to)) + '</span></div>';
+      }).join('') + (changes.length > 8 ? '<div class="ie-sub">…และอีก ' + (changes.length - 8) + ' รายการ</div>' : '');
+      ov.innerHTML =
+        '<div class="ie-dlg" role="alertdialog" aria-modal="true" aria-labelledby="ie-dlg-t">' +
+          '<div class="ie-dlg-top"><span class="ie-dlg-ico" aria-hidden="true">✏️</span><div><h3 id="ie-dlg-t">ยืนยันการแก้ไขผลตรวจ</h3><p>' + changes.length + ' รายการที่จะเปลี่ยน</p></div></div>' +
+          '<div class="ie-dlg-body"><div class="ie-dlg-chg">' + list + '</div>' +
+            '<div class="ie-dlg-why">📝 เหตุผล: ' + esc(reason) + '</div>' +
+            '<div class="ie-dlg-lock"><span aria-hidden="true">🔒</span><span>สถานะอนุมัติ Leader / Supervisor จะคงเดิม และระบบบันทึกประวัติ (ชื่อผู้แก้ + เวลา + เหตุผล) ให้อัตโนมัติ</span></div></div>' +
+          '<div class="ie-dlg-act"><button type="button" class="no">ยกเลิก</button><button type="button" class="ok">✔ ยืนยันบันทึก</button></div>' +
+        '</div>';
+      document.body.appendChild(ov);
+      requestAnimationFrame(function () { ov.classList.add('show'); });
+      var okB = ov.querySelector('.ok');
+      function done(v) { document.removeEventListener('keydown', onKey, true); ov.classList.remove('show'); setTimeout(function () { ov.remove(); }, 180); resolve(v); }
+      function onKey(e) {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); }
+        else if (e.key === 'Tab') { var b = ov.querySelectorAll('button'); if (e.shiftKey && document.activeElement === b[0]) { e.preventDefault(); b[b.length - 1].focus(); } else if (!e.shiftKey && document.activeElement === b[b.length - 1]) { e.preventDefault(); b[0].focus(); } }
+      }
+      document.addEventListener('keydown', onKey, true);
+      ov.addEventListener('mousedown', function (e) { if (e.target === ov) done(false); });
+      ov.querySelector('.no').addEventListener('click', function () { done(false); });
+      okB.addEventListener('click', function () { done(true); });
+      setTimeout(function () { okB.focus(); }, 40);
+    });
+  }
+
   /* ── บันทึก ── */
   async function save(btn) {
     var reason = edEl.querySelector('.ie-reason').value.trim();
@@ -235,7 +295,7 @@
     if (!changes.length) { toast('ยังไม่มีการเปลี่ยนแปลง', 'ng'); return; }
 
     var summary = changes.length + ' รายการ';
-    if (!window.confirm('ยืนยันบันทึกการแก้ไข ' + summary + '?\nสถานะอนุมัติเดิมจะคงไว้ และระบบจะบันทึกประวัติ (ชื่อผู้แก้ + เหตุผล)')) return;
+    if (!(await ieConfirm(changes, reason))) return;
     var c = creds();
     if (!c) return;
     var orig = btn.textContent; btn.disabled = true; btn.textContent = '🔄 กำลังบันทึก...';
