@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────
-   Admin Accounts — เพิ่ม / ดู / ลบ บัญชีที่ล็อกอินเข้า Admin Panel (ตาราง admin_users)
+   Admin Accounts — เพิ่ม / ดู / แก้ไข / ลบ บัญชีที่ล็อกอินเข้า Admin Panel (ตาราง admin_users)
    • ใช้ได้เฉพาะ "ผู้ดูแลระบบ" — DB ตรวจซ้ำด้วย verify_system_admin ทุกครั้ง (ชื่อ + รหัสผ่านผู้ดูแลระบบ)
    • ไฟล์นี้แยกเดี่ยว ไม่แก้ app.js — ใช้ Supabase client ผ่าน window.fcManualBridge (เรียกตอนใช้งานจริง ไม่ใช่ตอนโหลดไฟล์)
    • ต้องรัน admin_accounts_manage.sql ใน Supabase ก่อน
@@ -25,12 +25,14 @@
     invalid_username: 'Username ใช้ a-z 0-9 . _ - ได้เท่านั้น (3–50 ตัว)',
     weak_password: 'รหัสผ่านต้องยาว 6 ตัวขึ้นไป',
     duplicate_username: 'Username นี้มีอยู่แล้ว',
-    last_admin: 'ลบไม่ได้ — ต้องเหลือบัญชี Admin อย่างน้อย 1 คน'
+    last_admin: 'ลบไม่ได้ — ต้องเหลือบัญชี Admin อย่างน้อย 1 คน',
+    not_found: 'ไม่พบบัญชีนี้ (อาจถูกลบไปแล้ว)',
+    nothing_to_change: 'ยังไม่มีการเปลี่ยนแปลง'
   };
   function errText(error, fallback) {
     var m = (error && error.message) || '';
     for (var k in MSG) { if (m.indexOf(k) >= 0) return MSG[k]; }
-    if (/function .*does not exist|Could not find the function/i.test(m)) return 'ยังไม่ได้รัน admin_accounts_manage.sql ใน Supabase';
+    if (/function .*does not exist|Could not find the function/i.test(m)) return 'ยังไม่ได้รัน admin_accounts_manage.sql / admin_accounts_update.sql ใน Supabase';
     return fallback;
   }
 
@@ -45,6 +47,7 @@
     return { sb: sb, u: u, p: p };
   }
 
+  var ICO_EDIT = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
   var ICO_TRASH = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
 
   function listBox() { return $('adm-admins-list'); }
@@ -65,7 +68,8 @@
     box.innerHTML = rows.map(function (r) {
       return '<div class="adm-item" data-username="' + esc(r.username) + '">' +
         '<div class="adm-item-main"><div class="adm-item-info"><div>@' + esc(r.username) + '</div></div></div>' +
-        '<div><button type="button" class="adm-item-del btn-admins-del" title="ลบบัญชีนี้">' + ICO_TRASH + '</button></div>' +
+        '<div style="display:flex;gap:4px"><button type="button" class="adm-item-edit btn-admins-edit" title="แก้ไขบัญชีนี้ (Username / รหัสผ่าน)">' + ICO_EDIT + '</button>' +
+        '<button type="button" class="adm-item-del btn-admins-del" title="ลบบัญชีนี้">' + ICO_TRASH + '</button></div>' +
         '</div>';
     }).join('');
   }
@@ -107,6 +111,61 @@
     }
   });
 
+  /* ── แก้ไข Admin (เปลี่ยน Username / รีเซ็ตรหัสผ่าน) ── */
+  listBox().addEventListener('click', async function (e) {
+    var b = e.target.closest('.btn-admins-edit');
+    if (!b) return;
+    var row = b.closest('.adm-item');
+    var name = row && row.dataset.username;
+    if (!name) return;
+    var c = creds();
+    if (!c) return;
+    var fv = await FCDialog.form({
+      title: 'แก้ไขบัญชี Admin',
+      message: 'บัญชี: @' + name,
+      fields: [
+        { name: 'u', label: 'Username', value: name, hint: '(a-z 0-9 . _ - ความยาว 3–50 ตัว)' },
+        { name: 'p', label: 'รหัสผ่านใหม่', hint: '(เว้นว่าง = ไม่เปลี่ยน, 6 ตัวขึ้นไป)', password: true }
+      ],
+      okLabel: 'บันทึก',
+      validate: function (v) {
+        var u = v.u.trim().toLowerCase();
+        if (!/^[a-z0-9._-]{3,50}$/.test(u)) return MSG.invalid_username;
+        if (v.p && v.p.length < 6) return MSG.weak_password;
+        if (u === name && !v.p) return MSG.nothing_to_change;
+        return '';
+      }
+    });
+    if (fv === null) return;
+    var newU = fv.u.trim().toLowerCase();
+    b.disabled = true;
+    try {
+      var res = await c.sb.rpc('admin_users_update', {
+        p_sys_username: c.u, p_sys_password: c.p, p_username: name,
+        p_new_username: newU === name ? null : newU, p_new_password: fv.p ? fv.p : null
+      });
+      if (res.error) {
+        console.error('admin_users_update error:', res.error);
+        toast(errText(res.error, 'แก้ไข Admin ไม่สำเร็จ'), 'ng');
+        return;
+      }
+      /* ถ้าแก้บัญชีที่ล็อกอินอยู่ตอนนี้: อัปเดตชื่อที่แสดง / ล้างรหัสที่จำไว้ (เปลี่ยนรหัสแล้วรหัสเก่าใช้ไม่ได้) */
+      var me = ''; try { me = (localStorage.getItem('fc_admin_user') || '').trim().toLowerCase(); } catch (er) {}
+      if (me && me === name) {
+        try { localStorage.setItem('fc_admin_user', res.data || newU); } catch (er) {}
+        if (fv.p) { var br = bridge(); if (br && br.clearAdminPass) br.clearAdminPass(); }
+      }
+      toast('แก้ไข Admin "' + name + '" แล้ว' + (me && me === name && fv.p ? ' — ครั้งต่อไประบบจะขอรหัสผ่านใหม่' : ''), 'ok');
+      await loadList(c);
+      $('adm-admins-syspass').value = '';
+    } catch (err) {
+      console.error('admin_users_update exception:', err);
+      toast('แก้ไข Admin ไม่สำเร็จ', 'ng');
+    } finally {
+      b.disabled = false;
+    }
+  });
+
   /* ── ลบ Admin ── */
   listBox().addEventListener('click', async function (e) {
     var b = e.target.closest('.btn-admins-del');
@@ -116,7 +175,7 @@
     if (!name) return;
     var c = creds();
     if (!c) return;
-    if (!window.confirm('ลบบัญชี Admin "' + name + '" ?\nผู้ใช้นี้จะเข้า Admin Panel ไม่ได้อีก')) return;
+    if (!(await FCDialog.confirm('ลบบัญชี Admin "' + name + '" ?\nผู้ใช้นี้จะเข้า Admin Panel ไม่ได้อีก', { title: 'ลบบัญชี Admin', okLabel: 'ลบบัญชี', danger: true }))) return;
     b.disabled = true;
     try {
       var res = await c.sb.rpc('admin_users_delete', { p_sys_username: c.u, p_sys_password: c.p, p_username: name });
