@@ -1040,17 +1040,17 @@ html .adm-sys-act .adm-sys-ok:disabled::after{content:'';width:16px;height:16px;
         สร้างผลตรวจ S/M/E จำลองย้อนหลัง เพื่อดูกราฟ SPC แบบเต็ม — ทุกรายการติดป้าย <b>🧪 DEMO</b> (รหัส DEMO-… / ผู้ตรวจ "🧪 DEMO") และลบทิ้งได้โดยไม่กระทบข้อมูลจริง • สร้างเฉพาะถึงเมื่อวาน ไม่แตะข้อมูลของวันนี้
       </div>
       <div class="admin-input-row">
-        <select id="adm-demo-part" class="adm-sel" aria-label="เลือก Part"><option value="">— เลือก Part —</option></select>
+        <label style="display:grid;gap:3px;flex:1;min-width:140px;font-size:11px;font-weight:600;color:var(--text-muted)">Part ที่จะสร้างข้อมูล<select id="adm-demo-part" class="adm-sel" aria-label="เลือก Part"><option value="">— เลือก Part —</option></select></label>
         <button class="btn-sec" id="btn-adm-demo-load" type="button">โหลดรายการ Part</button>
       </div>
       <div class="admin-input-row">
-        <input type="number" id="adm-demo-days" value="30" min="1" max="90" inputmode="numeric" aria-label="จำนวนวันย้อนหลัง" placeholder="จำนวนวันย้อนหลัง">
-        <select id="adm-demo-shifts" class="adm-sel" aria-label="จำนวนกะต่อวัน"><option value="1">1 กะ / วัน (กะ 1)</option><option value="2">2 กะ / วัน (กะ 1 + กะ 2)</option></select>
-        <select id="adm-demo-scn" class="adm-sel" aria-label="ลักษณะข้อมูล">
+        <label style="display:grid;gap:3px;flex:1;min-width:140px;font-size:11px;font-weight:600;color:var(--text-muted)">วันย้อนหลัง (นับถึงเมื่อวาน, 1–90)<input type="number" id="adm-demo-days" value="30" min="1" max="90" inputmode="numeric" aria-label="จำนวนวันย้อนหลัง" placeholder="จำนวนวันย้อนหลัง"></label>
+        <label style="display:grid;gap:3px;flex:1;min-width:140px;font-size:11px;font-weight:600;color:var(--text-muted)">จำนวนกะต่อวัน<select id="adm-demo-shifts" class="adm-sel" aria-label="จำนวนกะต่อวัน"><option value="1">1 กะ / วัน (กะ 1)</option><option value="2">2 กะ / วัน (กะ 1 + กะ 2)</option></select></label>
+        <label style="display:grid;gap:3px;flex:1;min-width:140px;font-size:11px;font-weight:600;color:var(--text-muted)">ลักษณะข้อมูล<select id="adm-demo-scn" class="adm-sel" aria-label="ลักษณะข้อมูล">
           <option value="normal">ปกติ (มีค่าเด้งบ้าง)</option>
           <option value="good">นิ่งมาก (ในเกณฑ์ตลอด)</option>
           <option value="bad">มีแนวโน้มเลื่อน + หลุดเกณฑ์</option>
-        </select>
+        </select></label>
       </div>
       <label style="display:flex; align-items:center; gap:6px; font-size:12px; margin:4px 0 8px;"><input type="checkbox" id="adm-demo-skipsun" checked> ข้ามวันอาทิตย์</label>
       <div class="admin-input-row">
