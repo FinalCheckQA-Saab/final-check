@@ -425,7 +425,7 @@
   }
 
   function fileName(c) {
-    var s = ['SPC', c.part.no || '', c.it.no ? 'pt' + c.it.no : c.it.label, c.month || ''].join('_');
+    var s = ['SPC', c.part.no || '', c.it.no ? 'pt' + c.it.no : c.it.label, c.rangeFrom ? c.rangeFrom + '_to_' + c.rangeTo : (c.month || '')].join('_');
     return s.replace(/[\\/:*?"<>|\s]+/g, '_').replace(/_+/g, '_') + '.pdf';
   }
 
@@ -571,10 +571,13 @@
     try {
       var recs = c.sg.map(function (g) { return g.r; });
       out.rep = packNames(recs.map(function (r) { return { n: r.inspector, t: r.insp_date ? r.insp_date + 'T00:00:00' : r.ts }; }));
-      if (typeof sb === 'undefined' || !c.month) return out;
-      var q = await sb.from('history')
+      if (typeof sb === 'undefined' || (!c.month && !c.rangeFrom)) return out;
+      var qb = sb.from('history')
         .select('id,approval_status,approved_by,approved_at,manager_approval_status,manager_approved_by,manager_approved_at')
-        .eq('jig_id', c.part.id).gte('insp_date', c.month + '-01').lt('insp_date', nextMonth(c.month) + '-01').limit(1000);
+        .eq('jig_id', c.part.id);
+      qb = c.rangeFrom ? qb.gte('insp_date', c.rangeFrom).lte('insp_date', c.rangeTo)   /* 🆕 ช่วงวันที่ที่เลือกเอง */
+                       : qb.gte('insp_date', c.month + '-01').lt('insp_date', nextMonth(c.month) + '-01');
+      var q = await qb.limit(1000);
       if (q.error) { console.warn('spc-export signoff:', q.error.message); return out; }
       var byId = {}; (q.data || []).forEach(function (r) { byId[r.id] = r; });
       var rows = recs.map(function (r) { return byId[r.id]; });
@@ -587,11 +590,55 @@
     return out;
   }
 
+  /* ───────── 🆕 เลือกช่วงวันที่ที่จะ Export (ค่าเริ่มต้น = ทั้งเดือนที่เลือกอยู่ → ผลเหมือนเดิมทุกอย่าง) ───────── */
+  function monthBounds(m) {
+    var y = +m.slice(0, 4), mo = +m.slice(5, 7), last = new Date(y, mo, 0).getDate();
+    return { from: m + '-01', to: m + '-' + String(last).padStart(2, '0') };
+  }
+  function ymdNum(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s || '') ? s : ''; }
+  /* คืน null = ยกเลิก • คืน c เดิม (ทั้งเดือน) หรือ c ใหม่ที่คำนวณจากช่วงที่เลือก */
+  async function pickRange(c) {
+    var mb = c.month ? monthBounds(c.month) : null;
+    if (!mb) return c;
+    var fv = await FCDialog.form({
+      title: 'เลือกช่วงวันที่ที่จะ Export',
+      icon: '📅',
+      message: 'Part: ' + (c.part.name || c.part.no || '') + '\nข้อมูลที่หน้าจอแสดงอยู่: เดือน ' + c.month +
+        '\nเลือกวัน/เดือน/ปี เริ่มต้น–สิ้นสุด ได้ (ข้ามเดือนได้) — กราฟและค่า UCL/LCL/Cpk ใน PDF จะคิดจากช่วงที่เลือก',
+      fields: [
+        { name: 'from', label: 'ตั้งแต่วันที่', type: 'date', value: mb.from },
+        { name: 'to', label: 'ถึงวันที่', type: 'date', value: mb.to }
+      ],
+      okLabel: 'สร้าง PDF',
+      validate: function (v) {
+        if (!ymdNum(v.from) || !ymdNum(v.to)) return 'กรุณาเลือกวันที่ให้ครบทั้ง 2 ช่อง';
+        if (v.from > v.to) return 'วันที่เริ่มต้นต้องไม่เกินวันที่สิ้นสุด';
+        if ((new Date(v.to) - new Date(v.from)) / 86400000 > 366) return 'เลือกช่วงได้ไม่เกิน 1 ปี';
+        return '';
+      }
+    });
+    if (fv === null) return null;
+    if (fv.from === mb.from && fv.to === mb.to) return c;            /* ทั้งเดือน = เหมือนเดิม ไม่ต้อง query ใหม่ */
+    if (typeof sb === 'undefined' || typeof buildSubgroups !== 'function' || typeof analyse !== 'function') {
+      await FCDialog.alert('เลือกช่วงวันที่เองไม่ได้ในหน้านี้ — จะ Export ทั้งเดือนแทน'); return c;
+    }
+    var q = await sb.from('history').select('id,ts,insp_date,shift,production_order,inspector,items')
+      .eq('jig_id', c.part.id).gte('insp_date', fv.from).lte('insp_date', fv.to).order('ts', { ascending: true }).limit(1000);
+    if (q.error) { await FCDialog.alert('โหลดข้อมูลช่วงที่เลือกไม่สำเร็จ: ' + q.error.message); return null; }
+    var r = buildSubgroups(byId('f-item').value, q.data || []);
+    if (!r.sg.length) { await FCDialog.alert('ไม่มีข้อมูลของหัวข้อนี้ในช่วง ' + fv.from + ' ถึง ' + fv.to + ' — ลองขยายช่วงวันที่'); return null; }
+    var c2 = {}; for (var k in c) c2[k] = c[k];
+    c2.sg = r.sg; c2.n = r.n; c2.a = analyse(c.it, r.sg, r.n); c2.rangeFrom = fv.from; c2.rangeTo = fv.to;
+    return c2;
+  }
+
   var busy = false;
   async function exportPDF() {
     if (busy) return;
     var c = getCtx();
     if (!c) { await FCDialog.alert('ยังไม่มีกราฟให้ Export — เลือก Part Number / เดือน / หัวข้อตรวจ ที่มีข้อมูลก่อนนะคะ'); return; }
+    try { c = await pickRange(c); } catch (e) { console.error('spc-export pickRange:', e); c = null; }   /* 🆕 เลือกวัน/เดือน/ปี */
+    if (!c) return;
     var btn = byId('btn-pdf'), lab = btn && btn.querySelector('span:last-child'), orig = lab ? lab.textContent : '';
     busy = true; if (btn) { btn.disabled = true; btn.classList.add('pdf-busy'); }
     var setLab = function (t) { if (lab) lab.textContent = t; };
