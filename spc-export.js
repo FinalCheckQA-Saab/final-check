@@ -116,6 +116,15 @@
   function shortDate(t) { return t.getDate() + '/' + (t.getMonth() + 1); }
   function longDate(t) { return t.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }); }
 
+  /* ───────── RESULT APPROVED: ชื่อ + วันที่ ───────── */
+  function fmtSignDate(d) { return d ? d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''; }
+  function signTd(x) {
+    if (!x || !x.names.length) return '<td class="sgc"></td>';
+    var n = x.names.length <= 2 ? x.names.map(esc).join('<br>') : esc(x.names[0]) + ' +' + (x.names.length - 1);
+    return '<td class="sgc"><div class="nm">' + n + '</div></td>';
+  }
+  function signDate(x) { return '<td>' + (x && x.date ? fmtSignDate(x.date) : '……/…../…..') + '</td>'; }
+
   function pageHTML(c, pi, pages) {
     var it = c.it, a = c.a, n = c.n, p = c.part, sgAll = c.sg;
     var sg = sgAll.slice(pi * PER_PAGE, (pi + 1) * PER_PAGE);
@@ -280,7 +289,8 @@
 
     /* อนุมัติ */
     h += '<div class="appr box"><div class="ra">RESULT APPROVED</div><table class="at"><tr><th>APPROVED</th><th>CHECKED</th><th>REPORTED</th></tr>' +
-      '<tr class="sg"><td></td><td></td><td></td></tr><tr class="dd"><td>……/…../…..</td><td>……/…../…..</td><td>……/…../…..</td></tr></table></div>';
+      '<tr class="sg">' + signTd(c.sign && c.sign.app) + signTd(c.sign && c.sign.chk) + signTd(c.sign && c.sign.rep) + '</tr>' +
+      '<tr class="dd">' + signDate(c.sign && c.sign.app) + signDate(c.sign && c.sign.chk) + signDate(c.sign && c.sign.rep) + '</tr></table></div>';
 
     h += '</div></div>';
     return h;
@@ -345,7 +355,7 @@
     '.lt{width:100%;table-layout:fixed;flex:1}.lt th{font-size:10.5px;background:#e6e6e6;border:1px solid #000;padding:2px}.lt td{border:1px solid #000;height:22px;padding:0 6px;font-size:9.5px}.lt td.l{color:#b00000;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.note2{border-top:1px solid #000;padding:3px 10px;font-size:11px}.note2 span{color:#b00000;font-weight:700;margin-left:10px}',
     '.appr{grid-column:2;grid-row:5}.ra{text-align:center;font-weight:700;font-size:12px;padding:5px 0}.at{width:100%;height:calc(100% - 28px)}',
-    '.at th{border:1px solid #000;font-size:11px;padding:3px;background:#f4f4f4}.at td{border:1px solid #000;text-align:center;font-size:11px}.at tr.sg td{height:80px}'
+    '.at th{border:1px solid #000;font-size:11px;padding:3px;background:#f4f4f4}.at td{border:1px solid #000;text-align:center;font-size:11px}.at tr.sg td{height:80px}.at td.sgc{vertical-align:bottom;padding:2px 3px 4px}.at .nm{font-size:10px;font-weight:700;line-height:1.25;word-break:break-word}'
   ].join('\n');
 
   function buildDoc(c) {
@@ -520,6 +530,42 @@
     return d ? buildSketchSVG(d, hiId) : '';
   }
 
+  /* ชื่อผู้ลงนามของชุดข้อมูลที่ใช้ทำกราฟ:
+     REPORTED = ผู้ตรวจ (history.inspector) · CHECKED = Leader (approved_by) · APPROVED = Supervisor (manager_approved_by)
+     ช่อง CHECKED/APPROVED จะกรอกชื่อก็ต่อเมื่อ "ทุกชุด" ที่ใช้ทำกราฟอนุมัติครบแล้ว — ถ้ายังค้างอยู่ เว้นว่างไว้ให้เซ็นมือ */
+  function packNames(list) {
+    var cnt = {}, order = [], latest = null;
+    list.forEach(function (o) {
+      var n = String(o.n || '').trim(); if (!n) return;
+      if (!(n in cnt)) { cnt[n] = 0; order.push(n); }
+      cnt[n]++;
+      var t = o.t instanceof Date ? o.t : new Date(o.t);
+      if (!isNaN(t) && (!latest || t > latest)) latest = t;
+    });
+    order.sort(function (a, b) { return cnt[b] - cnt[a]; });
+    return order.length ? { names: order, date: latest } : null;
+  }
+  async function getSignoff(c) {
+    var out = { rep: null, chk: null, app: null };
+    try {
+      var recs = c.sg.map(function (g) { return g.r; });
+      out.rep = packNames(recs.map(function (r) { return { n: r.inspector, t: r.insp_date ? r.insp_date + 'T00:00:00' : r.ts }; }));
+      if (typeof sb === 'undefined' || !c.month) return out;
+      var q = await sb.from('history')
+        .select('id,approval_status,approved_by,approved_at,manager_approval_status,manager_approved_by,manager_approved_at')
+        .eq('jig_id', c.part.id).gte('insp_date', c.month + '-01').lt('insp_date', nextMonth(c.month) + '-01').limit(1000);
+      if (q.error) { console.warn('spc-export signoff:', q.error.message); return out; }
+      var byId = {}; (q.data || []).forEach(function (r) { byId[r.id] = r; });
+      var rows = recs.map(function (r) { return byId[r.id]; });
+      if (rows.some(function (r) { return !r; })) return out;
+      if (rows.every(function (r) { return r.approval_status === 'approved'; }))
+        out.chk = packNames(rows.map(function (r) { return { n: r.approved_by, t: r.approved_at }; }));
+      if (rows.every(function (r) { return r.manager_approval_status === 'approved'; }))
+        out.app = packNames(rows.map(function (r) { return { n: r.manager_approved_by, t: r.manager_approved_at }; }));
+    } catch (e) { console.warn('spc-export signoff:', e); }
+    return out;
+  }
+
   var busy = false;
   async function exportPDF() {
     if (busy) return;
@@ -533,6 +579,7 @@
       setLab('กำลังสร้าง…');
       c.sketch = await getSketch(c.part.id, c.it.id);
       c.method = await getMethod(c.part.id, c.it.id);
+      c.sign = await getSignoff(c);
       var doc = buildDoc(c);
       fr = await makeFrame(doc.html);
       var libsOk = true;
