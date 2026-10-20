@@ -84,7 +84,12 @@
   var SCENARIOS = {
     good:   { sw: 1 / 20, sb: 1 / 120, drift: 0,    spikeP: 0,    spikeMag: 0 },
     normal: { sw: 1 / 16, sb: 1 / 70,  drift: 0,    spikeP: 0.05, spikeMag: 0.22 },
-    bad:    { sw: 1 / 14, sb: 1 / 30,  drift: 0.28, spikeP: 0.10, spikeMag: 0.32 }
+    bad:    { sw: 1 / 14, sb: 1 / 30,  drift: 0.28, spikeP: 0.10, spikeMag: 0.32 },
+    /* ตามผลประเมินท้ายฟอร์ม PDF (QA4-2-026): ตั้งเป้า Cpk ให้ตกในช่วงที่ต้องการ
+       cpk = Cpk เป้าหมาย • off = ค่าเฉลี่ยเยื้องจากกลางเกณฑ์ (สัดส่วนของครึ่งเกณฑ์) • sbR = ความแปรปรวนระหว่างชุด ÷ ภายในชุด */
+    acc:  { band: [1.40, 99],  cpk: 1.80, off: 0.00, sbR: 0.20, drift: 0, spikeP: 0,    spikeMag: 0 },      /* ACCEPTED               Cpk ≥ 1.33  */
+    cond: { band: [1.05, 1.28], cpk: 1.10, off: 0.05, sbR: 0.25, drift: 0, spikeP: 0,    spikeMag: 0 },      /* ACCEPTED WITH CONDITION 1.00–1.33  */
+    need: { band: [-99, 0.90], cpk: 0.65, off: 0.10, sbR: 0.30, drift: 0, spikeP: 0.04, spikeMag: 0.22 }    /* NEED IMPROVED          Cpk < 1.00  */
   };
 
   /* ค่ากลาง + ช่วงของเกณฑ์ (รองรับเกณฑ์ด้านเดียว) */
@@ -96,7 +101,9 @@
     else { c = 0; span = 1; }
     if (!(span > 0)) span = 1;
     var dp = Math.max(decimals(mn), decimals(mx), 1) + 1;
-    return { mn: mn, mx: mx, c: c, span: span, dp: Math.min(dp, 4) };
+    var half = (mn != null && mx != null) ? span / 2 : span * 0.6;          /* ระยะจากค่ากลางถึงขอบเกณฑ์ที่ใกล้สุด */
+    var dir = (mn != null && mx != null) ? (Math.random() < 0.5 ? -1 : 1) : (mx != null ? 1 : -1);   /* ทิศที่ค่าเฉลี่ยเยื้องไป (เข้าหาขอบเกณฑ์) */
+    return { mn: mn, mx: mx, c: c, span: span, half: half, dir: dir, dp: Math.min(dp, 4) };
   }
 
   /* สร้าง items ของ 1 รายงาน (รูปแบบเดียวกับที่ submitReport ใน app.js สร้าง) */
@@ -108,10 +115,16 @@
       var pieces = [];
       if (numeric) {
         var m = specModel(cp);
-        var muG = m.c + m.span * cfg.drift * prog + randn() * m.span * cfg.sb;       /* ค่าเฉลี่ยของชุดนี้ */
+        var swAbs, sbAbs, cen = m.c;
+        if (cfg.cpk) {                                                                  /* โหมดตั้งเป้า Cpk */
+          cen = m.c + m.dir * m.half * cfg.off;
+          swAbs = m.half * (1 - cfg.off) / (3 * cfg.cpk);                               /* Cpk = (ครึ่งเกณฑ์ − เยื้อง) ÷ 3σ */
+          sbAbs = swAbs * cfg.sbR;
+        } else { swAbs = m.span * cfg.sw; sbAbs = m.span * cfg.sb; }
+        var muG = cen + m.span * cfg.drift * prog + randn() * sbAbs;                    /* ค่าเฉลี่ยของชุดนี้ */
         if (Math.random() < cfg.spikeP) muG += (Math.random() < 0.5 ? -1 : 1) * m.span * cfg.spikeMag;
         for (var p = 0; p < 3; p++) {
-          var v = muG + randn() * m.span * cfg.sw;
+          var v = muG + randn() * swAbs;
           v = Number(v.toFixed(m.dp));
           var ok = (m.mn == null || v >= m.mn) && (m.mx == null || v <= m.mx);
           pieces.push({ value: v, status: ok ? 'ok' : 'ng', at: baseTimes[p], by: byName });
@@ -134,6 +147,31 @@
       });
     });
     return items;
+  }
+
+  /* Cpk ของแต่ละหัวข้อตัวเลข จากแถวที่สร้าง (สูตรเดียวกับ spc.html: σ = R̄ ÷ d2, n = 3) — ใช้คัดให้ตรงกับผลประเมินที่เลือก */
+  function cpkInBand(rows, cps, band) {
+    var D2 = 1.693;
+    return cps.every(function (cp) {
+      if (cp.type !== 'numeric') return true;
+      var mn = cp.min == null ? null : +cp.min, mx = cp.max == null ? null : +cp.max;
+      if (mn == null && mx == null) return true;
+      var means = [], rsum = 0, cnt = 0;
+      rows.forEach(function (r) {
+        var it = null;
+        for (var i = 0; i < r.items.length; i++) { if (r.items[i].id === cp.item_id) { it = r.items[i]; break; } }
+        if (!it) return;
+        var v = it.pieces.map(function (p) { return +p.value; });
+        means.push(v.reduce(function (a, b) { return a + b; }, 0) / v.length);
+        rsum += Math.max.apply(null, v) - Math.min.apply(null, v); cnt++;
+      });
+      if (cnt < 2) return true;
+      var xb = means.reduce(function (a, b) { return a + b; }, 0) / means.length, sig = (rsum / cnt) / D2;
+      if (!(sig > 0)) return true;
+      var up = mx != null ? (mx - xb) / (3 * sig) : Infinity, lo = mn != null ? (xb - mn) / (3 * sig) : Infinity;
+      var cpk = Math.min(up, lo);
+      return cpk >= band[0] && cpk <= band[1];
+    });
   }
 
   /* ── โหลดรายการ Part (จาก Supabase) ── */
@@ -214,7 +252,7 @@
       if (!ok) return;
 
       var batch = Date.now().toString(36);
-      var rows = [], n = 0, last = dates.length * shifts - 1;
+      var rows = [], metas = [], n = 0, last = dates.length * shifts - 1;
       dates.forEach(function (d, di) {
         for (var s = 0; s < shifts; s++) {
           var hOff = s === 1 ? 10 : 0;                              /* กะ 2 เริ่มช้ากว่ากะ 1 ประมาณ 10 ชม. */
@@ -225,6 +263,7 @@
           var prog = last > 0 ? n / last : 0;                       /* 0 → 1 ตลอดช่วง (ใช้กับ drift) */
           n++;
           var dateStr = isoDate(d);
+          metas.push({ prog: prog, times: times });
           rows.push({
             id: PREFIX + batch + '-' + pad(n).padStart(3, '0'),
             ts: times[0],
@@ -243,6 +282,14 @@
           });
         }
       });
+
+      /* โหมดตามผลประเมิน (Accepted / With condition / Need Improved): สุ่มใหม่จนทุกหัวข้อตัวเลขมี Cpk ตกในช่วงที่เลือก (ไม่เกิน 60 รอบ) */
+      var band = (SCENARIOS[scn] || {}).band;
+      if (band && rows.length >= 2) {
+        for (var tries = 0; tries < 60 && !cpkInBand(rows, cps, band); tries++) {
+          rows.forEach(function (rw, ri) { rw.items = buildItems(cps, scn, metas[ri].prog, metas[ri].times, DEMO_USER); });
+        }
+      }
 
       var failed = 0;
       for (var k = 0; k < rows.length; k += 30) {

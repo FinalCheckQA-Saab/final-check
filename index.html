@@ -1047,9 +1047,16 @@ html .adm-sys-act .adm-sys-ok:disabled::after{content:'';width:16px;height:16px;
         <label style="display:grid;gap:3px;flex:1;min-width:140px;font-size:11px;font-weight:600;color:var(--text-muted)">วันย้อนหลัง (นับถึงเมื่อวาน, 1–90)<input type="number" id="adm-demo-days" value="30" min="1" max="90" inputmode="numeric" aria-label="จำนวนวันย้อนหลัง" placeholder="จำนวนวันย้อนหลัง"></label>
         <label style="display:grid;gap:3px;flex:1;min-width:140px;font-size:11px;font-weight:600;color:var(--text-muted)">จำนวนกะต่อวัน<select id="adm-demo-shifts" class="adm-sel" aria-label="จำนวนกะต่อวัน"><option value="1">1 กะ / วัน (กะ 1)</option><option value="2">2 กะ / วัน (กะ 1 + กะ 2)</option></select></label>
         <label style="display:grid;gap:3px;flex:1;min-width:140px;font-size:11px;font-weight:600;color:var(--text-muted)">ลักษณะข้อมูล<select id="adm-demo-scn" class="adm-sel" aria-label="ลักษณะข้อมูล">
-          <option value="normal">ปกติ (มีค่าเด้งบ้าง)</option>
-          <option value="good">นิ่งมาก (ในเกณฑ์ตลอด)</option>
-          <option value="bad">มีแนวโน้มเลื่อน + หลุดเกณฑ์</option>
+          <optgroup label="ตามผลประเมินท้ายฟอร์ม PDF (ดูจาก Cpk)">
+            <option value="acc">✔ Accepted — Cpk ≥ 1.33 (นิ่ง ตรงกลางเกณฑ์)</option>
+            <option value="cond">⚠ Accepted with condition — Cpk 1.00–1.33</option>
+            <option value="need">✖ Need Improved — Cpk &lt; 1.00 (กว้าง/เยื้อง มีค่าหลุด)</option>
+          </optgroup>
+          <optgroup label="รูปแบบกราฟอื่น">
+            <option value="normal" selected>ปกติ (มีค่าเด้งบ้าง)</option>
+            <option value="good">นิ่งมาก (ในเกณฑ์ตลอด)</option>
+            <option value="bad">มีแนวโน้มเลื่อน + หลุดเกณฑ์</option>
+          </optgroup>
         </select></label>
       </div>
       <label style="display:flex; align-items:center; gap:6px; font-size:12px; margin:4px 0 8px;"><input type="checkbox" id="adm-demo-skipsun" checked> ข้ามวันอาทิตย์</label>
