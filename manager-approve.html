@@ -13,6 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="fc-dialog.js?v=1"></script>
 <style>
   :root {
     --navy: #1e3a5f;
@@ -722,15 +723,15 @@ a.wc-item:hover{transform:translateX(4px);border-color:var(--accent);box-shadow:
   // เพื่อไม่ต้องพิมพ์ซ้ำทุกครั้งที่กดอนุมัติหลายรายการติดกัน
   let _rememberedPin = null;
   let _rememberedName = null;
-  function askPin(label) {
+  async function askPin(label) {
     if (_rememberedPin) return _rememberedPin;
-    const p = prompt(label);
+    const p = await FCDialog.prompt(label, '', { title: 'ยืนยัน PIN', password: true, placeholder: 'กรอก PIN' });
     if (p) _rememberedPin = p;
     return p;
   }
-  function askName(label) {
+  async function askName(label) {
     if (_rememberedName) return _rememberedName;
-    const p = prompt(label);
+    const p = await FCDialog.prompt(label, '', { title: 'ชื่อผู้ดำเนินการ', placeholder: 'พิมพ์ชื่อ' });
     if (p && p.trim()) _rememberedName = p.trim();
     return p;
   }
@@ -913,12 +914,12 @@ a.wc-item:hover{transform:translateX(4px);border-color:var(--accent);box-shadow:
 
   async function bulkApprove(lineName, ids, btn) {
     if (!ids.length) return;
-    const name = askName(`ยืนยันอนุมัติทั้งหมด ${ids.length} รายการของ Line "${lineName}" (ไม่มี NG ทุกรายการ)\n\nกรุณาพิมพ์ชื่อผู้อนุมัติ (Supervisor):`);
+    const name = await askName(`ยืนยันอนุมัติทั้งหมด ${ids.length} รายการของ Line "${lineName}" (ไม่มี NG ทุกรายการ)\n\nกรุณาพิมพ์ชื่อผู้อนุมัติ (Supervisor):`);
     if (!name || !name.trim()) return;
     const approverName = _rememberedName;
     // <i class="ti ti-check"></i>SECURITY: ต้องกรอก PIN Supervisor ก่อนอนุมัติได้ — เช็คฝั่ง Supabase (RPC) เท่านั้น
     // (จำ PIN ไว้ในหน้านี้ ถ้าเคยกรอกถูกแล้วไม่ต้องพิมพ์ซ้ำ)
-    const pin = askPin('กรุณากรอก PIN Supervisor เพื่อยืนยันการอนุมัติ:');
+    const pin = await askPin('กรุณากรอก PIN Supervisor เพื่อยืนยันการอนุมัติ:');
     if (!pin) return;
 
     btn.disabled = true;
@@ -929,14 +930,14 @@ a.wc-item:hover{transform:translateX(4px);border-color:var(--accent);box-shadow:
     });
 
     if (error) {
-      alert('บันทึกไม่สำเร็จ: ' + error.message);
+      await FCDialog.alert('บันทึกไม่สำเร็จ: ' + error.message);
       btn.disabled = false;
       btn.textContent = 'อนุมัติทั้งหมด';
       return;
     }
     if (count === -1) {
       clearRememberedPin();
-      alert('PIN ไม่ถูกต้อง — บันทึกไม่สำเร็จ กรุณากดใหม่แล้วกรอก PIN อีกครั้ง');
+      await FCDialog.alert('PIN ไม่ถูกต้อง — บันทึกไม่สำเร็จ กรุณากดใหม่แล้วกรอก PIN อีกครั้ง');
       btn.disabled = false;
       btn.textContent = 'อนุมัติทั้งหมด';
       return;

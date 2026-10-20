@@ -958,7 +958,7 @@
     moveCatalogItem(btn.dataset.otype, btn.dataset.id, parseInt(btn.dataset.dir, 10));
   }
 
-  function handleAdminEdit(e) {
+  async function handleAdminEdit(e) {
     const btn = e.target.closest('.adm-item-edit');
     if (!btn) return;
     
@@ -967,8 +967,8 @@
     if (!etype) return; // 🆕 ปุ่ม .adm-item-edit ที่ไม่ใช่ของ Catalog (เช่น ปุ่มในรายการบัญชีผู้ใช้) มี handler ของตัวเองแล้ว — ห้ามตกมาโชว์ "แก้ไขสำเร็จ"/saveCatalog ที่นี่
     let pendingRename = null; // 🆕 { kind, oldId, newId } — ถ้าเปลี่ยนรหัส ต้องย้ายข้อมูลบน Supabase ตาม
     // ถามรหัสใหม่ (คืน null = ยกเลิก, '' ไม่ได้ใช้) — ห้ามว่าง/มีช่องว่าง/ซ้ำ
-    const askNewId = (label, current, existsFn) => {
-      const raw = prompt(`แก้ไขรหัส ${label} (เดิม: ${current})\nเปลี่ยนแล้วข้อมูลที่ผูกอยู่จะย้ายตามให้อัตโนมัติ:`, current);
+    const askNewId = async (label, current, existsFn) => {
+      const raw = await FCDialog.prompt(`แก้ไขรหัส ${label} (เดิม: ${current})\nเปลี่ยนแล้วข้อมูลที่ผูกอยู่จะย้ายตามให้อัตโนมัติ:`, current, { title: `แก้ไขรหัส ${label}` });
       if (raw === null) return null;
       const v = raw.trim();
       if (!v || /\s/.test(v)) { toast('รหัสห้ามว่างหรือมีช่องว่าง', 'ng'); return null; }
@@ -979,7 +979,7 @@
     if (etype === 'section') {
       const sec = catalog.sections.find(x => x.id === id);
       if (!sec) return;
-      const newName = prompt('แก้ไขชื่อแผนก:', sec.name);
+      const newName = await FCDialog.prompt('แก้ไขชื่อแผนก:', sec.name, { title: 'แก้ไขแผนก' });
       if (newName === null) return;
       const nn = newName.trim();
       if (!nn) { toast('ชื่อห้ามว่าง', 'ng'); return; }
@@ -992,13 +992,13 @@
     } else if (etype === 'dept') {
       const d = catalog.depts.find(x => x.id === id);
       if (!d) return;
-      const newName = prompt('แก้ไขชื่อ Line:', d.name);
+      const newName = await FCDialog.prompt('แก้ไขชื่อ Line:', d.name, { title: 'แก้ไข Line' });
       if (newName === null) return;
       if (!newName.trim()) { toast('ชื่อห้ามว่าง', 'ng'); return; }
-      const newId = askNewId('Line', d.id, v => catalog.depts.some(x => x.id === v));
+      const newId = await askNewId('Line', d.id, v => catalog.depts.some(x => x.id === v));
       if (newId === null) return;
       const secNames = getSections();
-      const newSection = prompt(`แผนกของ Line นี้ — พิมพ์ชื่อให้ตรงกับแผนกที่มีอยู่:\n${secNames.join(', ')}`, deptSection(d));
+      const newSection = await FCDialog.prompt(`แผนกของ Line นี้ — พิมพ์ชื่อให้ตรงกับแผนกที่มีอยู่:\n${secNames.join(', ')}`, deptSection(d), { title: 'แผนกของ Line' });
       if (newSection === null) return;
       const match = secNames.find(n => n.toLowerCase() === newSection.trim().toLowerCase());
       if (!match) { toast(`ไม่พบแผนก "${newSection.trim()}" — เพิ่มแผนกก่อนที่ส่วน "เพิ่มแผนก"`, 'ng'); return; }
@@ -1013,10 +1013,10 @@
     } else if (etype === 'line') {
       const l = catalog.lines.find(x => x.id === id);
       if (!l) return;
-      const newName = prompt('แก้ไขชื่อ Model:', l.name);
+      const newName = await FCDialog.prompt('แก้ไขชื่อ Model:', l.name, { title: 'แก้ไข Model' });
       if (newName === null) return;
       if (!newName.trim()) { toast('ชื่อห้ามว่าง', 'ng'); return; }
-      const newId = askNewId('Model', l.id, v => catalog.lines.some(x => x.id === v));
+      const newId = await askNewId('Model', l.id, v => catalog.lines.some(x => x.id === v));
       if (newId === null) return;
       l.name = newName.trim();
       if (newId !== l.id) {
@@ -1213,7 +1213,7 @@
   }
 
   // 🆕 แก้ไข Run No. อย่างเดียว (ไม่ต้องผ่านรหัส/ชื่อเหมือนปุ่ม ✏️ เต็มรูปแบบ)
-  function handleAdminRunNoEdit(e) {
+  async function handleAdminRunNoEdit(e) {
     const btn = e.target.closest('.adm-item-runno');
     if (!btn) return;
 
@@ -1222,7 +1222,7 @@
     const j = catalog.jigs.find(x => x.id === id);
     if (!j) return;
 
-    const newDocNo = prompt(`แก้ไข Run No. ของ "${j.name}" (${j.id})\nเว้นว่างได้ถ้าต้องการลบ Run No. ออก:`, j.docNo || '');
+    const newDocNo = await FCDialog.prompt(`แก้ไข Run No. ของ "${j.name}" (${j.id})\nเว้นว่างได้ถ้าต้องการลบ Run No. ออก:`, j.docNo || '', { title: 'แก้ไข Run No.' });
     if (newDocNo === null) return; // กด Cancel — ไม่แก้อะไร
 
     j.docNo = newDocNo.trim();
@@ -4200,13 +4200,13 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       renderTplPreview();
     });
 
-    $('btn-tpl-save').addEventListener('click', () => {
+    $('btn-tpl-save').addEventListener('click', async () => {
       const jid = cpEditJigId;
       if (!jid) return;
       const jig = catalog.jigs.find(j => j.id === jid);
       const pts = jig.checkpoints || [];
       if (!pts.length) { toast('Part นี้ยังไม่มีหัวข้อตรวจสอบให้บันทึกเป็นเทมเพลต', 'ng'); return; }
-      const name = prompt('ตั้งชื่อเทมเพลต (เช่น "เช็คลิสต์มาตรฐาน BODY")', jig.name ? `เทมเพลตจาก ${jig.name}` : '');
+      const name = await FCDialog.prompt('ตั้งชื่อเทมเพลต (เช่น "เช็คลิสต์มาตรฐาน BODY")', jig.name ? `เทมเพลตจาก ${jig.name}` : '', { title: 'บันทึกเป็นเทมเพลต' });
       if (!name || !name.trim()) return;
       // 🆕 Final Check: เก็บ type/min/max/unit ลงเทมเพลตด้วย เพื่อนำไปใช้ซ้ำข้าม Part ได้โดยไม่ต้องตั้งเกณฑ์ใหม่
       const items = pts.map(p => ({ label: p.label, sub: p.sub || '', method: p.method || '',
@@ -4571,7 +4571,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     box.querySelectorAll('.btn-user-reset').forEach(btn => {
       btn.addEventListener('click', async () => {
         const uid = btn.closest('.adm-item').dataset.uid;
-        const newPass = prompt('ตั้งรหัสผ่านใหม่ให้พนักงานคนนี้ (แจ้งพนักงานเปลี่ยนเองภายหลังได้):');
+        const newPass = await FCDialog.prompt('ตั้งรหัสผ่านใหม่ให้พนักงานคนนี้ (แจ้งพนักงานเปลี่ยนเองภายหลังได้):', '', { title: 'ตั้งรหัสผ่านใหม่', password: true });
         if (!newPass) return;
         const p = getAdminPass();
         if (!p) return;
@@ -4951,18 +4951,22 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   }
 
   /* ── แก้ไขชื่อ/เกณฑ์/วิธีตรวจของจุดตรวจที่มีอยู่แล้ว (ไม่ต้องลบแล้วเพิ่มใหม่ ตำแหน่ง X,Y ยังอยู่เหมือนเดิม) ── */
-  function editCheckpoint(jid, idx) {
+  async function editCheckpoint(jid, idx) {
     const jig = catalog.jigs.find(j => j.id === jid);
     const p = jig.checkpoints[idx];
     if (!p) return;
 
-    const label = prompt('ชื่อจุด', p.label);
-    if (label === null) return;
-    if (!label.trim()) { toast('ชื่อจุดห้ามว่าง', 'ng'); return; }
-    const sub = prompt('รายละเอียด/ตำแหน่งที่วัด', p.sub || '');
-    if (sub === null) return;
-    const method = prompt('วิธีตรวจ', p.method || '');
-    if (method === null) return;
+    const fv = await FCDialog.form({
+      title: 'แก้ไขจุดตรวจ',
+      fields: [
+        { name: 'label', label: 'ชื่อจุด', value: p.label },
+        { name: 'sub', label: 'รายละเอียด/ตำแหน่งที่วัด', value: p.sub || '' },
+        { name: 'method', label: 'วิธีตรวจ', value: p.method || '' },
+      ],
+      validate: v => (v.label.trim() ? '' : 'ชื่อจุดห้ามว่าง'),
+    });
+    if (fv === null) return;
+    const label = fv.label, sub = fv.sub, method = fv.method;
 
     p.label = label.trim(); p.sub = sub.trim(); p.method = method.trim();
     saveCatalog();
@@ -5007,12 +5011,17 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       return;
     }
 
-    const minStr = prompt(`ค่าต่ำสุดที่ยอมรับได้สำหรับ "${p.label}" (เช่น 0.4)`, p.min ?? '');
-    if (minStr === null) return;
-    const maxStr = prompt(`ค่าสูงสุดที่ยอมรับได้ (เช่น 0.6)`, p.max ?? '');
-    if (maxStr === null) return;
-    const unit = prompt(`หน่วย (เช่น Mpa, mm, kg — เว้นว่างได้)`, p.unit ?? '');
-    if (unit === null) return;
+    const nv = await FCDialog.form({
+      title: 'ตั้งเกณฑ์หัวข้อกรอกตัวเลข',
+      message: `"${p.label}"`,
+      fields: [
+        { name: 'min', label: 'ค่าต่ำสุดที่ยอมรับได้', hint: '(เช่น 0.4)', value: p.min ?? '', type: 'number' },
+        { name: 'max', label: 'ค่าสูงสุดที่ยอมรับได้', hint: '(เช่น 0.6)', value: p.max ?? '', type: 'number' },
+        { name: 'unit', label: 'หน่วย', hint: '(เช่น Mpa, mm, kg — เว้นว่างได้)', value: p.unit ?? '' },
+      ],
+    });
+    if (nv === null) return;
+    const minStr = nv.min, maxStr = nv.max, unit = nv.unit;
 
     const min = parseFloat(minStr), max = parseFloat(maxStr);
     if (isNaN(min) || isNaN(max)) { toast('กรุณาใส่ค่าต่ำสุด/สูงสุดเป็นตัวเลข', 'ng'); return; }
@@ -9354,7 +9363,7 @@ ${JSON.stringify(summary, null, 2)}
     const targets = (catalog.jigs || []).filter(j => j.bgImage);
     if (!targets.length) { toast('ไม่มี Part ที่มีรูปพื้นหลังให้บีบอัด', 'ng'); return; }
     const sizeBeforeAll = targets.reduce((s, j) => s + j.bgImage.length, 0); // base64 string length ≈ ขนาดจริงที่เก็บ/ส่งผ่านเน็ต (ตัวอักษร base64 เป็น ASCII ล้วน 1 ตัว = 1 byte)
-    if (!confirm(`จะบีบอัดรูปพื้นหลังของ Part ทั้งหมด ${targets.length} ตัวใหม่ (ขนาดปัจจุบันรวม ~${formatFileSize(sizeBeforeAll)})\nต้องการดำเนินการต่อหรือไม่?`)) return;
+    if (!(await FCDialog.confirm(`จะบีบอัดรูปพื้นหลังของ Part ทั้งหมด ${targets.length} ตัวใหม่ (ขนาดปัจจุบันรวม ~${formatFileSize(sizeBeforeAll)})\nต้องการดำเนินการต่อหรือไม่?`, { title: 'บีบอัดรูปพื้นหลัง' }))) return;
 
     const btn = $('btn-recompress-jig-images');
     if (btn) { btn.disabled = true; }

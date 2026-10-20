@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="fc-dialog.js?v=1"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
@@ -1828,7 +1829,7 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
     const file = e.target.files[0];
     e.target.value = ''; // เคลียร์ input ไว้เผื่อเลือกไฟล์เดิมซ้ำ
     if (!file) return;
-    if (!window.XLSX) { alert('โหลด Excel library ไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้ง'); return; }
+    if (!window.XLSX) { FCDialog.alert('โหลด Excel library ไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้ง'); return; }
 
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -1840,7 +1841,7 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
         // หาแถวหัวตาราง (แถวที่มีคำว่า 'Doc No.' อยู่)
         const headerIdx = rows.findIndex(r => r.some(c => String(c).trim() === 'Doc No.'));
         if (headerIdx === -1) {
-          alert('ไม่พบหัวตาราง "Doc No." ในไฟล์นี้ — ตรวจสอบว่าเป็นไฟล์ที่ export จากปุ่ม "Export Master List" ในหน้า index.html');
+          FCDialog.alert('ไม่พบหัวตาราง "Doc No." ในไฟล์นี้ — ตรวจสอบว่าเป็นไฟล์ที่ export จากปุ่ม "Export Master List" ในหน้า index.html');
           return;
         }
         const header = rows[headerIdx].map(h => String(h).trim());
@@ -1864,7 +1865,7 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
           .filter(r => r.docNo && r.docName);
 
         if (!parsed.length) {
-          alert('ไม่พบแถวข้อมูลที่นำเข้าได้ในไฟล์นี้');
+          FCDialog.alert('ไม่พบแถวข้อมูลที่นำเข้าได้ในไฟล์นี้');
           return;
         }
 
@@ -1886,7 +1887,7 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
         importSourceLabel = 'นำเข้าจาก Excel';
         renderImportPreview(toImport, { dupInFile, alreadyExists, totalInFile: parsed.length });
       } catch (err) {
-        alert('อ่านไฟล์ไม่สำเร็จ: ' + err.message);
+        FCDialog.alert('อ่านไฟล์ไม่สำเร็จ: ' + err.message);
       }
     };
     reader.readAsArrayBuffer(file);
@@ -2188,12 +2189,12 @@ body.sidebar-collapsed .sidebar-foot-text{display:none}
     document.getElementById('btn-toggle-status').addEventListener('click', async () => {
       const newStatus = doc.status === 'obsolete' ? 'active' : 'obsolete';
       const label = newStatus === 'obsolete' ? 'ยกเลิกการใช้งานเอกสารนี้' : 'เปิดใช้งานเอกสารนี้อีกครั้ง';
-      const pin = _rememberedPin || prompt(`ยืนยัน${label} — กรุณากรอก PIN:`);
+      const pin = _rememberedPin || await FCDialog.prompt(`ยืนยัน${label} — กรุณากรอก PIN:`, '', { title: 'ยืนยัน PIN', password: true, placeholder: 'กรอก PIN' });
       if (!pin) return;
 
       const { data: ok, error } = await sb.rpc('doc_set_status', { p_pin: pin, p_document_id: doc.id, p_status: newStatus });
-      if (error) { alert('ทำรายการไม่สำเร็จ: ' + error.message); return; }
-      if (!ok) { clearRememberedPin(); alert('PIN ไม่ถูกต้อง'); return; }
+      if (error) { await FCDialog.alert('ทำรายการไม่สำเร็จ: ' + error.message); return; }
+      if (!ok) { clearRememberedPin(); await FCDialog.alert('PIN ไม่ถูกต้อง'); return; }
       _rememberedPin = pin;
       await loadAll();
     });

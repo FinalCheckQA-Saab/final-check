@@ -568,7 +568,7 @@
   async function exportPDF() {
     if (busy) return;
     var c = getCtx();
-    if (!c) { alert('ยังไม่มีกราฟให้ Export — เลือก Part Number / เดือน / หัวข้อตรวจ ที่มีข้อมูลก่อนนะคะ'); return; }
+    if (!c) { await FCDialog.alert('ยังไม่มีกราฟให้ Export — เลือก Part Number / เดือน / หัวข้อตรวจ ที่มีข้อมูลก่อนนะคะ'); return; }
     var btn = byId('btn-pdf'), lab = btn && btn.querySelector('span:last-child'), orig = lab ? lab.textContent : '';
     busy = true; if (btn) { btn.disabled = true; btn.classList.add('pdf-busy'); }
     var setLab = function (t) { if (lab) lab.textContent = t; };
@@ -585,7 +585,7 @@
       try { await loadLibs(); } catch (e) { libsOk = false; console.warn(e); }
       if (!libsOk) {                                        /* สำรอง: ใช้หน้าต่างพิมพ์ → Save as PDF */
         fr.contentWindow.focus(); fr.contentWindow.print();
-        alert('โหลดตัวสร้าง PDF ไม่ได้ (อาจออฟไลน์) — เปิดหน้าต่างพิมพ์ให้แทนแล้ว เลือก "Save as PDF" / ขนาด A3 แนวนอน ได้เลยค่ะ');
+        await FCDialog.alert('โหลดตัวสร้าง PDF ไม่ได้ (อาจออฟไลน์) — เปิดหน้าต่างพิมพ์ให้แทนแล้ว เลือก "Save as PDF" / ขนาด A3 แนวนอน ได้เลยค่ะ');
         return;
       }
       var scale = /iPhone|iPad|Android/i.test(navigator.userAgent) ? 2 : 2.5;
@@ -602,7 +602,7 @@
       pdf.save(fileName(c));
     } catch (e) {
       console.error('spc-export:', e);
-      alert('สร้าง PDF ไม่สำเร็จ: ' + (e && e.message ? e.message : e));
+      await FCDialog.alert('สร้าง PDF ไม่สำเร็จ: ' + (e && e.message ? e.message : e));
     } finally {
       if (fr && fr.parentNode) fr.parentNode.removeChild(fr);
       busy = false; setLab(orig || 'PDF');
