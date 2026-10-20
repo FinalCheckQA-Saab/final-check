@@ -14,10 +14,10 @@
   function bridge() { return window.fcManualBridge || null; }
   function toast(msg, type) { var b = bridge(); if (b && b.toast) b.toast(msg, type); }
   function client() { var b = bridge(); return b && b.getClient ? b.getClient() : null; }
-  function creds() {
+  async function creds() {
     var b = bridge(), sb = client();
     if (!sb) { toast('ต้องเชื่อมต่อ Supabase ก่อน', 'ng'); return null; }
-    var c = b && b.getAdminCreds ? b.getAdminCreds() : null;
+    var c = b && b.askAdminCreds ? await b.askAdminCreds() : (b && b.getAdminCreds ? b.getAdminCreds() : null);
     if (!c) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อยืนยันสิทธิ์', 'ng'); return null; }
     return { sb: sb, u: c.username, p: c.password };
   }
@@ -296,7 +296,7 @@
 
     var summary = changes.length + ' รายการ';
     if (!(await ieConfirm(changes, reason))) return;
-    var c = creds();
+    var c = await creds();
     if (!c) return;
     var orig = btn.textContent; btn.disabled = true; btn.textContent = '🔄 กำลังบันทึก...';
     try {
@@ -322,7 +322,7 @@
   /* ── ประวัติการแก้ไข ── */
   function fmtVal(f, v) { return f === 'status' ? (ST_TXT[v] || v) : (v === '' || v == null ? '—' : String(v)); }
   async function showHistory(id) {
-    var c = creds(); if (!c) return;
+    var c = await creds(); if (!c) return;
     edEl.innerHTML = '<span class="chip-empty">🔄 กำลังโหลดประวัติ...</span>';
     var res = await c.sb.rpc('admin_list_history_edits', { p_username: c.u, p_password: c.p, p_history_id: id ? String(id) : null, p_limit: 100 });
     if (res.error) {

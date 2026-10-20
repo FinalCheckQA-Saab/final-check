@@ -159,7 +159,7 @@
   // insert/update ให้ anon ทาง RLS แล้ว ดู 01_lockdown_rls_and_rpc.sql
   async function pushCatalogToSupabase(cat) {
     if (!sb) return;
-    const pass = getAdminPass();
+    const pass = await getAdminPass();
     if (!pass) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อบันทึกขึ้น Supabase', 'ng'); return; }
     _syncing = true;
     try {
@@ -216,7 +216,7 @@
 
   async function deleteSectionFromSupabase(id) {
     if (!sb) return;
-    const pass = getAdminPass();
+    const pass = await getAdminPass();
     if (!pass) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อลบข้อมูล', 'ng'); return; }
     _syncing = true;
     try {
@@ -399,7 +399,7 @@
   // ต้องผ่าน RPC 'admin_delete_history' ที่เช็ค password admin เท่านั้น
   async function deleteHistoryFromSupabase(id) {
     if (!sb) return;
-    const pass = getAdminPass();
+    const pass = await getAdminPass();
     if (!pass) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อลบประวัติ', 'ng'); return; }
     _syncing = true;
     try {
@@ -877,7 +877,7 @@
   // ✅ SECURITY: เขียนผ่าน RPC 'save_app_settings' (เช็ค password ฝั่ง DB)
   async function saveAppSettingsToSupabase() {
     if (!sb) { toast('ไม่ได้เชื่อมต่อ Supabase — บันทึกแค่ในเครื่องนี้', 'ng'); return; }
-    const pass = getAdminPass();
+    const pass = await getAdminPass();
     if (!pass) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อบันทึก', 'ng'); return; }
     try {
       const { data: ok, error } = await sb.rpc('save_app_settings', {
@@ -1105,7 +1105,7 @@
   // และรันเป็น transaction เดียวในฝั่ง server แทนการยิง 4 request แยกจาก client)
   async function renameJigIdInSupabase(oldId, newId, jigData) {
     if (!sb) return;
-    const pass = getAdminPass();
+    const pass = await getAdminPass();
     if (!pass) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อเปลี่ยนรหัส Part', 'ng'); return; }
     _syncing = true;
     try {
@@ -1135,7 +1135,7 @@
   // ทำฝั่ง DB ผ่าน RPC 'rename_dept_id' / 'rename_line_id' (ดู add_rename_ids.sql) เช็ครหัส Admin ก่อนทุกครั้ง
   async function renameCatalogIdInSupabase(kind, oldId, newId) {
     if (!sb) return;
-    const pass = getAdminPass();
+    const pass = await getAdminPass();
     if (!pass) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อเปลี่ยนรหัส', 'ng'); return; }
     _syncing = true;
     try {
@@ -1190,7 +1190,7 @@
   // ทำอยู่ฝั่ง DB ทั้งหมดแล้ว (ดู 01_lockdown_rls_and_rpc.sql) เช็ค password ก่อนลบทุกครั้ง
   async function deleteCatalogItemFromSupabase(dtype, id) {
     if (!sb) return;
-    const pass = getAdminPass();
+    const pass = await getAdminPass();
     if (!pass) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อลบข้อมูล', 'ng'); return; }
     _syncing = true;
     try {
@@ -3630,7 +3630,11 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     getClient: () => sb,
     isAdmin: () => admLoggedIn,
     getAdminCreds: () => {
-      const pass = getAdminPass();
+      const pass = _adminSessionPass; // sync: ใช้รหัสที่จำไว้หลังล็อกอิน (ไม่ถามใหม่) — ถ้าต้องการให้ถามด้วย ใช้ askAdminCreds()
+      return pass ? { username: localStorage.getItem('fc_admin_user') || 'admin', password: pass } : null;
+    },
+    askAdminCreds: async () => {
+      const pass = await getAdminPass();
       return pass ? { username: localStorage.getItem('fc_admin_user') || 'admin', password: pass } : null;
     },
     clearAdminPass: () => { _adminSessionPass = null; },
@@ -3653,9 +3657,15 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   // เผื่อกรณี RPC ถูกเรียกตอนที่ _adminSessionPass ยังไม่ถูกตั้ง (เช่น
   // เปิดมาแล้วไม่ได้ login ผ่าน flow ปกติ) — จะ prompt ถามรหัสผ่านอีกที
   // RPC ฝั่ง DB จะเป็นคนตัดสินสุดท้ายว่ารหัสถูกหรือไม่ ไม่ใช่ฝั่ง client
-  function getAdminPass() {
+  // 🆕 เปลี่ยนเป็น async — ถามรหัสผ่านด้วยกล่อง FCDialog (ช่องรหัสซ่อนตัวอักษร) แทน prompt() ของเบราว์เซอร์; ทุกจุดที่เรียกต้อง await
+  let _adminPassAsk = null; // กันกล่องซ้อนเมื่อมีหลาย RPC ขอรหัสพร้อมกัน — ทุกคนรอคำตอบเดียวกัน
+  async function getAdminPass() {
     if (_adminSessionPass) return _adminSessionPass;
-    const p = prompt('กรุณากรอกรหัสผ่าน Admin เพื่อยืนยันการทำรายการนี้');
+    if (!_adminPassAsk) {
+      _adminPassAsk = FCDialog.prompt('กรุณากรอกรหัสผ่าน Admin เพื่อยืนยันการทำรายการนี้', '', { title: 'ยืนยันสิทธิ์ Admin', password: true, placeholder: 'รหัสผ่าน Admin' })
+        .finally(() => { _adminPassAsk = null; });
+    }
+    const p = await _adminPassAsk;
     if (p) _adminSessionPass = p;
     return p;
   }
@@ -4524,7 +4534,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     if (!sb) { box.innerHTML = '<span class="chip-empty">ต้องเชื่อมต่อ Supabase ก่อน</span>'; return; }
     box.innerHTML = '<span class="chip-empty">🔄 กำลังโหลด...</span>';
 
-    const pass = getAdminPass();
+    const pass = await getAdminPass();
     if (!pass) { box.innerHTML = ''; return; }
 
     const { data, error } = await sb.rpc('admin_list_app_users', { p_admin_password: pass });
@@ -4573,7 +4583,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         const uid = btn.closest('.adm-item').dataset.uid;
         const newPass = await FCDialog.prompt('ตั้งรหัสผ่านใหม่ให้พนักงานคนนี้ (แจ้งพนักงานเปลี่ยนเองภายหลังได้):', '', { title: 'ตั้งรหัสผ่านใหม่', password: true });
         if (!newPass) return;
-        const p = getAdminPass();
+        const p = await getAdminPass();
         if (!p) return;
         const { data: ok, error: e } = await sb.rpc('admin_reset_app_user_password', {
           p_admin_password: p, p_user_id: uid, p_new_password: newPass,
@@ -4588,7 +4598,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         const item = btn.closest('.adm-item');
         const uid = item.dataset.uid;
         const nextActive = item.classList.contains('adm-user-inactive');
-        const p = getAdminPass();
+        const p = await getAdminPass();
         if (!p) return;
         const { data: ok, error: e } = await sb.rpc('admin_set_app_user_active', {
           p_admin_password: p, p_user_id: uid, p_active: nextActive,
@@ -4649,7 +4659,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
           const role = item.querySelector('.eu-role').value;
           if (!username || !fullName) { toast('กรอก Username และชื่อ-นามสกุลให้ครบ', 'ng'); return; }
           if (u.role !== role && !(await showConfirmModal(`เปลี่ยนสิทธิ์ของ "${fullName}" จาก ${roleLabelTh(u.role)} เป็น ${roleLabelTh(role)}?`, { confirmLabel: 'เปลี่ยนสิทธิ์' }))) return;
-          const p = getAdminPass();
+          const p = await getAdminPass();
           if (!p) return;
           const sbtn = ev.currentTarget; sbtn.disabled = true;
           const { data: st, error: e } = await sb.rpc('admin_update_app_user', {
@@ -4682,7 +4692,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         const u = usersById.get(item.dataset.uid);
         if (!u) return;
         if (!(await showConfirmModal(`ลบบัญชี "${u.full_name}" (@${u.username}) ?\nการลบนี้ย้อนกลับไม่ได้ — ถ้าแค่ไม่ต้องการให้ล็อกอิน แนะนำกด "ปิดใช้งาน" แทน`, { confirmLabel: 'ลบบัญชี', danger: true }))) return;
-        const p = getAdminPass();
+        const p = await getAdminPass();
         if (!p) return;
         const { data: st, error: e } = await sb.rpc('admin_delete_app_user', { p_admin_password: p, p_user_id: u.id });
         if (e) { console.error('admin_delete_app_user error:', e); toast(staffRpcErrorText(e), 'ng'); return; }
@@ -4708,7 +4718,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     if (!sb) { box.innerHTML = '<span class="chip-empty">ต้องเชื่อมต่อ Supabase ก่อน</span>'; return; }
     box.innerHTML = '<span class="chip-empty">🔄 กำลังโหลด...</span>';
 
-    const pass = getAdminPass();
+    const pass = await getAdminPass();
     if (!pass) { box.innerHTML = ''; return; }
 
     const { data, error } = await sb.rpc('admin_list_login_logs', { p_admin_password: pass, p_limit: 200 });
@@ -4760,7 +4770,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       if (!username || !fullName || !password) { toast('กรอกให้ครบ: Username, ชื่อ-นามสกุล, รหัสผ่าน', 'ng'); return; }
       if (password.length < 4) { toast('รหัสผ่านต้องยาว 4 ตัวขึ้นไป', 'ng'); return; }
 
-      const p = getAdminPass();
+      const p = await getAdminPass();
       if (!p) return;
 
       const btn = $('btn-adm-add-user');
@@ -4860,7 +4870,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         catalog.templates = catalog.templates.filter(x => x.id !== t.id);
         saveCatalog();
         if (sb) { // ✅ SECURITY: ผ่าน RPC 'delete_template' (เช็ค password admin) แทนการลบตรง
-          const pass = getAdminPass();
+          const pass = await getAdminPass();
           if (pass) {
             sb.rpc('delete_template', { p_password: pass, p_id: t.id }).then(({ data: ok, error }) => {
               if (error) console.error('delete template error:', error);
@@ -4899,7 +4909,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       </div>`).join('') : '<div style="font-size:11px;color:var(--text-muted)">ยังไม่มีจุดตรวจ ใช้ค่าเริ่มต้น (10 จุด)</div>';
 
     document.querySelectorAll('.btn-del-cp').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const j = catalog.jigs.find(x => x.id === btn.dataset.jid);
         const removed = j.checkpoints[btn.dataset.idx];
         j.checkpoints.splice(btn.dataset.idx, 1);
@@ -4907,7 +4917,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         // ⚠️ FIX: pushCatalogToSupabase ใช้ upsert (ไม่ลบ) — ต้องลบแถวนี้ออกจาก Supabase ตรงๆ
         // ไม่งั้นแถวเดิมจะยังค้างอยู่ใน DB แล้วโดน sync กลับมา "เด้งคืน" เหมือนไม่เคยลบ
         if (sb && removed) { // ✅ SECURITY: ผ่าน RPC 'delete_checkpoint' (เช็ค password admin)
-          const pass = getAdminPass();
+          const pass = await getAdminPass();
           if (pass) {
             sb.rpc('delete_checkpoint', { p_password: pass, p_jig_id: btn.dataset.jid, p_item_id: removed.id })
               .then(({ data: ok, error }) => {
@@ -6873,7 +6883,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
   }
   async function savePaletteToSupabase() {
     if (!sb) { toast('ไม่ได้เชื่อมต่อ Supabase — ใช้สีนี้เฉพาะเครื่องนี้', 'ng'); return; }
-    const pass = getAdminPass();
+    const pass = await getAdminPass();
     if (!pass) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อบันทึก', 'ng'); return; }
     const btn = $('btn-palette-save');
     if (btn) btn.disabled = true;
@@ -9451,7 +9461,7 @@ ${JSON.stringify(summary, null, 2)}
   //    ไม่ต้องรันซ้ำ เว้นแต่ทำงานกับ Supabase project คนละตัว)
   async function deleteOldHistory(daysOld = 30) {
     if (!sb) return;
-    const pass = getAdminPass();
+    const pass = await getAdminPass();
     if (!pass) { toast('ต้องกรอกรหัสผ่าน Admin เพื่อลบประวัติเก่า', 'ng'); return; }
     try {
       const cutoffDate = new Date();
