@@ -737,6 +737,8 @@ h1, h2, h3, h4, label, button, input, select, textarea, p, span, div {
 .line-jig-detail-chip.jd-ng .jd-status { color: var(--ng); }
 .line-jig-detail-chip.jd-skipped { border-style: dashed; opacity: 0.75; }
 .line-jig-detail-chip.jd-pending { opacity: 0.75; }
+.line-jig-detail-chip.jd-progress { border-color: var(--fixed-border); background: var(--fixed-bg); }
+.line-jig-detail-chip.jd-progress .jd-status { color: var(--fixed); }
 
 /* Stats row */
 .stats-mini-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 10px; }

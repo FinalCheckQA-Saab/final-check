@@ -8206,14 +8206,22 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
      - ยังไม่ตรวจเลยสักจุด = ไม่มี key ใน map (แสดงสีเทา) */
   function computeLineStatusToday() {
     const t = todayStr();
-    const hist = loadHistory().filter(isRecordComplete); // นับเฉพาะชุดที่ตรวจครบ S/M/E
+    const hist = loadHistory(); // 🔧 รวมชุดที่ตรวจยังไม่ครบ S/M/E ด้วย — ไว้แสดงสถานะ "กำลังตรวจ" (สีเหลือง) · ส่วนตัวนับ "ตรวจแล้ว" ยังนับเฉพาะชุดที่ครบเหมือนเดิม
     const skippedJigIds = new Set(loadJigSkips().filter(s => s.date === t).map(s => s.jigId));
     const checkedJigsByLine = {}; // lineId -> Set(jigId)
     const ngByLine = {}; // lineId -> true ถ้าเจอ NG อย่างน้อย 1 Part
     const jigInfo = {}; // jigId -> { status: 'ok'|'ng', time }
+    const startedByLine = {}; // 🔧 lineId -> true ถ้ามี Part ที่เริ่มตรวจแล้วแต่ยังไม่ครบ S/M/E
+    const progInfo = {};      // 🔧 jigId -> { time, progress } (ตรวจค้าง)
 
     hist.forEach(r => {
       if (r.date !== t || !r.lineId) return;
+      if (!isRecordComplete(r)) {
+        startedByLine[r.lineId] = true;
+        const pt = r.timestamp ? new Date(r.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+        if (!progInfo[r.jigId] || new Date(r.timestamp || 0) >= new Date(progInfo[r.jigId]._ts || 0)) progInfo[r.jigId] = { time: pt, progress: recProgressText(r), _ts: r.timestamp };
+        return; // ยังไม่ครบ — ไม่นับเป็น "ตรวจแล้ว" ของ Model
+      }
       (checkedJigsByLine[r.lineId] = checkedJigsByLine[r.lineId] || new Set()).add(r.jigId);
       const hasNg = (r.items || []).some(i => i.status === 'ng');
       if (hasNg) ngByLine[r.lineId] = true;
@@ -8238,10 +8246,11 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         if (skippedJigIds.has(j.id)) return { id: j.id, name: j.name, status: 'skipped' };
         const info = jigInfo[j.id];
         if (info) return { id: j.id, name: j.name, status: info.status, time: info.time };
+        if (progInfo[j.id]) return { id: j.id, name: j.name, status: 'progress', time: progInfo[j.id].time, progress: progInfo[j.id].progress };
         return { id: j.id, name: j.name, status: 'pending' };
       });
 
-      if (!checkedSet && totalJigs > 0) { map[lineId] = { jigDetails }; return; } // ยังไม่ตรวจเลยสักจุด — เก็บ jigDetails ไว้ใช้แสดงรายละเอียดได้ แต่ไม่มี status สรุป (แสดงสีเทา)
+      if (!checkedSet && !startedByLine[lineId] && totalJigs > 0) { map[lineId] = { jigDetails }; return; } // ยังไม่ตรวจเลยสักจุด — เก็บ jigDetails ไว้ใช้แสดงรายละเอียดได้ แต่ไม่มี status สรุป (แสดงสีเทา)
       let status;
       if (ngByLine[lineId]) status = 'ng';
       else if (totalJigs === 0 || checked >= totalJigs) status = 'ok'; // ไม่มีอะไรต้องตรวจ (ทุก Part ไม่ได้ผลิต) ถือว่าครบ
@@ -8273,11 +8282,12 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       const total = active.length;
       const checked = active.filter(j => j.status === 'ok' || j.status === 'ng').length;
       const skipped = details.length - total;
+      const inProg = active.filter(j => j.status === 'progress').length; // 🔧 Part ที่เริ่มตรวจแล้วแต่ยังไม่ครบ S/M/E
       let status;
       if (!details.length) status = undefined;            // Line ที่ยังไม่มี Part
       else if (anyNg) status = 'ng';
       else if (total === 0 || checked >= total) status = 'ok';
-      else status = checked > 0 ? 'partial' : undefined;  // ยังไม่ตรวจเลย = เทา
+      else status = (checked > 0 || inProg > 0) ? 'partial' : undefined;  // ยังไม่ตรวจเลย = เทา · เริ่มตรวจแล้ว (แม้แค่รอบ S) = เหลือง
       out[d.id] = { status, checked, total, skipped, models: models.length, jigDetails: details };
     });
     return out;
@@ -8358,6 +8368,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       let cls, icon, label;
       if (j.status === 'ok') { cls = 'jd-ok'; icon = '✅'; label = `ตรวจแล้ว ${j.time || ''}`; }
       else if (j.status === 'ng') { cls = 'jd-ng'; icon = '⚠️'; label = `ตรวจแล้ว ${j.time || ''} (พบ NG)`; }
+      else if (j.status === 'progress') { cls = 'jd-progress'; icon = '⏳'; label = `กำลังตรวจ ${j.progress || ''} ${j.time || ''}`.trim(); }
       else if (j.status === 'skipped') { cls = 'jd-skipped'; icon = '⏸'; label = 'ไม่ได้ผลิตวันนี้'; }
       else { cls = 'jd-pending'; icon = '⚪'; label = 'ยังไม่ตรวจ'; }
       return `
