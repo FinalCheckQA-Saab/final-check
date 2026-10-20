@@ -1033,6 +1033,34 @@ html .adm-sys-act .adm-sys-ok:disabled::after{content:'';width:16px;height:16px;
       <div id="adm-inspedit-editor"></div>
     </div>
 
+    <!-- 🧪 ข้อมูลจำลองการตรวจเช็ค (DEMO) สำหรับดูกราฟ SPC — ติดป้าย DEMO ลบทิ้งได้ ไม่กระทบข้อมูลจริง • โค้ดอยู่ใน admin-demo-data.js -->
+    <div class="admin-section" id="adm-demo-section">
+      <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 3v6.2L4.6 18.1A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-2.9L14 9.2V3"/><path d="M7.5 15h9"/></svg> ข้อมูลจำลอง (DEMO)</div>
+      <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+        สร้างผลตรวจ S/M/E จำลองย้อนหลัง เพื่อดูกราฟ SPC แบบเต็ม — ทุกรายการติดป้าย <b>🧪 DEMO</b> (รหัส DEMO-… / ผู้ตรวจ "🧪 DEMO") และลบทิ้งได้โดยไม่กระทบข้อมูลจริง • สร้างเฉพาะถึงเมื่อวาน ไม่แตะข้อมูลของวันนี้
+      </div>
+      <div class="admin-input-row">
+        <select id="adm-demo-part" class="adm-sel" aria-label="เลือก Part"><option value="">— เลือก Part —</option></select>
+        <button class="btn-sec" id="btn-adm-demo-load" type="button">โหลดรายการ Part</button>
+      </div>
+      <div class="admin-input-row">
+        <input type="number" id="adm-demo-days" value="30" min="1" max="90" inputmode="numeric" aria-label="จำนวนวันย้อนหลัง" placeholder="จำนวนวันย้อนหลัง">
+        <select id="adm-demo-shifts" class="adm-sel" aria-label="จำนวนกะต่อวัน"><option value="1">1 กะ / วัน (กะ 1)</option><option value="2">2 กะ / วัน (กะ 1 + กะ 2)</option></select>
+        <select id="adm-demo-scn" class="adm-sel" aria-label="ลักษณะข้อมูล">
+          <option value="normal">ปกติ (มีค่าเด้งบ้าง)</option>
+          <option value="good">นิ่งมาก (ในเกณฑ์ตลอด)</option>
+          <option value="bad">มีแนวโน้มเลื่อน + หลุดเกณฑ์</option>
+        </select>
+      </div>
+      <label style="display:flex; align-items:center; gap:6px; font-size:12px; margin:4px 0 8px;"><input type="checkbox" id="adm-demo-skipsun" checked> ข้ามวันอาทิตย์</label>
+      <div class="admin-input-row">
+        <button class="btn-adm-add" id="btn-adm-demo-gen" type="button">🧪 สร้างข้อมูลจำลอง</button>
+        <button class="btn-sec" id="btn-adm-demo-refresh" type="button">ดูข้อมูลจำลองที่มีอยู่</button>
+        <button class="btn-sec" id="btn-adm-demo-delall" type="button" disabled>🗑 ลบข้อมูลจำลองทั้งหมด</button>
+      </div>
+      <div class="admin-list admin-list-scroll" id="adm-demo-list"></div>
+    </div>
+
     <!-- 🆕 Add แผนก -->
     <div class="admin-section">
       <div class="admin-section-title"><svg class="inline-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 21v-4h6v4"/><path d="M8 7h.01M12 7h.01M16 7h.01M8 11h.01M12 11h.01M16 11h.01"/></svg> เพิ่มแผนก</div>
@@ -1573,6 +1601,7 @@ html .adm-sys-act .adm-sys-ok:disabled::after{content:'';width:16px;height:16px;
 <script src="manual.js?v=4"></script>
 <script src="admin-accounts.js?v=3"></script>
 <script src="admin-inspection-edit.js?v=3"></script>
+<script src="admin-demo-data.js?v=1"></script>
 <script>
 (function () {
   var collapseBtn = document.getElementById('sidebar-collapse-toggle');
