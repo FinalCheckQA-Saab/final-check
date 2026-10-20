@@ -8213,11 +8213,13 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     const jigInfo = {}; // jigId -> { status: 'ok'|'ng', time }
     const startedByLine = {}; // 🔧 lineId -> true ถ้ามี Part ที่เริ่มตรวจแล้วแต่ยังไม่ครบ S/M/E
     const progInfo = {};      // 🔧 jigId -> { time, progress } (ตรวจค้าง)
+    const progNg = {};        // 🔧 jigId -> true ถ้าใบที่ตรวจค้างอยู่พบ NG แล้ว
 
     hist.forEach(r => {
       if (r.date !== t || !r.lineId) return;
       if (!isRecordComplete(r)) {
         startedByLine[r.lineId] = true;
+        if ((r.items || []).some(i => i.status === 'ng')) { ngByLine[r.lineId] = true; progNg[r.jigId] = true; } // 🔧 พบ NG ตั้งแต่รอบ S = แดงทันที (เกณฑ์เดียวกับการ์ด "NG วันนี้")
         const pt = r.timestamp ? new Date(r.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
         if (!progInfo[r.jigId] || new Date(r.timestamp || 0) >= new Date(progInfo[r.jigId]._ts || 0)) progInfo[r.jigId] = { time: pt, progress: recProgressText(r), _ts: r.timestamp };
         return; // ยังไม่ครบ — ไม่นับเป็น "ตรวจแล้ว" ของ Model
@@ -8246,7 +8248,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         if (skippedJigIds.has(j.id)) return { id: j.id, name: j.name, status: 'skipped' };
         const info = jigInfo[j.id];
         if (info) return { id: j.id, name: j.name, status: info.status, time: info.time };
-        if (progInfo[j.id]) return { id: j.id, name: j.name, status: 'progress', time: progInfo[j.id].time, progress: progInfo[j.id].progress };
+        if (progInfo[j.id]) return { id: j.id, name: j.name, status: 'progress', ng: !!progNg[j.id], time: progInfo[j.id].time, progress: progInfo[j.id].progress };
         return { id: j.id, name: j.name, status: 'pending' };
       });
 
@@ -8368,6 +8370,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       let cls, icon, label;
       if (j.status === 'ok') { cls = 'jd-ok'; icon = '✅'; label = `ตรวจแล้ว ${j.time || ''}`; }
       else if (j.status === 'ng') { cls = 'jd-ng'; icon = '⚠️'; label = `ตรวจแล้ว ${j.time || ''} (พบ NG)`; }
+      else if (j.status === 'progress' && j.ng) { cls = 'jd-ng'; icon = '⚠️'; label = `พบ NG (กำลังตรวจ ${j.progress || ''}) ${j.time || ''}`.trim(); }
       else if (j.status === 'progress') { cls = 'jd-progress'; icon = '⏳'; label = `กำลังตรวจ ${j.progress || ''} ${j.time || ''}`.trim(); }
       else if (j.status === 'skipped') { cls = 'jd-skipped'; icon = '⏸'; label = 'ไม่ได้ผลิตวันนี้'; }
       else { cls = 'jd-pending'; icon = '⚪'; label = 'ยังไม่ตรวจ'; }
