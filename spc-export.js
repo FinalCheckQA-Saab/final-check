@@ -595,11 +595,35 @@
 
   /* ช่วงวันที่เลือกที่หน้า SPC (ช่อง "ตั้งแต่วันที่ / ถึงวันที่") — Export ใช้ช่วงเดียวกับกราฟ ไม่มีกล่องถามอีก */
 
+  /* สรุปคร่าวๆ ก่อนสร้าง PDF — คืน true เมื่อผู้ใช้กดยืนยัน */
+  function periodText(c) {
+    var P = (typeof period !== 'undefined' && period) ? period : null;
+    if (!P || !P.from) return c.month || '';
+    var d = function (s) { return longDate(new Date(s + 'T00:00:00')); };
+    return d(P.from) + ' – ' + d(P.to) + (P.full ? '  (ทั้งเดือน)' : '  (กำหนดเอง)');
+  }
+  async function confirmExport(c) {
+    var N = c.sg.length, pages = Math.max(1, Math.ceil(N / PER_PAGE)), a = c.a || {};
+    var lines = [
+      'Part : ' + (c.part.no ? c.part.no + ' · ' : '') + (c.part.name || ''),
+      'หัวข้อตรวจ : ' + (c.it.no ? 'จุดที่ ' + c.it.no + ' · ' : '') + c.it.label + (c.it.unit ? ' (' + c.it.unit + ')' : ''),
+      'ช่วงข้อมูล : ' + periodText(c),
+      'จำนวนข้อมูล : ' + N + ' ชุด (กลุ่มละ ' + c.n + ' ชิ้น) · ' + pages + ' หน้า',
+      'ผลสรุป : Cpk ' + (num(a.cpk) ? n2(a.cpk) : '—') + ' · นอกเส้นควบคุม ' + (a.nOoc || 0) + ' · NG ' + (a.nOos || 0),
+      'รูปแบบไฟล์ : PDF ขนาด A3 แนวนอน (ฟอร์ม QA4-2-026)'
+    ];
+    return FCDialog.confirm(lines.join('\n'), { title: 'ยืนยันการสร้าง PDF', icon: '📄', okLabel: 'สร้าง PDF', cancelLabel: 'ยกเลิก' });
+  }
+
   var busy = false;
   async function exportPDF() {
     if (busy) return;
     var c = getCtx();
     if (!c) { await FCDialog.alert('ยังไม่มีกราฟให้ Export — เลือก Part Number / เดือน / หัวข้อตรวจ ที่มีข้อมูลก่อนนะคะ'); return; }
+    busy = true;                                   /* กันกดซ้ำระหว่างที่ popup เปิดอยู่ */
+    var ok = false;
+    try { ok = await confirmExport(c); } catch (e) { console.error('spc-export confirm:', e); ok = true; } finally { busy = false; }
+    if (!ok) return;
     var btn = byId('btn-pdf'), lab = btn && btn.querySelector('span:last-child'), orig = lab ? lab.textContent : '';
     busy = true; if (btn) { btn.disabled = true; btn.classList.add('pdf-busy'); }
     var setLab = function (t) { if (lab) lab.textContent = t; };
