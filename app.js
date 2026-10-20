@@ -5903,7 +5903,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     } else if (autosavedCount && downloadedCount) {
       toast(`✅ Export PDF ครบ ${recs.length} ไฟล์ — บันทึกลงโฟลเดอร์ ${autosavedCount} ไฟล์ / ดาวน์โหลดปกติ ${downloadedCount} ไฟล์`, 'ok');
     } else if (autosavedCount) {
-      toast(`✅ Export PDF ครบ ${recs.length} ไฟล์ → บันทึกลงโฟลเดอร์ "📁 ${autosaveDirHandle.name}" ทั้งหมด (แยก subfolder ตามชื่อ Model)`, 'ok');
+      toast(`✅ Export PDF ครบ ${recs.length} ไฟล์ → บันทึกลงโฟลเดอร์ "📁 ${autosaveDirHandle.name}" ทั้งหมด (แยก subfolder ตามชื่อ Line)`, 'ok');
     } else {
       toast(`✅ Export PDF ครบ ${recs.length} ไฟล์ (ดาวน์โหลดไปที่ Downloads ตามปกติ)`, 'ok');
     }
@@ -6484,7 +6484,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
 
   /* ══════════════════════════════════════
      PDF AUTO-SAVE TO LOCAL FOLDER (File System Access API)
-     — เลือกโฟลเดอร์หลักครั้งเดียว ระบบจะสร้าง subfolder ตามชื่อ Model
+     — เลือกโฟลเดอร์หลักครั้งเดียว ระบบจะสร้าง subfolder ตามชื่อ Line
        ให้อัตโนมัติ (เช่น เลือก Part ของ Model "Beam" → เซฟลง .../Beam/)
        แล้วเซฟไฟล์ PDF ลงไปโดยไม่มี dialog ถามซ้ำอีกในครั้งถัดไป
      — รองรับเฉพาะ Chrome / Edge (Chromium) บนคอมพิวเตอร์เท่านั้น
@@ -6557,7 +6557,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     return (name || '').toString().trim()
       .replace(/[\\/:*?"<>|]/g, '-')
       .replace(/\s+/g, ' ')
-      .slice(0, 80) || 'ไม่ระบุ Model';
+      .slice(0, 80) || 'ไม่ระบุ Line';
   }
   // กันชื่อไฟล์ PDF มีอักขระที่ระบบไฟล์ไม่รับ — สำคัญมากเพราะรหัส Part บางตัวมี "/" อยู่ในตัวเอง
   // (เช่น "7552712620/2640/2660/2680") ถ้าไม่กรองก่อน getFileHandle() ของ File System Access API
@@ -6582,7 +6582,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       autosaveDirHandle = handle;
       await idbSet(AUTOSAVE_KEY, handle);
       updateAutoSaveFolderUI();
-      toast(`✅ ตั้งค่าโฟลเดอร์บันทึก PDF อัตโนมัติแล้ว: "${handle.name}" (PDF จะแยกเก็บเป็น subfolder ตามชื่อ Model)`, 'ok');
+      toast(`✅ ตั้งค่าโฟลเดอร์บันทึก PDF อัตโนมัติแล้ว: "${handle.name}" (PDF จะแยกเก็บเป็น subfolder ตามชื่อ Line)`, 'ok');
     } catch (e) {
       if (e && e.name === 'AbortError') return; // ผู้ใช้กดยกเลิก dialog เฉยๆ
       console.error('chooseAutoSaveFolder error:', e);
@@ -6640,7 +6640,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       statusEl.textContent = '⚠️ ต้องกดยืนยันสิทธิ์อีกครั้ง (browser รีเซ็ตสิทธิ์เมื่อเปิดแท็บ/รีสตาร์ท browser ใหม่)';
       if (btnConfirm) btnConfirm.style.display = 'inline-flex';
     } else {
-      statusEl.textContent = '✅ พร้อมใช้งาน — PDF จะถูกบันทึกลง subfolder ตามชื่อ Model อัตโนมัติ';
+      statusEl.textContent = '✅ พร้อมใช้งาน — PDF จะถูกบันทึกลง subfolder ตามชื่อ Line อัตโนมัติ';
       if (btnConfirm) btnConfirm.style.display = 'none';
     }
   }
@@ -6745,7 +6745,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       }
 
       // ── บันทึกไฟล์: ถ้าตั้งค่าโฟลเดอร์อัตโนมัติไว้ (และได้สิทธิ์) จะเซฟลง subfolder
-      //    ตามชื่อ Model ให้เองแบบเงียบๆ ไม่มี dialog ถาม — ถ้าไม่ได้ตั้งค่า หรือเซฟอัตโนมัติ
+      //    ตามชื่อ Line (deptName; ถ้าไม่มีใช้ชื่อ Model) ให้เองแบบเงียบๆ ไม่มี dialog ถาม — ถ้าไม่ได้ตั้งค่า หรือเซฟอัตโนมัติ
       //    ไม่สำเร็จ (เช่นสิทธิ์หลุด) จะ fallback ไปดาวน์โหลดไฟล์แบบปกติแทน
       let autosaved = false;
       if (autosaveDirHandle) {
@@ -6756,7 +6756,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
           const permitted = opts.skipPermissionCheck ? true : await verifyDirPermission(autosaveDirHandle, true);
           if (permitted) {
             const pdfBlob    = doc.output('blob');
-            const folderUsed = await saveFileToAutosaveFolder(autosaveDirHandle, record.lineName, filename, pdfBlob);
+            const folderUsed = await saveFileToAutosaveFolder(autosaveDirHandle, record.deptName || record.lineName, filename, pdfBlob);
             autosaved = true;
             markPdfSavedLocally(record.id, { method: 'auto', folder: `${autosaveDirHandle.name}/${folderUsed}` });
             if (!opts.silent) toast(`📄 บันทึก PDF อัตโนมัติสำเร็จ → 📁 ${autosaveDirHandle.name}/${folderUsed}/${filename}`, 'ok');
