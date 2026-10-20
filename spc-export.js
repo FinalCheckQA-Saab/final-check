@@ -55,7 +55,7 @@
     return t;
   }
   function chartSVG(o) {
-    var W = COL_L, H = o.H, mt = 12, mb = o.dates ? 22 : 8, ml = ML, pw = W - ml - 1, cw = pw / PER_PAGE, ph = H - mt - mb;
+    var W = COL_L - 8, H = o.H, mt = 12, mb = o.dates ? 22 : 8, ml = ML, pw = W - ml - 1, cw = pw / PER_PAGE, ph = H - mt - mb;   /* W = ความกว้างด้านในของการ์ด (ตรงกับตารางข้อมูลด้านล่าง) */
     var vals = o.pts.map(function (p) { return p.v; }), all = vals.slice();
     o.lines.forEach(function (l) { if (num(l.v)) all.push(+l.v); });
     var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
@@ -66,16 +66,26 @@
     var FF = 'Arial,Helvetica,sans-serif';
     var s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="display:block">';
     s += '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#fff"/>';
+    s += '<rect x="' + ml + '" y="' + mt + '" width="' + pw + '" height="' + ph + '" fill="#fbfdff"/>';
+    /* แถบพื้นที่ระหว่าง UCL–LCL (โซนควบคุม) */
+    var ucl = null, lcl = null;
+    o.lines.forEach(function (l) { if (!num(l.v)) return; if (l.label === 'UCL') ucl = +l.v; if (l.label === 'LCL') lcl = +l.v; });
+    if (ucl != null) {
+      var yT = Math.max(mt, Math.min(mt + ph, Y(ucl))), yB = lcl != null ? Math.max(mt, Math.min(mt + ph, Y(lcl))) : mt + ph;
+      if (yB > yT) s += '<rect x="' + ml + '" y="' + yT.toFixed(1) + '" width="' + pw + '" height="' + (yB - yT).toFixed(1) + '" fill="#eef5ff"/>';
+    }
+    /* เส้นแนวตั้งบางๆ ตรงกับคอลัมน์ของตารางด้านล่าง */
+    for (var gi = 1; gi < PER_PAGE; gi++) { var gx = (ml + gi * cw).toFixed(1); s += '<line x1="' + gx + '" x2="' + gx + '" y1="' + mt + '" y2="' + (mt + ph) + '" stroke="#e9eef5" stroke-width="1"/>'; }
     niceTicks(lo, hi, 5).forEach(function (t) {
       var y = Y(t).toFixed(1);
-      s += '<line x1="' + (ml - 3) + '" x2="' + ml + '" y1="' + y + '" y2="' + y + '" stroke="#000" stroke-width="1"/>';
-      s += '<text x="' + (ml - 5) + '" y="' + (+y + 3) + '" text-anchor="end" font-size="8.5" fill="#777" font-family="' + FF + '">' + f3(t) + '</text>';
+      s += '<line x1="' + ml + '" x2="' + (W - 1) + '" y1="' + y + '" y2="' + y + '" stroke="#e2e8f0" stroke-width="1"/>';
+      s += '<text x="' + (ml - 6) + '" y="' + (+y + 3) + '" text-anchor="end" font-size="8.5" fill="#64748b" font-family="' + FF + '">' + f3(t) + '</text>';
     });
-    s += '<rect x="' + ml + '" y="' + mt + '" width="' + pw + '" height="' + ph + '" fill="none" stroke="#000" stroke-width="1"/>';
+    s += '<rect x="' + ml + '" y="' + mt + '" width="' + pw + '" height="' + ph + '" fill="none" stroke="#94a3b8" stroke-width="1"/>';
     if (o.dates) o.pts.forEach(function (p, i) {
       var x = X(i).toFixed(1);
-      s += '<line x1="' + x + '" x2="' + x + '" y1="' + (H - mb) + '" y2="' + (H - mb + 3) + '" stroke="#000" stroke-width="1"/>';
-      s += '<text x="' + x + '" y="' + (H - mb + 13) + '" text-anchor="middle" font-size="8" font-weight="600" fill="#000" font-family="' + FF + '">' + esc(p.d || '') + '</text>';
+      s += '<line x1="' + x + '" x2="' + x + '" y1="' + (H - mb) + '" y2="' + (H - mb + 3) + '" stroke="#94a3b8" stroke-width="1"/>';
+      s += '<text x="' + x + '" y="' + (H - mb + 13) + '" text-anchor="middle" font-size="8" font-weight="600" fill="#475569" font-family="' + FF + '">' + esc(p.d || '') + '</text>';
     });
     var labs = [];
     o.lines.forEach(function (l) {
@@ -87,12 +97,12 @@
     labs.sort(function (a, b) { return a.y - b.y; });
     for (var k = 1; k < labs.length; k++) if (labs[k].y - labs[k - 1].y < 11) labs[k].y = labs[k - 1].y + 11;
     labs.forEach(function (l) { s += '<text x="2" y="' + (l.y + 3).toFixed(1) + '" font-size="8.5" font-weight="700" fill="' + l.c + '" font-family="' + FF + '">' + esc(l.t) + '</text>'; });
-    if (o.pts.length > 1) s += '<polyline fill="none" stroke="#1f4e9c" stroke-width="1.7" stroke-linejoin="round" points="' + o.pts.map(function (p, i) { return X(i).toFixed(1) + ',' + Y(p.v).toFixed(1); }).join(' ') + '"/>';
+    if (o.pts.length > 1) s += '<polyline fill="none" stroke="#1d4ed8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="' + o.pts.map(function (p, i) { return X(i).toFixed(1) + ',' + Y(p.v).toFixed(1); }).join(' ') + '"/>';
     o.pts.forEach(function (p, i) {
       var x = X(i), y = Y(p.v);
-      if (p.oos) s += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="7" fill="none" stroke="#d00000" stroke-width="1.5"/>';
-      if (p.ooc) s += '<polygon points="' + [x + ',' + (y - 6), (x + 5.5) + ',' + (y + 4.5), (x - 5.5) + ',' + (y + 4.5)].map(function (q) { return q; }).join(' ') + '" fill="#d00000"/>';
-      else s += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="3.2" fill="#1f4e9c" stroke="#fff" stroke-width="1"/>';
+      if (p.oos) s += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="7.5" fill="none" stroke="#dc2626" stroke-width="1.6"/>';
+      if (p.ooc) s += '<polygon points="' + [x + ',' + (y - 6.5), (x + 6) + ',' + (y + 5), (x - 6) + ',' + (y + 5)].join(' ') + '" fill="#dc2626" stroke="#fff" stroke-width="1"/>';
+      else s += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="3.6" fill="#fff" stroke="#1d4ed8" stroke-width="2"/>';
     });
     return s + '</svg>';
   }
@@ -100,19 +110,20 @@
   /* ภาพตัวอย่างลักษณะกราฟที่ผิดปกติ (แผงขวาของฟอร์ม) */
   function patSVG(ys, redIdx) {
     var s = '<svg xmlns="http://www.w3.org/2000/svg" width="246" height="66" viewBox="0 0 246 66" style="display:block">';
+    s += '<rect x="0" y="10" width="246" height="46" fill="#eef5ff"/>';
     [[10, 'UCL'], [33, 'CL'], [56, 'LCL']].forEach(function (L) {
-      s += '<line x1="0" x2="246" y1="' + L[0] + '" y2="' + L[0] + '" stroke="' + (L[1] === 'CL' ? '#2f8f4e' : '#d00000') + '" stroke-width="1" stroke-dasharray="' + (L[1] === 'CL' ? '5 3' : '0') + '"/>';
+      s += '<line x1="0" x2="246" y1="' + L[0] + '" y2="' + L[0] + '" stroke="' + (L[1] === 'CL' ? '#16a34a' : '#dc2626') + '" stroke-width="1" stroke-dasharray="' + (L[1] === 'CL' ? '0' : '4 3') + '"/>';
     });
     var dx = 230 / (ys.length - 1);
-    s += '<polyline fill="none" stroke="#1f4e9c" stroke-width="1.4" points="' + ys.map(function (y, i) { return (8 + i * dx).toFixed(1) + ',' + y; }).join(' ') + '"/>';
-    ys.forEach(function (y, i) { s += '<circle cx="' + (8 + i * dx).toFixed(1) + '" cy="' + y + '" r="2.6" fill="' + (redIdx.indexOf(i) >= 0 ? '#d00000' : '#1f4e9c') + '"/>'; });
+    s += '<polyline fill="none" stroke="#1d4ed8" stroke-width="1.5" stroke-linejoin="round" points="' + ys.map(function (y, i) { return (8 + i * dx).toFixed(1) + ',' + y; }).join(' ') + '"/>';
+    ys.forEach(function (y, i) { s += '<circle cx="' + (8 + i * dx).toFixed(1) + '" cy="' + y + '" r="2.7" fill="' + (redIdx.indexOf(i) >= 0 ? '#dc2626' : '#1d4ed8') + '"/>'; });
     return s + '</svg>';
   }
   function sineYs() { var a = []; for (var i = 0; i < 16; i++) a.push(Math.round(33 + 17 * Math.sin(i * Math.PI / 3.2))); return a; }
 
   /* ───────── HTML ของฟอร์ม 1 หน้า ───────── */
-  var CHK_SVG = '<svg viewBox="0 0 16 16" width="14" height="14"><path d="M2.5 8.5l3.5 3.5 7.5-8" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  function chk(on) { return '<span class="cb">' + (on ? CHK_SVG : '') + '</span>'; }
+  var CHK_SVG = '<svg viewBox="0 0 16 16" width="14" height="14"><path d="M2.5 8.5l3.5 3.5 7.5-8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function chk(on, k) { return '<span class="cb' + (on ? ' on ' + (k || '') : '') + '">' + (on ? CHK_SVG : '') + '</span>'; }
   function shortDate(t) { return t.getDate() + '/' + (t.getMonth() + 1); }
   function longDate(t) { return t.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }); }
 
@@ -139,32 +150,34 @@
     var sx = a.sigma, cpu = num(mx) && sx > 0 ? (mx - a.xbb) / (3 * sx) : null, cpl = num(mn) && sx > 0 ? (a.xbb - mn) / (3 * sx) : null;
     var cpk = a.cpk, cp = a.cp;
     var judge = cpk == null ? -1 : cpk >= 1.33 ? 0 : cpk >= 1.0 ? 1 : 2;
+    var judgeCls = judge === 0 ? ' ok' : judge === 1 ? ' warn' : judge === 2 ? ' bad' : '';   /* สีกล่องค่า Cpk ตามผลประเมิน */
 
     /* ── กราฟ ── */
     var offs = pi * PER_PAGE;
     var xPts = sg.map(function (g) { return { v: g.mean, d: shortDate(g.t), ooc: !!g.oocX, oos: !!g.oos }; });
     var rPts = sg.map(function (g) { return { v: g.range, d: shortDate(g.t), ooc: !!g.oocR }; });
     var xLines = [
-      { v: hasLim ? a.uclX : null, label: 'UCL', color: '#d00000', w: 1.5 },
-      { v: a.xbb, label: 'X̿', color: '#2f8f4e', dash: '6 4', w: 1.3 },
-      { v: hasLim ? a.lclX : null, label: 'LCL', color: '#d00000', w: 1.5 }
+      { v: hasLim ? a.uclX : null, label: 'UCL', color: '#dc2626', dash: '6 4', w: 1.5 },
+      { v: a.xbb, label: 'X̿', color: '#16a34a', w: 1.5 },
+      { v: hasLim ? a.lclX : null, label: 'LCL', color: '#dc2626', dash: '6 4', w: 1.5 }
     ];
     var rLines = [
-      { v: hasLim ? a.uclR : null, label: 'UCL', color: '#d00000', w: 1.5 },
-      { v: a.rbar, label: 'R̄', color: '#2f8f4e', dash: '6 4', w: 1.3 }
+      { v: hasLim ? a.uclR : null, label: 'UCL', color: '#dc2626', dash: '6 4', w: 1.5 },
+      { v: a.rbar, label: 'R̄', color: '#16a34a', w: 1.5 }
     ];
-    if (hasLim && a.lclR > 0) rLines.push({ v: a.lclR, label: 'LCL', color: '#d00000', w: 1.5 });
-    var svgX = chartSVG({ H: 250, dates: true, pts: xPts, lines: xLines });
-    var svgR = chartSVG({ H: 190, dates: true, pts: rPts, lines: rLines, floor0: true });
+    if (hasLim && a.lclR > 0) rLines.push({ v: a.lclR, label: 'LCL', color: '#dc2626', dash: '6 4', w: 1.5 });
+    var svgX = chartSVG({ H: 244, dates: true, pts: xPts, lines: xLines });
+    var svgR = chartSVG({ H: 188, dates: true, pts: rPts, lines: rLines, floor0: true });
 
     /* ── ตารางข้อมูล ── */
     var cells = function (fn) { var s = ''; for (var i = 0; i < PER_PAGE; i++) s += fn(sg[i], i); return s; };
     var piecesN = 3; sgAll.forEach(function (g) { if (g.vals.length > piecesN) piecesN = g.vals.length; }); if (piecesN > 5) piecesN = 5;
+    var RH = piecesN <= 3 ? 16 : Math.floor(114 / (piecesN + 4));   /* ความสูงแถว (px) — n=3 เท่าเดิม */
     var rowsHTML = '';
     rowsHTML += '<tr class="r-date"><th colspan="2" class="lab y">DATE</th>' + cells(function (g) { return '<td class="sm">' + (g ? shortDate(g.t) : '') + '</td>'; }) + '</tr>';
     rowsHTML += '<tr class="r-shift"><th colspan="2" class="lab y">SHIFT</th>' + cells(function (g) { return '<td class="sm">' + (g ? esc(String(g.r.shift || '').slice(0, 4)) : '') + '</td>'; }) + '</tr>';
     for (var r = 0; r < piecesN; r++) {
-      rowsHTML += '<tr>' + (r === 0 ? '<th rowspan="' + (piecesN + 2) + '" class="lab y vt"><svg width="16" height="' + ((piecesN + 2) * 17) + '" viewBox="0 0 16 ' + ((piecesN + 2) * 17) + '"><text transform="translate(11.5,' + ((piecesN + 2) * 17 / 2) + ') rotate(-90)" text-anchor="middle" font-size="8.5" font-weight="700" font-family="Arial,Helvetica,sans-serif">MEASUREMENT</text></svg></th>' : '') +
+      rowsHTML += '<tr>' + (r === 0 ? '<th rowspan="' + (piecesN + 2) + '" class="lab y vt"><svg width="16" height="' + ((piecesN + 2) * RH) + '" viewBox="0 0 16 ' + ((piecesN + 2) * RH) + '"><text transform="translate(11.5,' + ((piecesN + 2) * RH / 2) + ') rotate(-90)" text-anchor="middle" font-size="8.5" font-weight="700" fill="#16324f" font-family="Arial,Helvetica,sans-serif">MEASUREMENT</text></svg></th>' : '') +
         '<th class="lab y no">' + (r + 1) + '</th>' + cells(function (g) {
           if (!g) return '<td></td>';
           var v = g.vals[r], bad = v != null && ((hasMin && v < mn) || (hasMax && v > mx));
@@ -249,12 +262,12 @@
         '<div class="fr"><span class="fk">Sx =</span> ' + RB + ' / d<sub>2</sub> = ' + n3(a.rbar) + ' / ' + (K_.d2 == null ? '—' : K_.d2) + ' = <span class="fb">' + (num(sx) ? n3(sx) : '—') + '</span></div>' +
         '<div class="fr"><span class="fk">Cp =</span> (USL − LSL) / 6Sx = <span class="fb y">' + n2(cp) + '</span></div>' +
         '<div class="fr"><span class="fk">Cpk =</span> min[ (USL − ' + XBB + ') / 3Sx , (' + XBB + ' − LSL) / 3Sx ]</div>' +
-        '<div class="fr"><span class="fk">Cpk =</span> min( ' + n2(cpu) + ' , ' + n2(cpl) + ' ) = <span class="fb y">' + n2(cpk) + '</span></div>' +
+        '<div class="fr"><span class="fk">Cpk =</span> min( ' + n2(cpu) + ' , ' + n2(cpl) + ' ) = <span class="fb y' + judgeCls + '">' + n2(cpk) + '</span></div>' +
       '</div>' +
       '<div class="box judge"><b>JUDGEMENT :</b>' +
-        '<div class="jr">' + chk(judge === 0) + '<span>ACCEPTED</span></div>' +
-        '<div class="jr">' + chk(judge === 1) + '<span>ACCEPTED WITH CONDITION</span></div>' +
-        '<div class="jr">' + chk(judge === 2) + '<span>NEED IMPROVED</span></div>' +
+        '<div class="jr' + (judge === 0 ? ' on' : '') + '">' + chk(judge === 0, 'ok') + '<span>ACCEPTED</span></div>' +
+        '<div class="jr' + (judge === 1 ? ' on' : '') + '">' + chk(judge === 1, 'warn') + '<span>ACCEPTED WITH CONDITION</span></div>' +
+        '<div class="jr' + (judge === 2 ? ' on' : '') + '">' + chk(judge === 2, 'bad') + '<span>NEED IMPROVED</span></div>' +
       '</div>' +
     '</div>';
 
@@ -268,7 +281,7 @@
     '</div>';
 
     /* ตารางข้อมูล */
-    h += '<div class="data box"><table class="dt">' + colgroup + rowsHTML + '</table></div>';
+    h += '<div class="data box"><table class="dt" style="--rh:' + RH + 'px">' + colgroup + rowsHTML + '</table></div>';
 
     /* เกณฑ์มาตรฐาน */
     h += '<div class="crit box"><div class="bar">STANDARD CRITERIA FOR PROCESS CAPABILITY</div><table class="ct">' +
@@ -300,69 +313,79 @@
   var CSS = [
     '@page{size:A3 landscape;margin:0}',
     '*{box-sizing:border-box}',
-    'html,body{margin:0;padding:0;background:#fff}',
-    'body{font-family:"Noto Sans Thai",Tahoma,Arial,sans-serif;color:#000;font-size:11px;line-height:1.3;-webkit-print-color-adjust:exact;print-color-adjust:exact}',
-    '.pg{width:' + PG_W + 'px;height:' + PG_H + 'px;padding:14px;background:#fff;overflow:hidden;page-break-after:always;break-after:page}',
+    'html,body{margin:0;padding:0;background:#eef2f7}',
+    'body{font-family:Inter,"Noto Sans Thai",Tahoma,Arial,sans-serif;color:#0f172a;font-size:11px;line-height:1.3;-webkit-print-color-adjust:exact;print-color-adjust:exact}',
+    '.pg{width:' + PG_W + 'px;height:' + PG_H + 'px;padding:11px;background:#eef2f7;overflow:hidden;page-break-after:always;break-after:page}',
     '.pg:last-child{page-break-after:auto;break-after:auto}',
-    '.grid{width:100%;height:100%;display:grid;grid-template-columns:' + COL_L + 'px 293px 1fr;grid-template-rows:118px 476px 128px 172px 1fr;gap:0}',
-    '.box{border:1px solid #000;margin:-.5px;position:relative;overflow:hidden}',
+    '.grid{width:100%;height:100%;display:grid;grid-template-columns:' + COL_L + 'px 305px 1fr;grid-template-rows:118px 476px 128px 172px 1fr;gap:0}',
+    '.box{border:1px solid #d3dbe7;border-radius:10px;margin:3px;position:relative;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.07)}',
     /* หัว */
     '.hd{grid-column:1/3;grid-row:1;display:flex}',
-    '.logo{width:104px;flex:none;border-right:1px solid #000;display:flex;align-items:center;justify-content:center;padding:6px}.logo img{max-width:100%;max-height:100%;display:block}',
+    '.hd:before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:linear-gradient(90deg,#16324f,#2563eb)}',
+    '.logo{width:104px;flex:none;border-right:1px solid #e3e9f1;display:flex;align-items:center;justify-content:center;padding:10px 6px 6px}.logo img{max-width:100%;max-height:100%;display:block}',
     '.hmain{flex:1;min-width:0;display:flex;flex-direction:column}',
-    '.co{text-align:center;font-weight:700;font-size:19px;padding-top:5px}',
-    '.ttl{text-align:center;font-weight:700;font-size:17px;padding:2px 0 5px}',
+    '.co{text-align:center;font-weight:600;font-size:13.5px;color:#475569;padding-top:9px;letter-spacing:.01em}',
+    '.ttl{text-align:center;font-weight:700;font-size:20px;color:#16324f;padding:1px 0 4px;letter-spacing:.01em}',
     'table{border-collapse:collapse}',
-    '.info{width:100%;margin-top:auto;border-top:1px solid #000;table-layout:auto}',
-    '.info td{border:1px solid #000;padding:2px 6px;height:26px;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}',
-    '.info td.k{font-weight:700;background:#f4f4f4;width:1%}.info td.k.r{text-align:right}.info td.v{font-weight:600}',
-    '.doc{grid-column:3;grid-row:1}.doc table{width:100%;height:100%}.doc td{border:1px solid #000;padding:2px 6px;font-size:11px;vertical-align:middle}',
-    '.doc td.c{text-align:center}.doc td.b{font-weight:700}.doc td.big{font-size:22px;font-weight:700;width:58px}.doc td.sm{font-size:10px}.doc td.insp{font-size:10.5px}',
+    '.info{width:100%;margin-top:auto;border-top:1px solid #e3e9f1;table-layout:auto}',
+    '.info td{border:1px solid #e3e9f1;padding:2px 7px;height:24px;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}',
+    '.info tr:first-child td{border-top:0}.info tr:last-child td{border-bottom:0}.info td:first-child{border-left:0}.info td:last-child{border-right:0}',
+    '.info td.k{font-weight:600;font-size:10px;letter-spacing:.03em;color:#475569;background:#f1f5f9;width:1%}.info td.k.r{text-align:right}.info td.v{font-weight:700;color:#0f172a}',
+    '.doc{grid-column:3;grid-row:1}.doc table{width:100%;height:100%}.doc td{border:1px solid #e3e9f1;padding:2px 6px;font-size:11px;vertical-align:middle;color:#334155}',
+    '.doc tr:first-child td{border-top:0}.doc tr:last-child td{border-bottom:0}.doc td:first-child{border-left:0}.doc td:last-child{border-right:0}',
+    '.doc td.c{text-align:center}.doc td.b{font-weight:700;color:#16324f}.doc td.big{font-size:22px;font-weight:700;width:58px}.doc td.sm{font-size:10px}.doc td.insp{font-size:10.5px}.doc td b{color:#0f172a}',
     /* กราฟ */
     '.charts{grid-column:1;grid-row:2}',
-    '.cap{height:18px;line-height:18px;padding:0 8px;font-weight:700;font-size:11px;background:#eaf2fb;border-bottom:1px solid #000;border-top:1px solid #000}.charts .cap:first-child{border-top:0}',
-    '.ov{display:inline-block;border-top:1.3px solid #000;line-height:.95;padding-top:0}',
-    '.ov2{display:inline-block;border-top:3.4px double #000;line-height:.8;padding-top:1px}',
+    '.cap{height:18px;line-height:18px;padding:0 10px;font-weight:700;font-size:10.5px;letter-spacing:.06em;color:#16324f;background:#f1f5f9;border-left:3px solid #2563eb;border-bottom:1px solid #e3e9f1;border-top:1px solid #e3e9f1}.charts .cap:first-child{border-top:0}',
+    '.ov{display:inline-block;border-top:1.3px solid currentColor;line-height:.95;padding-top:0}',
+    '.ov2{display:inline-block;border-top:3.4px double currentColor;line-height:.8;padding-top:1px}',
     /* ตารางข้อมูล */
     '.data{grid-column:1;grid-row:3}',
     '.dt{width:100%;table-layout:fixed}',
-    '.dt td,.dt th{border:1px solid #000;height:17.2px;padding:0;text-align:center;font-size:9px;white-space:nowrap;overflow:hidden;letter-spacing:-.25px}',
-    '.dt th.lab{font-size:10px;font-weight:700;letter-spacing:0}.dt .y{background:#ffff99}.dt .no{font-size:10px}.dt .vt{padding:0}',
-    '.dt td.sm{font-size:8.2px}.dt td.b{font-weight:700}.dt td.ng{color:#d00000;font-weight:700}',
+    '.dt td,.dt th{border:1px solid #e3e9f1;height:var(--rh,17px);padding:0;text-align:center;font-size:9px;white-space:nowrap;overflow:hidden;letter-spacing:-.25px;font-variant-numeric:tabular-nums}',
+    '.dt tr:first-child td,.dt tr:first-child th{border-top:0}.dt tr:last-child td,.dt tr:last-child th{border-bottom:0}.dt th:first-child{border-left:0}.dt td:last-child{border-right:0}',
+    '.dt th.lab{font-size:10px;font-weight:700;letter-spacing:.02em;color:#16324f}.dt .y{background:#e8eef7}.dt .no{font-size:10px}.dt .vt{padding:0}',
+    '.dt tr.r-date td,.dt tr.r-shift td{color:#64748b}',
+    '.dt td.sm{font-size:8.2px}.dt td.b{font-weight:700;background:#f8fafc}.dt td.ng{color:#b91c1c;font-weight:700;background:#fee2e2}',
     /* เกณฑ์ */
     '.crit{grid-column:1;grid-row:4;display:flex;flex-direction:column}',
-    '.bar{background:#99ccff;font-weight:700;text-align:center;padding:2px 0;border-bottom:1px solid #000;font-size:12px}.bar.sm{font-size:11px}',
-    '.ct{width:100%;flex:1;table-layout:fixed}.ct th{font-size:10.5px;font-weight:700;border:1px solid #000;padding:2px;background:#e6e6e6}',
-    '.ct td{border:1px solid #000;padding:3px 8px;font-size:9.5px;line-height:1.35}.ct td.k{text-align:center;font-weight:700;font-size:15px}',
+    '.bar{background:#16324f;color:#fff;font-weight:700;text-align:center;padding:4px 0;font-size:11.5px;letter-spacing:.08em}.bar.sm{font-size:11px;letter-spacing:.04em}',
+    '.ct{width:100%;flex:1;table-layout:fixed}.ct th{font-size:10px;font-weight:700;border:1px solid #e3e9f1;padding:3px;background:#f1f5f9;color:#334155;letter-spacing:.03em}',
+    '.ct td{border:1px solid #e3e9f1;padding:3px 10px;font-size:9.5px;line-height:1.4;color:#334155}.ct td.k{text-align:center;font-weight:700;font-size:15px}',
+    '.ct th:first-child,.ct td:first-child{border-left:0}.ct th:last-child,.ct td:last-child{border-right:0}.ct tr:last-child td{border-bottom:0}',
+    '.ct tr:nth-child(2) td.k{color:#15803d;background:#ecfdf5}.ct tr:nth-child(3) td.k{color:#b45309;background:#fffbeb}.ct tr:nth-child(4) td.k{color:#b91c1c;background:#fef2f2}',
     /* กลาง */
     '.mid{grid-column:2;grid-row:2/5;display:flex;flex-direction:column}',
-    '.sketch{height:196px;padding:6px 8px;display:flex;flex-direction:column}.sketch .skw{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding-top:4px}.sketch svg{width:100%;height:100%;display:block}.u{text-decoration:underline;font-size:12px}',
-    '.konst{height:118px;padding:6px 8px;display:flex;flex-direction:column}',
-    '.kt{width:100%}.kt th,.kt td{border:1px solid #000;text-align:center;padding:1px 2px;font-size:11px;height:19px}.kt th{background:#fff;font-weight:700}.kt .cy{background:#ccffff}.kt .b{font-weight:700}.kt .hl{background:#ffe38a;font-weight:700}',
+    '.sketch{height:196px;padding:8px 10px;display:flex;flex-direction:column}.sketch .skw{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding-top:4px}.sketch svg{width:100%;height:100%;display:block}',
+    '.u{text-decoration:none;font-size:10.5px;letter-spacing:.08em;color:#16324f;border-left:3px solid #2563eb;padding-left:6px;align-self:flex-start}',
+    '.konst{height:118px;padding:5px 8px;display:flex;flex-direction:column}',
+    '.kt{width:100%}.kt th,.kt td{border:1px solid #e3e9f1;text-align:center;padding:1px 2px;font-size:11px;height:17px}.kt th{background:#fff;font-weight:700;color:#16324f}.kt .cy{background:#e0f2fe;color:#075985}.kt .b{font-weight:700}.kt .hl{background:#2563eb;color:#fff;font-weight:700}',
     '.kt sub,.formula sub{font-size:.7em;vertical-align:baseline;position:relative;top:.25em}',
-    '.kn{font-size:9.5px;color:#444;margin-top:3px;text-align:right}',
-    '.formula{flex:1;padding:6px 10px;font-size:11.5px;display:flex;flex-direction:column;justify-content:space-around}',
-    '.fr{display:flex;align-items:center;gap:4px;white-space:nowrap}.fr.two{gap:12px}.fr.two>div{flex:1}',
-    '.fk{font-weight:700}.fb{display:inline-block;min-width:44px;text-align:center;border:1px solid #000;padding:0 4px;font-weight:700;background:#fff}.fb.y{background:#ffff99}.fn{font-size:10px;color:#444;margin-left:4px}',
-    '.judge{height:156px;padding:6px 10px}.judge b{font-size:12px}.jr{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:700;font-size:11px}',
-    '.cb{width:18px;height:18px;border:1.5px solid #000;display:inline-flex;align-items:center;justify-content:center;flex:none;background:#fff}',
+    '.kn{font-size:9.5px;color:#64748b;margin-top:3px;text-align:right}',
+    '.formula{flex:1;padding:6px 10px;font-size:11.5px;color:#334155;display:flex;flex-direction:column;justify-content:space-around}',
+    '.fr{display:flex;align-items:center;gap:4px;white-space:nowrap}.fr.two{gap:8px}.fr.two>div{flex:1}',
+    '.fk{font-weight:700;color:#16324f}.fb{display:inline-block;min-width:46px;text-align:center;border:1px solid #cbd5e1;border-radius:6px;padding:0 5px;font-weight:700;background:#f8fafc;color:#0f172a}.fb.y{background:#e0ecff;border-color:#2563eb;color:#1e3a8a}.fb.ok{background:#dcfce7;border-color:#16a34a;color:#166534}.fb.warn{background:#fef3c7;border-color:#d97706;color:#92400e}.fb.bad{background:#fee2e2;border-color:#dc2626;color:#991b1b}.fn{font-size:10px;color:#64748b;margin-left:4px}',
+    '.judge{height:156px;padding:8px 12px}.judge b{font-size:10.5px;letter-spacing:.08em;color:#16324f}.jr{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:600;font-size:11px;color:#475569}.jr.on{color:#0f172a;font-weight:700}',
+    '.cb{width:18px;height:18px;border:1.5px solid #94a3b8;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;flex:none;background:#fff}.cb.on{border-color:transparent}.cb.ok{background:#16a34a}.cb.warn{background:#d97706}.cb.bad{background:#dc2626}',
     /* ขวา */
-    '.right{grid-column:3;grid-row:2/6;padding:6px 8px}.rt{text-align:center;font-weight:700;font-size:13px;text-decoration:underline;padding:2px 0 8px}',
-    '.pat{margin-bottom:10px}.ph{font-weight:700;font-size:11.5px;margin-bottom:3px}.ph .en{font-weight:600;font-size:10.5px}.pat svg{border:1px solid #bbb;margin:2px 0 4px}.pb{font-size:10.5px;line-height:1.5}',
+    '.right{grid-column:3;grid-row:2/6;padding:8px 10px}.rt{text-align:center;font-weight:700;font-size:12.5px;letter-spacing:.02em;color:#16324f;padding:2px 0 8px}',
+    '.pat{margin-bottom:8px;padding:6px 8px;border:1px solid #e3e9f1;border-radius:8px;background:#fafcff}.ph{font-weight:700;font-size:11.5px;margin-bottom:3px;color:#16324f}.ph .en{font-weight:600;font-size:10.5px;color:#64748b}.pat svg{border:1px solid #e3e9f1;border-radius:6px;margin:2px 0 4px}.pb{font-size:10.5px;line-height:1.5;color:#475569}',
     /* ล่าง */
-    '.how{grid-column:1;grid-row:5;width:384px;padding:6px 10px;font-size:10.5px}.how b{font-size:11.5px}.how ul{margin:4px 0 8px;padding-left:34px}.how li{margin:1px 0}.nt{padding:2px 0 0 28px}',
-    '.log{grid-column:1;grid-row:5;margin-left:384px;display:flex;flex-direction:column}',
-    '.lt{width:100%;table-layout:fixed;flex:1}.lt th{font-size:10.5px;background:#e6e6e6;border:1px solid #000;padding:2px}.lt td{border:1px solid #000;height:22px;padding:0 6px;font-size:9.5px}.lt td.l{color:#b00000;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-    '.note2{border-top:1px solid #000;padding:3px 10px;font-size:11px}.note2 span{color:#b00000;font-weight:700;margin-left:10px}',
-    '.appr{grid-column:2;grid-row:5}.ra{text-align:center;font-weight:700;font-size:12px;padding:5px 0}.at{width:100%;height:calc(100% - 28px)}',
-    '.at th{border:1px solid #000;font-size:11px;padding:3px;background:#f4f4f4}.at td{border:1px solid #000;text-align:center;font-size:11px}.at tr.sg td{height:80px}.at td.sgc{vertical-align:bottom;padding:2px 3px 4px}.at .nm{font-size:10px;font-weight:700;line-height:1.25;word-break:break-word}'
+    '.how{grid-column:1;grid-row:5;width:384px;padding:8px 12px;font-size:10.5px;color:#334155}.how b{font-size:11.5px;color:#16324f}.how ul{margin:4px 0 8px;padding-left:34px}.how li{margin:1px 0}.nt{padding:2px 0 0 28px}',
+    '.log{grid-column:1;grid-row:5;margin-left:393px;display:flex;flex-direction:column}',
+    '.lt{width:100%;table-layout:fixed;flex:1}.lt th{font-size:10.5px;background:#f1f5f9;color:#334155;border:1px solid #e3e9f1;padding:2px}.lt td{border:1px solid #e3e9f1;height:22px;padding:0 6px;font-size:9.5px}.lt td.l{color:#b91c1c;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.lt th:first-child,.lt td:first-child{border-left:0}.lt th:last-child,.lt td:last-child{border-right:0}',
+    '.note2{border-top:1px solid #e3e9f1;padding:3px 10px;font-size:11px;background:#fafcff;color:#334155}.note2 span{color:#b91c1c;font-weight:700;margin-left:10px}',
+    '.appr{grid-column:2;grid-row:5}.ra{height:28px;line-height:18px;text-align:center;font-weight:700;font-size:11.5px;padding:5px 0;background:#16324f;color:#fff;letter-spacing:.08em}.at{width:100%;height:calc(100% - 28px)}',
+    '.at th{border:1px solid #e3e9f1;font-size:10.5px;padding:3px;background:#f1f5f9;color:#334155;letter-spacing:.05em}.at td{border:1px solid #e3e9f1;text-align:center;font-size:11px}.at tr.dd td{color:#475569;font-size:10.5px}.at tr.sg td{height:80px}.at td.sgc{vertical-align:bottom;padding:2px 3px 4px}.at .nm{font-size:10px;font-weight:700;line-height:1.25;word-break:break-word;color:#0f172a}',
+    '.at th:first-child,.at td:first-child{border-left:0}.at th:last-child,.at td:last-child{border-right:0}.at tr:last-child td{border-bottom:0}'
   ].join('\n');
 
   function buildDoc(c) {
     var pages = Math.max(1, Math.ceil(c.sg.length / PER_PAGE)), body = '';
     for (var i = 0; i < pages; i++) body += pageHTML(c, i, pages);
     return { pages: pages, html: '<!doctype html><html lang="th"><head><meta charset="utf-8"><title>SPC</title>' +
-      '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' +
+      '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' +
       '<style>' + CSS + '</style></head><body>' + body + '</body></html>' };
   }
 
@@ -391,7 +414,7 @@
       fr.style.cssText = 'position:fixed;left:-30000px;top:0;width:' + PG_W + 'px;height:' + PG_H + 'px;border:0;opacity:0;pointer-events:none';
       fr.onload = function () {
         var d = fr.contentDocument, ready = d.fonts && d.fonts.load ? Promise.race([
-          Promise.all([d.fonts.load('400 12px "Noto Sans Thai"'), d.fonts.load('700 12px "Noto Sans Thai"')]).then(function () { return d.fonts.ready; }),
+          Promise.all([d.fonts.load('400 12px "Noto Sans Thai"'), d.fonts.load('700 12px "Noto Sans Thai"'), d.fonts.load('400 12px Inter'), d.fonts.load('700 12px Inter')].map(function (pm) { return pm.catch(function () { }); })).then(function () { return d.fonts.ready; }),
           new Promise(function (r) { setTimeout(r, 4500); })
         ]) : Promise.resolve();
         ready.catch(function () { }).then(function () { setTimeout(function () { resolve(fr); }, 120); });
