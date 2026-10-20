@@ -8470,7 +8470,17 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     histSubset.forEach(h => {
       (h.items || []).forEach(it => {
         if (it.status !== 'ng') return;
+        // 🆕 เกณฑ์ + ค่าที่วัดได้จริงของชิ้นที่ NG (S/M/E) — หัวข้อตัวเลข: แสดงค่าที่วัด / หัวข้อ Pass-Fail: แสดงผล "ไม่ปกติ"
+        const isNum = it.type === 'numeric' || (it.min != null && it.max != null);
+        const ngPcs = (it.pieces || []).map((pc, k) => ({ pc, k })).filter(x => x.pc && x.pc.status === 'ng');
+        const measTxt = ngPcs.map(x => {
+          const st = stageLabel(x.k).short;
+          return isNum && x.pc.value != null && x.pc.value !== '' ? `${st}: ${x.pc.value}${it.unit ? ' ' + it.unit : ''}` : (isNum ? st : `${st}: ไม่ปกติ`);
+        }).join(' · ');
         rows.push({
+          specTxt: isNum ? fmtSpec(it) : 'ปกติ',
+          measLabel: isNum ? 'วัดได้' : 'ผลตรวจ',
+          measTxt,
           date: h.date || '',
           time: h.timestamp ? new Date(h.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '',
           ts: h.timestamp || '',
@@ -8561,6 +8571,12 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
 
   // ── รายการ NG ที่พบ "วันนี้" แบบละเอียด (Part ไหน ข้อไหน ใครตรวจ กี่โมง) ──
   // แยกจาก renderNgRanking ซึ่งเป็นสรุปสถิติ NG-checkpoint สะสมตามตัวกรองเดือน/Model ด้านบน
+  // 🆕 บรรทัด "เกณฑ์ / วัดได้" ใต้ชื่อจุดตรวจของรายการ NG
+  function ngMeasureHtml(r) {
+    if (!r || !r.specTxt) return '';
+    return `<div class="ng-today-measure"><span>เกณฑ์ <strong>${escHtml(r.specTxt)}</strong></span>${r.measTxt ? `<span class="ng-meas-val">${escHtml(r.measLabel)} <strong>${escHtml(r.measTxt)}</strong></span>` : ''}</div>`;
+  }
+
   function renderNgToday(allHist) {
     const listEl = $('ng-today-list');
     const countEl = $('ng-today-count');
@@ -8584,6 +8600,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
         <div class="ng-today-body">
           <div class="ng-today-jig">${escHtml(r.jigName)} <span class="ng-today-line">(${escHtml(r.lineName)})</span></div>
           <div class="ng-today-checkpoint">${escHtml(r.label)}${r.value ? ` — <strong>${escHtml(r.value)}</strong>` : ''}</div>
+${ngMeasureHtml(r)}
           ${r.note ? `<div class="ng-today-note">"${escHtml(r.note)}"</div>` : ''}
           ${ngPicSlot(r)}
           <div class="ng-today-inspector">👤 ${escHtml(r.inspector)}</div>
@@ -8606,6 +8623,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
           <div class="ng-today-body">
             <div class="ng-today-jig">${escHtml(r.jigName)} <span class="ng-today-line">(${escHtml(r.lineName)})</span></div>
             <div class="ng-today-checkpoint">${escHtml(r.label)}${r.value ? ` — <strong>${escHtml(r.value)}</strong>` : ''}</div>
+${ngMeasureHtml(r)}
             ${r.note ? `<div class="ng-today-note">"${escHtml(r.note)}"</div>` : ''}
             <div class="ng-today-inspector">👤 ${escHtml(r.inspector)}</div>
           </div>
