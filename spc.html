@@ -336,6 +336,12 @@ button.cnt:hover{background:var(--accent);color:#fff}button.cnt:active{transform
 .stp-v{flex:0 0 auto;display:flex;flex-direction:column;gap:3px;width:38px;height:100%}
 .stp-v .stp-b{flex:1;width:100%;border-radius:9px}
 @media (max-width:820px){.stp.h .stp-b{width:42px;height:42px}.stp-v{width:44px}.stp{height:54px}}
+.rng{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px}
+.rng label{display:flex;flex-direction:column;gap:7px;flex:1 1 170px;max-width:250px;font-size:12.5px;color:var(--muted);font-weight:600}
+.rng input{width:100%;box-sizing:border-box;height:46px;padding:0 14px;border-radius:12px;font:inherit;font-size:14.5px;font-weight:500;color:var(--ink);background:var(--bg);border:1.5px solid var(--border);transition:border-color .18s,box-shadow .18s}
+.rng input:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--border))}
+.rng input:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-dim)}
+@media (max-width:820px){.rng label{max-width:none}}
 .hero{position:relative;overflow:hidden;display:grid;grid-template-columns:1fr 270px;gap:8px 28px;align-items:center;padding:24px 28px 24px 32px;border-radius:20px;margin-bottom:16px;border:1px solid color-mix(in srgb,var(--hc) 45%,var(--border));background:linear-gradient(115deg,var(--hb),var(--card) 72%);box-shadow:var(--sh)}
 .hero::before{content:"";position:absolute;inset:0 auto 0 0;width:6px;background:var(--hc)}
 .s-good{--hc:var(--good);--hb:var(--good-bg)}.s-warn{--hc:var(--amber);--hb:var(--warn-bg)}.s-bad{--hc:var(--bad);--hb:var(--bad-bg)}.s-info{--hc:var(--accent);--hb:var(--accent-dim)}
@@ -558,6 +564,7 @@ html{--tg-hi:color-mix(in srgb,var(--gold) 45%,#fff);--tg-lt:color-mix(in srgb,v
       <label for="f-month"><span class="lbl">เดือน<button type="button" class="cnt" id="btn-now" hidden>เดือนนี้</button></span><div class="stp h"><button type="button" class="stp-b" data-t="f-month" data-d="-1" aria-label="เดือนก่อนหน้า"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><input type="month" id="f-month"><button type="button" class="stp-b" data-t="f-month" data-d="1" aria-label="เดือนถัดไป"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div></label>
       <label for="f-item" class="grow"><span class="lbl">หัวข้อตรวจ (ตัวเลข)<em class="cnt" id="cnt-f-item"></em></span><div class="stp v"><select id="f-item"><option value="">—</option></select><div class="stp-v"><button type="button" class="stp-b" data-t="f-item" data-d="-1" aria-label="หัวข้อก่อนหน้า"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button><button type="button" class="stp-b" data-t="f-item" data-d="1" aria-label="หัวข้อถัดไป"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div></div></label>
     </div>
+    <div class="rng" id="rng"><label for="f-from"><span class="lbl">ตั้งแต่วันที่<button type="button" class="cnt" id="btn-fullmonth" hidden>ทั้งเดือน</button></span><input type="date" id="f-from"></label><label for="f-to"><span class="lbl">ถึงวันที่</span><input type="date" id="f-to"></label></div>
   </div>
   <div id="body"><div class="card msg">เลือก Part Number และเดือน เพื่อดูกราฟ</div></div>
 </main>
@@ -595,6 +602,14 @@ $('btn-theme').onclick=()=>{const n=document.documentElement.getAttribute('data-
 const thisMonth=()=>{const d=new Date(Date.now()-new Date().getTimezoneOffset()*60000);return d.toISOString().slice(0,7)};
 const nextMonth=m=>{let[y,mo]=m.split('-').map(Number);mo++;if(mo>12){mo=1;y++}return y+'-'+String(mo).padStart(2,'0')};
 const thMonth=m=>new Date(m+'-01T00:00:00').toLocaleDateString('th-TH',{month:'long',year:'numeric'});
+// ── ช่วงวันที่ (ค่าเริ่มต้น = ทั้งเดือนที่เลือก) ──
+let period=null; // ช่วงที่โหลดข้อมูลจริงล่าสุด {month,from,to,full} — spc-export.js อ่านค่านี้
+const monthBounds=m=>{const[y,mo]=m.split('-').map(Number);return{from:m+'-01',to:m+'-'+String(new Date(y,mo,0).getDate()).padStart(2,'0')}};
+const rangeIsFull=()=>{const m=$('f-month').value;if(!m)return true;const b=monthBounds(m);return $('f-from').value===b.from&&$('f-to').value===b.to};
+const setFullMonth=()=>{const m=$('f-month').value;const b=m?monthBounds(m):{from:'',to:''};$('f-from').value=b.from;$('f-to').value=b.to};
+const fmtD=d=>new Date(d+'T00:00:00').toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'});
+const periodLabel=()=>!period||period.full?thMonth(period?period.month:$('f-month').value):fmtD(period.from)+' – '+fmtD(period.to);
+const periodWord=()=>!period||period.full?'เดือน':'ช่วง';
 
 async function loadMaster(){
   const [l,j,dp]=await Promise.all([sb.from('lines').select('id,name,dept_id'),sb.from('jigs').select('id,name,line_id'),sb.from('departments').select('id,name')]);
@@ -611,10 +626,12 @@ async function loadData(){
   rows=[];itemsMap=new Map();cur=null;$('warn').innerHTML='';
   if(!part||!month){$('f-item').innerHTML='<option value="">—</option>';$('body').innerHTML='<div class="card msg">เลือก Part Number และเดือน เพื่อดูกราฟ</div>';return}
   $('body').innerHTML='<div class="card msg">กำลังโหลด...</div>';
-  const {data,error}=await sb.from('history').select('id,ts,insp_date,shift,production_order,inspector,items')
-    .eq('jig_id',part).gte('insp_date',month+'-01').lt('insp_date',nextMonth(month)+'-01').order('ts',{ascending:true}).limit(1000);
+  const full=rangeIsFull(),from=$('f-from').value,to=$('f-to').value;
+  let qb=sb.from('history').select('id,ts,insp_date,shift,production_order,inspector,items').eq('jig_id',part);
+  qb=full?qb.gte('insp_date',month+'-01').lt('insp_date',nextMonth(month)+'-01'):qb.gte('insp_date',from).lte('insp_date',to); // ทั้งเดือน = query เดิมทุกอย่าง
+  const {data,error}=await qb.order('ts',{ascending:true}).limit(1000);
   if(error){$('warn').innerHTML='<div class="warn">โหลดข้อมูลไม่สำเร็จ: '+esc(error.message)+'</div>';$('body').innerHTML='';return}
-  rows=data||[];
+  rows=data||[];period={month,from:full?monthBounds(month).from:from,to:full?monthBounds(month).to:to,full};
   // จุดตรวจที่ Admin เลือกให้คิด SPC (Admin Panel > จุดตรวจของ Part) — อ่านสดจากตาราง checkpoints
   let cps=await sb.from('checkpoints').select('item_id,type,spc').eq('jig_id',part),spcCol=true;
   if(cps.error){spcCol=false;cps=await sb.from('checkpoints').select('item_id,type').eq('jig_id',part)} // ยังไม่ได้รัน SQL เพิ่มคอลัมน์ spc
@@ -841,12 +858,12 @@ function draw(){
   const key=$('f-item').value,month=$('f-month').value;
   if(!$('f-part').value||!month)return;
   const body=$('body');
-  if(!rows.length){body.innerHTML='<div class="card msg">ไม่พบข้อมูลการตรวจของ Part นี้ในเดือน '+esc(thMonth(month))+'</div>';return}
+  if(!rows.length){body.innerHTML='<div class="card msg">ไม่พบข้อมูลการตรวจของ Part นี้ใน'+periodWord()+' '+esc(periodLabel())+'</div>';return}
   if(!itemsMap.size&&hiddenAll){body.innerHTML='<div class="card msg">Part นี้ยังไม่ได้เลือกจุดตรวจสำหรับ SPC — ไปที่ Admin Panel › จุดตรวจของ Part แล้วกดปุ่ม <b>SPC</b> ที่หัวข้อตัวเลขที่ต้องการ</div>';return}
-  if(!itemsMap.size){body.innerHTML='<div class="card msg">Part นี้ไม่มีหัวข้อที่ตรวจเป็นตัวเลขในเดือนนี้ — กราฟ UCL/LCL ใช้ได้กับหัวข้อ “กรอกค่าตัวเลข” เท่านั้น</div>';return}
+  if(!itemsMap.size){body.innerHTML='<div class="card msg">Part นี้ไม่มีหัวข้อที่ตรวจเป็นตัวเลขใน'+(periodWord()==='เดือน'?'เดือนนี้':'ช่วงที่เลือก')+' — กราฟ UCL/LCL ใช้ได้กับหัวข้อ “กรอกค่าตัวเลข” เท่านั้น</div>';return}
   const it=itemsMap.get(key);if(!it)return;
   const {sg,n,skipped}=buildSubgroups(key);
-  if(!sg.length){body.innerHTML='<div class="card msg">หัวข้อนี้ยังไม่มีชุดที่กรอกค่าครบ S / M / E ในเดือนนี้</div>';return}
+  if(!sg.length){body.innerHTML='<div class="card msg">หัวข้อนี้ยังไม่มีชุดที่กรอกค่าครบ S / M / E ใน'+(periodWord()==='เดือน'?'เดือนนี้':'ช่วงที่เลือก')+'</div>';return}
   const a=analyse(it,sg,n),u=it.unit,hasLim=a.N>=2;
   const partName=(parts.find(x=>String(x.id)===$('f-part').value)||{}).name||'';
   const anim=animateNext;animateNext=false;
@@ -858,7 +875,7 @@ function draw(){
   else if(!hasLim){vt='เริ่มเก็บข้อมูลแล้ว';vp='ต้องมีอย่างน้อย 2 ชุดจึงจะคำนวณเส้นควบคุมและ Cpk ได้'+(it.max!=null&&a.xbb>it.max-(it.max-(it.min??it.max))*.1?' ค่าเฉลี่ยตอนนี้ค่อนข้างชิดขอบเกณฑ์ ควรจับตาเป็นพิเศษ':'')}
   else if(cp!=null&&cp<1){st='bad';vt='ความสามารถกระบวนการต่ำ (Cpk '+fmt(Math.round(cp*100)/100)+')';vp='ค่ากระจายกว้างหรือเบี่ยงจากกึ่งกลางเกณฑ์ ควรปรับกระบวนการ'}
   else if(cp!=null&&cp<1.33){st='warn';vt='ผ่านเกณฑ์ แต่ Cpk ยังต่ำกว่า 1.33';vp='กระบวนการนิ่ง แต่ยังปรับให้ค่าแคบลงและตรงกลางเกณฑ์มากขึ้นได้'}
-  else{st='good';vt='กระบวนการนิ่งและอยู่ในเกณฑ์';vp='ไม่พบจุดนอกเส้นควบคุมหรือค่านอกเกณฑ์ในเดือนนี้'+(cp==null?'':' และ Cpk ผ่าน ≥ 1.33')}
+  else{st='good';vt='กระบวนการนิ่งและอยู่ในเกณฑ์';vp='ไม่พบจุดนอกเส้นควบคุมหรือค่านอกเกณฑ์ใน'+(periodWord()==='เดือน'?'เดือนนี้':'ช่วงที่เลือก')+(cp==null?'':' และ Cpk ผ่าน ≥ 1.33')}
   let h='<section class="hero s-'+st+'"><div><div class="vd"><span class="vi"><svg viewBox="0 0 24 24">'+IC[st==='bad'||st==='warn'?'warn':st==='good'?'good':'info']+'</svg></span><div><h2>'+vt+'</h2><p>'+vp+'</p></div></div>'
     +'<div class="chips"><span class="chip">ใช้ข้อมูล '+a.N+' ชุด (กลุ่มละ '+n+' ชิ้น)</span>'+(a.N<20?'<span class="chip">ผลเบื้องต้น</span>':'')+'</div></div><div class="gg">'+gauge(cp,anim)+'</div></section>';
   if(a.N<20)h+='<div class="notice"><div><b>ข้อมูล '+a.N+' / 20 ชุด</b><span>เส้น UCL/LCL ยังเป็นค่าประมาณ ตามหลัก SPC ควรมีอย่างน้อย 20–25 ชุดจึงเชื่อถือได้</span></div><i class="bar"><u style="width:'+Math.max(4,a.N/20*100)+'%"></u></i></div>';
@@ -873,7 +890,7 @@ function draw(){
     +tile('จุดนอกเส้นควบคุม',hasLim?a.nOoc:'—','ชุด',a.nOoc?'bad':'','lim')
     +tile('ค่านอกเกณฑ์ (NG)',a.nOos,'ชุด',a.nOos?'bad':'','spec')+'</div>';
   const hsAI=histStats(sg.flatMap(g=>g.got),it);
-  aiCtx={it,sg,a,hs:hsAI,partName,month,rules:spcRules(it,sg,a)};
+  aiCtx={it,sg,a,hs:hsAI,partName,month:period&&!period.full?period.from+' ถึง '+period.to:month,rules:spcRules(it,sg,a)};
   const lg=(s,t)=>'<span><svg viewBox="0 0 26 10">'+s+'</svg>'+t+'</span>';
   const legend='<div class="legend">'
     +lg('<line x1="0" x2="26" y1="5" y2="5" stroke="var(--series)" stroke-width="2.5"/><circle cx="13" cy="5" r="4" fill="var(--series)" stroke="var(--card)" stroke-width="2"/>','ค่าเฉลี่ยของแต่ละชุด')
@@ -883,7 +900,7 @@ function draw(){
     +lg('<polygon points="13,0 19,9 7,9" fill="var(--bad)"/>','นอกเส้นควบคุม')
     +lg('<circle cx="13" cy="5" r="4.5" fill="none" stroke="var(--bad)" stroke-width="1.6"/>','มีค่านอกเกณฑ์')+'</div>';
   const chip=t=>'<span class="chip">'+esc(t)+'</span>';
-  h+='<div class="card"><div class="ch"><div><h2>X̄ Chart — ค่าเฉลี่ยต่อชุด</h2><div class="sub">'+esc(it.label)+(u?' ('+esc(u)+')':'')+' · '+esc(thMonth(month))+'</div></div>'+chip(partName)+'</div>'+legend+'<div class="chartbox" id="c-x"></div></div>';
+  h+='<div class="card"><div class="ch"><div><h2>X̄ Chart — ค่าเฉลี่ยต่อชุด</h2><div class="sub">'+esc(it.label)+(u?' ('+esc(u)+')':'')+' · '+esc(periodLabel())+'</div></div>'+chip(partName)+'</div>'+legend+'<div class="chartbox" id="c-x"></div></div>';
   h+='<div class="card"><h2>R Chart — ช่วงกว้าง (Max − Min) ต่อชุด</h2><div class="sub">ดูความผันแปรภายในชุด S / M / E · ถ้า R สูงผิดปกติ แปลว่าชิ้นงานในชุดเดียวกันต่างกันมาก</div><div class="chartbox" id="c-r"></div></div>';
   const hs=histStats(sg.flatMap(g=>g.got),it);
   h+=histCard(hs,a,tile,u);
@@ -967,7 +984,7 @@ const AI_IC={
   copy:aiSvg('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>')
 };
 const aiCache=new Map();let aiLastText='',aiTimer=null;
-const aiKey=c=>[$('f-part').value,$('f-month').value,$('f-item').value,c.a.N,+c.sg[c.sg.length-1].t].join('|');
+const aiKey=c=>[$('f-part').value,$('f-month').value+(period&&!period.full?'|'+period.from+'|'+period.to:''),$('f-item').value,c.a.N,+c.sg[c.sg.length-1].t].join('|');
 const aiInl=x=>esc(x).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\*(.+?)\*/g,'<i>$1</i>').replace(/`(.+?)`/g,'<code>$1</code>');
 
 function aiRulesHTML(rules){
@@ -1141,9 +1158,18 @@ function cmpCardHTML(){
 }
 
 // ── Events ──
-function sync(){const p=new URLSearchParams();if($('f-part').value)p.set('part',$('f-part').value);if($('f-month').value)p.set('month',$('f-month').value);history.replaceState(null,'','?'+p)}
+function sync(){const p=new URLSearchParams();if($('f-part').value)p.set('part',$('f-part').value);if($('f-month').value)p.set('month',$('f-month').value);if(!rangeIsFull()){p.set('from',$('f-from').value);p.set('to',$('f-to').value)}history.replaceState(null,'','?'+p)}
 $('f-part').onchange=()=>{sync();loadData()};
-$('f-month').onchange=()=>{sync();loadData()};
+$('f-month').onchange=()=>{setFullMonth();updateRange();sync();loadData()}; // เปลี่ยนเดือน → ช่วงรีเซ็ตเป็นทั้งเดือน
+function updateRange(){const b=$('btn-fullmonth');if(b)b.hidden=rangeIsFull()}
+function onRangeChange(){
+  const f=$('f-from').value,t=$('f-to').value,bad=m=>{$('warn').innerHTML='<div class="warn">'+m+'</div>';updateRange()};
+  if(!f||!t)return bad('กรุณาเลือกวันที่ให้ครบทั้ง 2 ช่อง');
+  if(f>t)return bad('วันที่เริ่มต้นต้องไม่เกินวันที่สิ้นสุด');
+  if((new Date(t)-new Date(f))/86400000>366)return bad('เลือกช่วงได้ไม่เกิน 1 ปี');
+  $('warn').innerHTML='';updateRange();sync();loadData()}
+$('f-from').onchange=onRangeChange;$('f-to').onchange=onRangeChange;
+$('btn-fullmonth').onclick=()=>{setFullMonth();updateRange();sync();loadData()};
 $('f-item').onchange=()=>{animateNext=true;draw()};
 $('btn-refresh').onclick=async()=>{const b=$('btn-refresh');if(b.classList.contains('spin'))return;b.classList.add('spin');const t0=Date.now();
   try{await loadData()}finally{setTimeout(()=>b.classList.remove('spin'),Math.max(0,700-(Date.now()-t0)))}};
@@ -1171,6 +1197,9 @@ updateArrows();
 let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(document.querySelector('#c-x'))draw()},150)});
 (async()=>{
   $('f-month').value=q.get('month')||thisMonth();
+  setFullMonth();
+  {const f=q.get('from'),t=q.get('to'),ok=s=>/^\d{4}-\d{2}-\d{2}$/.test(s||'');if(ok(f)&&ok(t)&&f<=t){$('f-from').value=f;$('f-to').value=t}}
+  updateRange();
   await loadMaster();
   if(q.get('part')){$('f-part').value=q.get('part')}
   loadData();
@@ -1212,6 +1241,6 @@ lscStart();
 })();
 </script>
 <script src="fc-dialog.js?v=1"></script>
-<script src="spc-export.js?v=5" defer></script>
+<script src="spc-export.js?v=6" defer></script>
 </body>
 </html>

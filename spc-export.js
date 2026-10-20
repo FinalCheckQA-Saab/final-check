@@ -43,7 +43,10 @@
       var a = analyse(it, r.sg, r.n);
       var pid = byId('f-part').value;
       var p = parts.find(function (x) { return String(x.id) === pid; }) || {};
-      return { it: it, sg: r.sg, n: r.n, a: a, part: p, month: byId('f-month').value };
+      var ctx = { it: it, sg: r.sg, n: r.n, a: a, part: p, month: byId('f-month').value };
+      /* ช่วงวันที่ที่หน้า SPC ใช้อยู่ — ถ้าไม่ใช่ทั้งเดือนจึงส่งต่อให้ชื่อไฟล์/ลายเซ็นใช้ช่วงเดียวกัน */
+      if (typeof period !== 'undefined' && period && !period.full) { ctx.rangeFrom = period.from; ctx.rangeTo = period.to; }
+      return ctx;
     } catch (e) { console.error('spc-export getCtx:', e); return null; }
   }
 
@@ -590,55 +593,13 @@
     return out;
   }
 
-  /* ───────── 🆕 เลือกช่วงวันที่ที่จะ Export (ค่าเริ่มต้น = ทั้งเดือนที่เลือกอยู่ → ผลเหมือนเดิมทุกอย่าง) ───────── */
-  function monthBounds(m) {
-    var y = +m.slice(0, 4), mo = +m.slice(5, 7), last = new Date(y, mo, 0).getDate();
-    return { from: m + '-01', to: m + '-' + String(last).padStart(2, '0') };
-  }
-  function ymdNum(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s || '') ? s : ''; }
-  /* คืน null = ยกเลิก • คืน c เดิม (ทั้งเดือน) หรือ c ใหม่ที่คำนวณจากช่วงที่เลือก */
-  async function pickRange(c) {
-    var mb = c.month ? monthBounds(c.month) : null;
-    if (!mb) return c;
-    var fv = await FCDialog.form({
-      title: 'เลือกช่วงวันที่ที่จะ Export',
-      icon: '📅',
-      message: 'Part: ' + (c.part.name || c.part.no || '') + '\nข้อมูลที่หน้าจอแสดงอยู่: เดือน ' + c.month +
-        '\nเลือกวัน/เดือน/ปี เริ่มต้น–สิ้นสุด ได้ (ข้ามเดือนได้) — กราฟและค่า UCL/LCL/Cpk ใน PDF จะคิดจากช่วงที่เลือก',
-      fields: [
-        { name: 'from', label: 'ตั้งแต่วันที่', type: 'date', value: mb.from },
-        { name: 'to', label: 'ถึงวันที่', type: 'date', value: mb.to }
-      ],
-      okLabel: 'สร้าง PDF',
-      validate: function (v) {
-        if (!ymdNum(v.from) || !ymdNum(v.to)) return 'กรุณาเลือกวันที่ให้ครบทั้ง 2 ช่อง';
-        if (v.from > v.to) return 'วันที่เริ่มต้นต้องไม่เกินวันที่สิ้นสุด';
-        if ((new Date(v.to) - new Date(v.from)) / 86400000 > 366) return 'เลือกช่วงได้ไม่เกิน 1 ปี';
-        return '';
-      }
-    });
-    if (fv === null) return null;
-    if (fv.from === mb.from && fv.to === mb.to) return c;            /* ทั้งเดือน = เหมือนเดิม ไม่ต้อง query ใหม่ */
-    if (typeof sb === 'undefined' || typeof buildSubgroups !== 'function' || typeof analyse !== 'function') {
-      await FCDialog.alert('เลือกช่วงวันที่เองไม่ได้ในหน้านี้ — จะ Export ทั้งเดือนแทน'); return c;
-    }
-    var q = await sb.from('history').select('id,ts,insp_date,shift,production_order,inspector,items')
-      .eq('jig_id', c.part.id).gte('insp_date', fv.from).lte('insp_date', fv.to).order('ts', { ascending: true }).limit(1000);
-    if (q.error) { await FCDialog.alert('โหลดข้อมูลช่วงที่เลือกไม่สำเร็จ: ' + q.error.message); return null; }
-    var r = buildSubgroups(byId('f-item').value, q.data || []);
-    if (!r.sg.length) { await FCDialog.alert('ไม่มีข้อมูลของหัวข้อนี้ในช่วง ' + fv.from + ' ถึง ' + fv.to + ' — ลองขยายช่วงวันที่'); return null; }
-    var c2 = {}; for (var k in c) c2[k] = c[k];
-    c2.sg = r.sg; c2.n = r.n; c2.a = analyse(c.it, r.sg, r.n); c2.rangeFrom = fv.from; c2.rangeTo = fv.to;
-    return c2;
-  }
+  /* ช่วงวันที่เลือกที่หน้า SPC (ช่อง "ตั้งแต่วันที่ / ถึงวันที่") — Export ใช้ช่วงเดียวกับกราฟ ไม่มีกล่องถามอีก */
 
   var busy = false;
   async function exportPDF() {
     if (busy) return;
     var c = getCtx();
     if (!c) { await FCDialog.alert('ยังไม่มีกราฟให้ Export — เลือก Part Number / เดือน / หัวข้อตรวจ ที่มีข้อมูลก่อนนะคะ'); return; }
-    try { c = await pickRange(c); } catch (e) { console.error('spc-export pickRange:', e); c = null; }   /* 🆕 เลือกวัน/เดือน/ปี */
-    if (!c) return;
     var btn = byId('btn-pdf'), lab = btn && btn.querySelector('span:last-child'), orig = lab ? lab.textContent : '';
     busy = true; if (btn) { btn.disabled = true; btn.classList.add('pdf-busy'); }
     var setLab = function (t) { if (lab) lab.textContent = t; };
