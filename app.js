@@ -301,6 +301,9 @@
     if (!sb) return false;
     _syncing = true;
     try {
+      // 🆕 รูปถ่ายหลักฐาน NG ที่พนักงานแนบ → อัปขึ้นตารางแยก history_photos "ก่อน" (กัน Egress: ไม่ฝังรูปใน history.items)
+      // photoOk = รายการที่รูปขึ้นตารางแล้ว (หรือไม่มีรูปให้ส่ง) — รายการที่ไม่อยู่ในนี้ (เช่น ยังไม่ได้รัน SQL / เน็ตหลุด) จะยังฝังรูปใน items แบบเดิม รูปไม่หาย
+      const photoOk = await pushHistoryPhotos(arr || []);
       const rows = (arr || []).map(h => ({
         id: h.id, ts: h.timestamp,
         dept_id: h.deptId, dept_name: h.deptName,
@@ -308,7 +311,7 @@
         jig_id: h.jigId, jig_name: h.jigName, jig_doc_no: h.jigDocNo,
         insp_date: h.date, shift: h.shift, month: h.month,
         production_order: h.productionOrder || null, // ต้องมีคอลัมน์ production_order (text) บนตาราง history — ดู migration SQL
-        inspector: h.inspector, notes: h.notes, items: stripNgImgs(h.items), // 🆕 รูปจุด NG ไม่เก็บใน items (กัน Egress ตอนดึงรายการ) — แยกไปตาราง history_ng_images
+        inspector: h.inspector, notes: h.notes, items: stripNgImgs(photoOk.has(String(h.id)) ? stripItemPhotos(h.items) : h.items), // 🆕 รูปจุด NG ไม่เก็บใน items (กัน Egress ตอนดึงรายการ) — แยกไปตาราง history_ng_images · 🆕 รูปหลักฐานที่แนบก็แยกไป history_photos
         sig_inspector: h.sigInspector ?? '', sig_supervisor: h.sigSupervisor ?? '', // คอลัมน์เป็น NOT NULL — ถ้าไม่มีลายเซ็นให้ส่งสตริงว่างแทน null
         // ─── Approval Workflow (Stage 1: หัวหน้างาน) ───
         approval_status: h.approvalStatus || 'pending',
@@ -353,7 +356,15 @@
       // (merge เข้ากับ local ล่าสุด แทนที่จะ overwrite ทั้งก้อน กันเขียนทับข้อมูลอื่นที่อาจเปลี่ยนระหว่างรอ push)
       const pushedIds = new Set((arr || []).map(h => String(h.id)).filter(id => !failedIds.has(id)));
       // รูปจุด NG อัปขึ้นแล้ว → ล้างรูปออกจากข้อมูลในเครื่อง (เหลือแค่ธง hasNgImg) ประหยัด localStorage
-      const merged = loadHistory().map(h => pushedIds.has(String(h.id)) ? { ...h, synced: true, items: imgsOk ? stripNgImgs(h.items) : h.items } : h);
+      // 🆕 รูปหลักฐานก็เช่นกัน: ขึ้นตารางแล้วค่อยล้างออกจากเครื่อง — แต่ล้างเฉพาะเมื่อรูปในเครื่อง "ยังเหมือนที่เพิ่งส่ง" เท่านั้น (กันรูปที่เพิ่งเพิ่มระหว่างรอ push หายไป)
+      const photoSig = {};
+      (arr || []).forEach(h => { photoSig[String(h.id)] = itemsPhotoSig(h.items); });
+      const merged = loadHistory().map(h => {
+        if (!pushedIds.has(String(h.id))) return h;
+        let its = h.items;
+        if (photoOk.has(String(h.id)) && itemsPhotoSig(its) === photoSig[String(h.id)]) its = stripItemPhotos(its);
+        return { ...h, synced: true, items: imgsOk ? stripNgImgs(its) : its };
+      });
       localStorage.setItem(SK.history, JSON.stringify(merged));
       if (failedIds.size) {
         localStorage.setItem(SK.historySyncPending, String(Date.now()));
@@ -2208,6 +2219,10 @@
           it.pieces = Array.from({ length: n }, (_, p) => (ri.pieces && ri.pieces[p]) ? { ...ri.pieces[p] } : { value: null, status: '' });
           it.note = ri.note || '';
           it.photos = Array.isArray(ri.photos) ? ri.photos.slice() : [];
+          // 🆕 รูปหลักฐานที่แยกไปตาราง history_photos (ใน items เหลือแค่ photoCount) → รอโหลดกลับมาแสดง (ดู hydrateResumedPhotos) ระหว่างนั้นห้ามเพิ่ม/ส่งทับ
+          it.photoCount = Number(ri.photoCount) || 0;
+          it._photosPending = itemPhotosStripped(ri);
+          it._photosPrev = it._photosPending ? 0 : Math.max(Number(ri.photoCount) || 0, Number(ri.photosPrev) || 0); // จำนวนรูปที่อยู่บนตารางแล้ว (ไว้ลบส่วนเกินถ้าผู้ใช้ลบรูป)
           it.markedAt = ri.markedAt || null;
           it.ngImg = ri.ngImg || null;                       // 🆕 รูปจุด NG (ถ้ายังค้างอยู่ในเครื่อง ยังไม่ได้อัปขึ้นระบบ)
           it.hasNgImg = !!(ri.hasNgImg || ri.ngImg);         // 🆕 มีรูปจุด NG ของหัวข้อนี้แล้ว (ไม่ต้องสร้างซ้ำ)
@@ -2528,9 +2543,28 @@
 
       $(`ng-note-${idx}`).addEventListener('input', e => { item.note = e.target.value; });
       div.querySelector('.file-input').addEventListener('change', e => handlePhoto(e, idx));
-      if (item.photos && item.photos.length) renderPhotos(idx);
+      if ((item.photos && item.photos.length) || item._photosPending) renderPhotos(idx);
       refreshAggregate(); // วาดสถานะเริ่มต้น (กรณีต่อจากชุดเดิมที่มี NG จากรอบก่อน จะขึ้นสีแดงบนแผนผังทันที)
     });
+    hydrateResumedPhotos(); // 🆕 ตรวจต่อชุดเดิมที่รูปหลักฐานอยู่บนตารางแยก → โหลดกลับมาแสดง (1 request เล็กๆ ไม่มีรูปก็ไม่ยิง)
+  }
+
+  // 🆕 ตรวจต่อ M/E ของชุดเดิม: รูปหลักฐานที่ส่งไปแล้วอยู่ใน history_photos → ดึงกลับมาใส่ฟอร์ม (ให้เห็น/ลบได้เหมือนเดิม)
+  let _photoHydrating = false;
+  async function hydrateResumedPhotos() {
+    const rec = session.record, cs = checkState;
+    if (!rec || _photoHydrating || !cs.some(i => i._photosPending)) return;
+    _photoHydrating = true;
+    try {
+      const map = await fetchHistoryPhotos(rec.id);
+      if (!map || cs !== checkState || session.record !== rec) return; // ดึงไม่ได้ (ออฟไลน์ ฯลฯ) หรือผู้ใช้เปลี่ยน Part ไปแล้ว — ปล่อยสถานะ "รอโหลด" ไว้ ไม่ส่งทับ
+      cs.forEach((it, idx) => {
+        if (!it._photosPending) return;
+        const arr = (map[String(it.id)] || []).slice(0, MAX_EVIDENCE_PHOTOS);
+        it.photos = arr; it.photoCount = arr.length; it._photosPrev = arr.length; it._photosPending = false;
+        if ($(`photo-row-${idx}`)) renderPhotos(idx);
+      });
+    } finally { _photoHydrating = false; }
   }
 
 
@@ -2715,6 +2749,10 @@ ${gpsTelegramLine(record.items[0].pieces[cur].gps)}
     const file = e.target.files[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) { toast('กรุณาเลือกไฟล์รูปภาพ', 'ng'); e.target.value = ''; return; }
+    if (checkState[idx]._photosPending) { // 🆕 รูปเดิมของชุดนี้ยังโหลดไม่เสร็จ — กันเพิ่มรูปทับลำดับเดิม
+      toast('กำลังโหลดรูปเดิมของชุดนี้ — รอสักครู่แล้วลองใหม่', 'ng');
+      hydrateResumedPhotos(); e.target.value = ''; return;
+    }
     if (checkState[idx].photos.length >= MAX_EVIDENCE_PHOTOS) {
       toast(`แนบรูปได้สูงสุด ${MAX_EVIDENCE_PHOTOS} รูปต่อหัวข้อ — ลบรูปเดิมก่อนถ้าต้องการเปลี่ยน`, 'ng');
       e.target.value = ''; return;
@@ -2754,16 +2792,20 @@ ${gpsTelegramLine(record.items[0].pieces[cur].gps)}
     // 🆕 ครบเพดานแล้ว → ปุ่มถ่ายรูปกดไม่ได้ + บอกจำนวนรูป
     const cam = row.querySelector('.btn-camera');
     if (cam) {
-      const full = checkState[idx].photos.length >= MAX_EVIDENCE_PHOTOS;
+      const pending = !!checkState[idx]._photosPending; // 🆕 รูปเดิมยังโหลดไม่เสร็จ
+      const full = pending || checkState[idx].photos.length >= MAX_EVIDENCE_PHOTOS;
       const fi = cam.querySelector('.file-input');
       cam.classList.toggle('is-full', full);
       if (fi) fi.disabled = full;
-      cam.title = full ? `ครบ ${MAX_EVIDENCE_PHOTOS} รูปแล้ว — ลบรูปเดิมก่อนถ้าต้องการเปลี่ยน` : `แนบได้สูงสุด ${MAX_EVIDENCE_PHOTOS} รูป`;
-      cam.onclick = full ? (ev) => { ev.preventDefault(); toast(`ครบ ${MAX_EVIDENCE_PHOTOS} รูปแล้ว — ลบรูปเดิมก่อนถ้าต้องการเปลี่ยน`, 'ng'); } : null;
+      cam.title = pending ? 'กำลังโหลดรูปเดิมของชุดนี้…' : full ? `ครบ ${MAX_EVIDENCE_PHOTOS} รูปแล้ว — ลบรูปเดิมก่อนถ้าต้องการเปลี่ยน` : `แนบได้สูงสุด ${MAX_EVIDENCE_PHOTOS} รูป`;
+      cam.onclick = pending ? (ev) => { ev.preventDefault(); toast('กำลังโหลดรูปเดิมของชุดนี้ — รอสักครู่แล้วลองใหม่', 'ng'); hydrateResumedPhotos(); }
+        : full ? (ev) => { ev.preventDefault(); toast(`ครบ ${MAX_EVIDENCE_PHOTOS} รูปแล้ว — ลบรูปเดิมก่อนถ้าต้องการเปลี่ยน`, 'ng'); } : null;
     }
     let cnt = row.querySelector('.photo-count');
     if (!cnt) { cnt = document.createElement('span'); cnt.className = 'photo-count'; row.appendChild(cnt); }
-    cnt.textContent = `${checkState[idx].photos.length}/${MAX_EVIDENCE_PHOTOS} รูป`;
+    cnt.textContent = checkState[idx]._photosPending
+      ? `มีรูปเดิม ${Number(checkState[idx].photoCount) || 0} รูป (กำลังโหลด…)`
+      : `${checkState[idx].photos.length}/${MAX_EVIDENCE_PHOTOS} รูป`;
   }
 
   /* ══════════════════════════════════════
@@ -2905,6 +2947,106 @@ ${escHtml(record.jigId || '')}
     }
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     🆕 รูปถ่ายหลักฐาน NG ที่พนักงานแนบ (สูงสุด MAX_EVIDENCE_PHOTOS รูป/หัวข้อ, ไม่เกิน ~60 KB/รูป)
+     - เดิมฝังเป็น base64 ใน history.items → หน้า approve / line / spc / dashboard ดึงไปด้วยทุกครั้ง (กิน Egress ของแพ็กเกจฟรี)
+     - ตอนนี้แยกไปตาราง history_photos (add_history_photos.sql) เหมือน history_ng_images — ใน items เหลือแค่จำนวนรูป photoCount
+     - ดึงรูปเฉพาะตอนที่ต้องใช้ (กด "ดูรูปหลักฐาน" ในหน้าประวัติ / ตรวจต่อ M, E ของชุดเดิม) แล้วเก็บ cache
+     - ยังไม่ได้รัน SQL / อัปรูปไม่สำเร็จ = เก็บแบบเดิม (ฝังใน items) รูปไม่หาย · รูปเก่าที่ฝังอยู่แล้วยังแสดงได้ตามเดิม
+  ══════════════════════════════════════════════════════════════ */
+  let _photoTableMissing = false;                  // ยังไม่ได้รัน SQL → ไม่ยิงซ้ำให้เปลืองเน็ต (รีเซ็ตตอนรีเฟรชหน้า)
+  const _hPhotoCache = new Map();                  // historyId -> { itemId: [dataURL, ...] }
+  function isPhotoDataUrl(p) { return typeof p === 'string' && p.startsWith('data:image/'); }
+  // "ลายนิ้วมือ" ของรูปในรายการ — ใช้เทียบก่อนล้างรูปออกจากเครื่อง (กันล้างรูปที่เพิ่งเพิ่มหลังส่งไปแล้ว)
+  function itemsPhotoSig(items) {
+    return (items || []).reduce((s, it) => {
+      if (!it) return s;
+      const ph = Array.isArray(it.photos) ? it.photos : [];
+      return s + ph.length + ph.reduce((a, p) => a + String(p).length, 0) + (Number(it.photosPrev) || 0);
+    }, 0);
+  }
+  // ตัดรูปออกจาก items (เหลือ photoCount) — ใช้ก่อนส่งขึ้น history และหลังอัปรูปสำเร็จ
+  function stripItemPhotos(items) {
+    return (items || []).map(it => {
+      if (!it) return it;
+      const n = Array.isArray(it.photos) ? it.photos.length : 0;
+      if (!n && !('photosPrev' in it)) return it;
+      const { photosPrev, ...rest } = it;
+      return n ? { ...rest, photos: [], photoCount: n } : rest;
+    });
+  }
+  // หัวข้อที่รูปอยู่บนตารางแยก (ไม่ได้ติดมากับ items): มี photoCount แต่ photos ว่าง
+  function itemPhotosStripped(it) {
+    return !!it && (Number(it.photoCount) || 0) > 0 && !(Array.isArray(it.photos) && it.photos.length);
+  }
+  function isPhotoTableMissingError(error) {
+    return !!error && (error.code === '42P01' || error.code === 'PGRST205' || /history_photos/i.test(error.message || ''));
+  }
+
+  // อัปรูปหลักฐานขึ้น history_photos (upsert ตาม history_id+item_id+idx; ถ้าลดจำนวนรูปลงจะลบรูปส่วนเกิน)
+  // คืน Set ของ history id ที่ "จัดการรูปเสร็จแล้ว" (รวมรายการที่ไม่มีรูปให้ส่ง) — รายการนอก Set จะยังฝังรูปใน items แบบเดิม
+  async function pushHistoryPhotos(records) {
+    const ok = new Set(), todo = [];
+    (records || []).forEach(h => {
+      const hid = String(h.id), rows = [], trims = [];
+      let bad = false;
+      (h.items || []).forEach(it => {
+        if (!it) return;
+        const ph = (Array.isArray(it.photos) ? it.photos : []).filter(isPhotoDataUrl);
+        if (ph.length !== (Array.isArray(it.photos) ? it.photos.length : 0)) bad = true; // มีรูปรูปแบบแปลก → ไม่แตะรายการนี้ (คงฝังใน items แบบเดิม ไม่ให้รูปหาย)
+        ph.forEach((img, i) => rows.push({ history_id: hid, item_id: String(it.id), idx: i, img }));
+        const prev = Number(it.photosPrev) || 0;
+        if (prev > ph.length) trims.push({ item: String(it.id), from: ph.length }); // ผู้ใช้ลบรูปเดิมออก → ลบแถวส่วนเกินบนตาราง
+      });
+      if (bad) return;
+      if (rows.length || trims.length) todo.push({ hid, rows, trims }); else ok.add(hid);
+    });
+    if (!todo.length || !sb || _photoTableMissing) return ok;
+    for (const t of todo) {
+      try {
+        let fail = false;
+        for (let i = 0; i < t.rows.length && !fail; i += 4) {
+          const { error } = await sb.from('history_photos').upsert(t.rows.slice(i, i + 4), { onConflict: 'history_id,item_id,idx' });
+          if (error) {
+            fail = true;
+            if (isPhotoTableMissingError(error)) {
+              _photoTableMissing = true;
+              console.warn('ยังไม่มีตาราง history_photos — รัน add_history_photos.sql ใน Supabase ก่อน (ตอนนี้รูปหลักฐานยังเก็บแบบเดิมใน items)');
+            } else console.warn('upload evidence photos failed:', error.code, error.message);
+          }
+        }
+        for (const tr of t.trims) {
+          if (fail) break;
+          const { error } = await sb.from('history_photos').delete().eq('history_id', t.hid).eq('item_id', tr.item).gte('idx', tr.from);
+          if (error) { fail = true; console.warn('trim evidence photos failed:', error.code, error.message); }
+        }
+        if (!fail) { ok.add(t.hid); _hPhotoCache.delete(t.hid); }
+        else if (_photoTableMissing) break;
+      } catch (e) {
+        console.warn('pushHistoryPhotos error:', e);
+      }
+    }
+    return ok;
+  }
+
+  // ดึงรูปหลักฐานของรายงานเดียว (1 request เล็กๆ) → { itemId: [dataURL...] } · คืน null ถ้าดึงไม่ได้ (ไม่ throw)
+  async function fetchHistoryPhotos(historyId) {
+    const key = String(historyId);
+    if (_hPhotoCache.has(key)) return _hPhotoCache.get(key);
+    if (!sb || _photoTableMissing) return null;
+    try {
+      const { data, error } = await sb.from('history_photos').select('item_id,idx,img').eq('history_id', key).order('idx', { ascending: true });
+      if (error) { if (isPhotoTableMissingError(error)) _photoTableMissing = true; throw error; }
+      const map = {};
+      (data || []).forEach(r => { if (isPhotoDataUrl(r.img)) (map[String(r.item_id)] = map[String(r.item_id)] || []).push(r.img); });
+      _hPhotoCache.set(key, map);
+      return map;
+    } catch (e) {
+      console.warn('โหลดรูปหลักฐานไม่สำเร็จ:', e);
+      return null;
+    }
+  }
+
   // สร้างรูปจุดที่ NG: ตัดรอบจุด + วาดลูกศร/ข้อความของแผนผัง + จุดเพื่อนบ้าน + วงแดงที่จุด NG → JPEG dataURL (หรือ null ถ้าทำไม่ได้)
   async function makeNgSnapshot(jig, pt, num) {
     try {
@@ -2977,7 +3119,7 @@ ${escHtml(record.jigId || '')}
     const unchecked = checkState.filter(i => !(i.pieces[cur] && i.pieces[cur].status));
     if (unchecked.length) { toast(`ชิ้น ${sl.short}: ยังมี ${unchecked.length} รายการที่ยังไม่ตรวจ`, 'ng'); return; }
     // NG ต้องมีรายละเอียดอย่างน้อยหนึ่งอย่าง (ข้อความหรือรูป) — กันส่ง NG เปล่าๆ ที่หัวหน้าตามต่อไม่ได้
-    const ngNoDetail = checkState.filter(i => i.pieces[cur].status === 'ng' && !(i.note && i.note.trim()) && !(i.photos && i.photos.length));
+    const ngNoDetail = checkState.filter(i => i.pieces[cur].status === 'ng' && !(i.note && i.note.trim()) && !(i.photos && i.photos.length) && !(i._photosPending && Number(i.photoCount) > 0));
     if (ngNoDetail.length) {
       toast(`ข้อ ${ngNoDetail.map(i => checkState.indexOf(i) + 1).join(', ')} เป็น NG — กรุณาระบุรายละเอียดหรือแนบรูปก่อนส่ง`, 'ng');
       const first = $('checklist-wrapper').querySelector(`.check-item[data-idx="${checkState.indexOf(ngNoDetail[0])}"]`);
@@ -3043,7 +3185,11 @@ ${escHtml(record.jigId || '')}
 
     const builtItems = checkState.map(i => ({
       id: i.id, label: i.label, sub: i.sub || '', method: i.method || '',
-      status: itemAggStatus(i), note: i.note, photos: i.photos,
+      status: itemAggStatus(i), note: i.note,
+      // 🆕 รูปหลักฐาน: ถ้ารูปเดิมยังโหลดไม่เสร็จ (รออยู่) ไม่ส่งรูป/ไม่ลบอะไรบนตาราง แค่คงจำนวนไว้ · ปกติ photosPrev = จำนวนรูปที่อยู่บนตารางแล้ว (ไว้ลบส่วนเกินตอน push)
+      photos: i._photosPending ? [] : i.photos,
+      photoCount: i._photosPending ? ((Number(i.photoCount) || 0) || undefined) : ((i.photos || []).length || undefined),
+      photosPrev: i._photosPending ? undefined : ((Number(i._photosPrev) || 0) || undefined),
       type: i.type || null, min: i.min ?? null, max: i.max ?? null, unit: i.unit || '',
       pieceCount: i.pieceCount || DEFAULT_PIECE_COUNT,
       pieces: i.pieces || [],
@@ -6148,6 +6294,8 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
       const ngItems = h.items.filter(i => i.status === 'ng');
       const okCount = h.items.filter(i => i.status === 'ok' || i.status === 'fixed').length;
       const photos  = h.items.flatMap(i => i.photos || []);
+      // 🆕 รูปหลักฐานที่อยู่บนตารางแยก (ไม่ได้ติดมากับ items) → โชว์ปุ่ม "ดูรูปหลักฐาน" ดึงเฉพาะตอนกด (ไม่ดึงทุกรายการให้กิน Egress)
+      const photoRemote = h.items.reduce((s, i) => s + (itemPhotosStripped(i) ? (Number(i.photoCount) || 0) : 0), 0);
       
       // ─── GPS Status ─── 
       let gpsDisplay = '';
@@ -6228,6 +6376,7 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
           </div>`).join('')}
         </div>` : ''}
         ${photos.length  ? `<div class="hi-photos">${photos.slice(0,4).map(p=>`<img src="${escHtml(p)}" class="hi-photo" data-src="${escHtml(p)}">`).join('')}</div>` : ''}
+        ${photoRemote ? `<div class="hi-photos"><button type="button" class="hi-btn hi-photo-load" data-hpid="${escHtml(h.id)}">📷 ดูรูปหลักฐาน (${photoRemote} รูป)</button></div>` : ''}
         ${(h.sigInspector||h.approvedBy||h.managerApprovedBy) ? `<div class="hi-sigs" style="font-size:11px; color:var(--text-main); margin-top:6px; display:flex; gap:16px; flex-wrap:wrap;">
           ${h.sigInspector?`<div><strong>ผู้ตรวจ:</strong> ${escHtml(h.sigInspector)}</div>`:''}
           ${h.approvedBy?`<div><strong>หัวหน้า:</strong> ${escHtml(h.approvedBy)}</div>`:''}
@@ -6265,6 +6414,27 @@ ${ngCount > 0 ? `❌ ไม่ผ่าน (NG): ${ngCount}` : ''}${stageSummary
     list.querySelectorAll('.hi-photo').forEach(img => {
       img.addEventListener('click', () => openLightbox(img.dataset.src));
     });
+    // 🆕 ปุ่ม "ดูรูปหลักฐาน" — ดึงรูปของรายงานนี้จากตาราง history_photos ตอนกดเท่านั้น (ครั้งเดียว มี cache)
+    list.querySelectorAll('.hi-photo-load').forEach(btn => btn.addEventListener('click', async () => {
+      const old = btn.textContent;
+      btn.disabled = true; btn.textContent = '🔄 กำลังโหลดรูป...';
+      const map = await fetchHistoryPhotos(btn.dataset.hpid);
+      const imgs = map ? Object.values(map).flat() : null;
+      if (!imgs || !imgs.length) {
+        btn.disabled = false; btn.textContent = old;
+        toast(imgs ? 'ไม่พบรูปหลักฐานของรายการนี้' : 'โหลดรูปไม่สำเร็จ — เช็คสัญญาณเน็ตแล้วลองใหม่', 'ng');
+        return;
+      }
+      const wrap = document.createElement('div');
+      wrap.className = 'hi-photos';
+      imgs.forEach(src => {
+        const im = document.createElement('img');
+        im.className = 'hi-photo'; im.src = src; im.dataset.src = src;
+        im.addEventListener('click', () => openLightbox(src));
+        wrap.appendChild(im);
+      });
+      btn.closest('.hi-photos').replaceWith(wrap);
+    }));
     // 🆕 ปุ่ม badge "รอซิงค์" — กดเพื่อลองส่งขึ้น Supabase ใหม่ทันที
     list.querySelectorAll('[data-resync]').forEach(b => b.addEventListener('click', e => {
       e.stopPropagation();
