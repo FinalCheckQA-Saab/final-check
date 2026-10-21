@@ -678,6 +678,44 @@
   function fmtSpec(item) {
     return `${item.min != null ? item.min : '—'} ถึง ${item.max != null ? item.max : '—'}${item.unit ? ' ' + item.unit : ''}`;
   }
+  /* ── 🆕 ช่วยกรอกค่าตัวเลข (กันกรอกผิด) — ใช้เกณฑ์ min/max ของแต่ละหัวข้อ ไม่แตะข้อมูลที่บันทึก ── */
+  const NUM_FAR_FACTOR = 3; // ค่าที่ "อยู่นอกเกณฑ์" เกิน 3 เท่าของความกว้างเกณฑ์ = ห่างผิดปกติ (มักลืมจุดทศนิยม เช่น 0.5 → 5)
+  function numDecimalsOf(x) {
+    if (x == null || !isFinite(x)) return 0;
+    const s = String(x), i = s.indexOf('.');
+    return i < 0 ? 0 : s.length - i - 1;
+  }
+  // จำนวนทศนิยมสูงสุดที่รับ: เครื่องวัดอ่านได้ 0.01 → อย่างน้อย 2 ตำแหน่ง (ถ้าเกณฑ์ละเอียดกว่านั้นก็ตามเกณฑ์)
+  function numMaxDecimals(item) {
+    return Math.min(4, Math.max(2, numDecimalsOf(item.min), numDecimalsOf(item.max)));
+  }
+  function numSpecHint(item) {
+    const a = item.min != null ? item.min : null, b = item.max != null ? item.max : null;
+    if (a != null && b != null) return `${a} – ${b}`;
+    if (a != null) return `≥ ${a}`;
+    if (b != null) return `≤ ${b}`;
+    return 'ค่า';
+  }
+  // 'ok' ในเกณฑ์ · 'ng' เกินเกณฑ์ · 'far' เกินเกณฑ์และห่างผิดปกติ (ต้องมีเกณฑ์ครบทั้งสองด้านและกว้าง > 0 จึงประเมิน far ได้)
+  function numState(item, val) {
+    const lo = item.min != null ? item.min : null, hi = item.max != null ? item.max : null;
+    const below = lo != null && val < lo, above = hi != null && val > hi;
+    if (!below && !above) return 'ok';
+    if (lo != null && hi != null && hi > lo) {
+      const out = below ? lo - val : val - hi;
+      if (out > (hi - lo) * NUM_FAR_FACTOR) return 'far';
+    }
+    return 'ng';
+  }
+  // กรองข้อความที่พิมพ์: , → . · เหลือ 0-9 . - · มี - ได้เฉพาะหน้าสุด · จุดเดียว · ตัดทศนิยมเกินที่กำหนด
+  function numSanitize(raw, maxDec) {
+    let s = String(raw).replace(/,/g, '.').replace(/[^0-9.\-]/g, '');
+    const neg = s.startsWith('-');
+    s = s.replace(/-/g, '');
+    const di = s.indexOf('.');
+    if (di >= 0) s = s.slice(0, di + 1) + s.slice(di + 1).replace(/\./g, '').slice(0, maxDec);
+    return (neg ? '-' : '') + s;
+  }
   function stageTimeline(rec) {
     const first = ((rec.items || [])[0] || {}).pieces || [];
     return first.filter(p => p.at).map((p, k) => `${stageLabel(k).short} ${fmtHM(p.at)} น.`).join(' → ');
@@ -2361,8 +2399,9 @@
             ${head}
             <div class="check-numeric-row">
               ${allowNeg ? `<button type="button" class="check-numeric-sign" id="numsign-${idx}-${p}" title="สลับค่าบวก/ลบ">±</button>` : ''}
-              <input type="number" step="any" inputmode="decimal" class="check-numeric-input" id="numval-${idx}-${p}" placeholder="ค่า">
+              <input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" class="check-numeric-input" id="numval-${idx}-${p}" placeholder="${escHtml(numSpecHint(item))}" aria-label="ค่าที่วัด เกณฑ์ ${escHtml(numSpecHint(item))}">
             </div>
+            <div class="check-numeric-msg" id="nummsg-${idx}-${p}" aria-live="polite"></div>
           </div>`;
         }
         return `
@@ -2420,15 +2459,33 @@
         if (isNumeric) {
           const p = cur;
           const inp = $(`numval-${idx}-${p}`);
+          const msgEl = $(`nummsg-${idx}-${p}`);
+          const maxDec = numMaxDecimals(item);
+          // 🆕 ข้อความสถานะใต้ช่อง: ในเกณฑ์ / เกินเกณฑ์ / ห่างเกณฑ์มาก (ตรวจสอบจุดทศนิยม)
+          const showNumMsg = (state, val) => {
+            if (!msgEl) return;
+            msgEl.className = 'check-numeric-msg' + (state ? ` ${state}` : '');
+            msgEl.textContent = state === 'ok' ? '✔ ในเกณฑ์'
+              : state === 'ng' ? `⚠ เกินเกณฑ์ (${numSpecHint(item)})`
+              : state === 'far' ? `❗ ห่างเกณฑ์มาก (${numSpecHint(item)}) — ตรวจจุดทศนิยมอีกครั้ง`
+              : '';
+            inp.classList.toggle('is-far', state === 'far');
+          };
+          // 🆕 กันเลื่อนล้อเมาส์/ลูกศรเปลี่ยนค่าโดยไม่ตั้งใจ (ไม่ใช้ type=number แล้ว แต่กันไว้เผื่อเบราว์เซอร์บางรุ่น)
+          inp.addEventListener('wheel', () => { if (document.activeElement === inp) inp.blur(); }, { passive: true });
           inp.addEventListener('input', e => {
-            const raw = e.target.value;
+            // 🆕 กรองตัวอักษร / แปลง , เป็น . / ตัดทศนิยมเกินที่เครื่องวัดอ่านได้ (เขียนกลับเฉพาะเมื่อมีการเปลี่ยน เพื่อไม่ให้เคอร์เซอร์เด้ง)
+            const cleaned = numSanitize(e.target.value, maxDec);
+            if (cleaned !== e.target.value) e.target.value = cleaned;
+            const raw = cleaned;
             const piece = item.pieces[p];
-            if (raw === '') {
+            // ยังพิมพ์ไม่เสร็จ (เช่น "-" หรือ ".") = ถือว่ายังไม่มีค่า — กันค่าเก่าค้างในระบบ
+            if (raw === '' || isNaN(parseFloat(raw))) {
               piece.value = null; piece.status = '';
               inp.classList.remove('needs-value');
+              showNumMsg('');
             } else {
               const val = parseFloat(raw);
-              if (isNaN(val)) return;
               piece.value = val;
               // 🛡 กันเกณฑ์ไม่ครบ: หัวข้อตัวเลขต้องมีทั้ง min และ max (รวมค่า 0) — ถ้าขาดแปลว่าข้อมูลใน Catalog เสีย ต้องแจ้ง Admin
               if (item.type === 'numeric' && (item.min == null || item.max == null) && !item._specWarned) {
@@ -2438,6 +2495,7 @@
               const inRange = (item.min == null || val >= item.min) && (item.max == null || val <= item.max);
               piece.status = inRange ? 'ok' : 'ng';
               inp.classList.toggle('needs-value', !inRange); // แดงเบาๆ เตือนค่าที่เกินเกณฑ์ทันที
+              showNumMsg(numState(item, val), val);
             }
             item.markedAt = new Date().toISOString();
             item.pieces[p].mk = item.markedAt; // 🆕 เวลาที่ติ๊ก/กรอกของ "ชิ้นนี้" (S/M/E) — ใช้คำนวณ CT แยกรายชิ้นในหน้าประวัติ
@@ -2894,10 +2952,24 @@ ${escHtml(record.jigId || '')}
     }
 
     const ngNow = checkState.filter(i => i.pieces[cur].status === 'ng').length;
+    // 🆕 สรุปค่าตัวเลขที่เกินเกณฑ์ให้ทวนอีกครั้งก่อนส่ง (ส่งได้ แต่ต้องยืนยัน) — ❗ = ห่างเกณฑ์มากผิดปกติ อาจลืมจุดทศนิยม
+    const numNgLines = [];
+    checkState.forEach((i, ix) => {
+      const pc = i.pieces[cur];
+      if (i.type !== 'numeric' || !pc || pc.status !== 'ng' || pc.value == null) return;
+      const far = numState(i, pc.value) === 'far';
+      numNgLines.push(`${far ? '❗' : '⚠'} ข้อ ${ix + 1} ${i.label} = ${pc.value} (เกณฑ์ ${numSpecHint(i)}${i.unit ? ' ' + i.unit : ''})`);
+    });
+    const numNgBlock = numNgLines.length
+      ? `\n\nค่าที่เกินเกณฑ์ ${numNgLines.length} จุด — ตรวจให้แน่ใจว่ากรอกถูกต้อง:\n${numNgLines.join('\n')}`
+      : '';
     const confirmMsg = `ส่งผลการตรวจชิ้น ${sl.short} (${sl.th}) ใช่หรือไม่?\n`
       + `ผ่าน ${checkState.length - ngNow} รายการ • NG ${ngNow} รายการ\n`
-      + (isLast ? 'นี่คือชิ้นสุดท้าย — ส่งแล้วระบบจะแจ้งหัวหน้างานให้ตรวจสอบ' : `ส่งแล้วจะแก้ไขชิ้นนี้ไม่ได้ — กลับมาตรวจชิ้น ${stageLabel(cur + 1).short} ได้เมื่อถึงรอบ`);
-    if (!(await showConfirmModal(confirmMsg, { confirmLabel: `ส่งข้อมูล ${sl.short}` }))) return;
+      + (isLast ? 'นี่คือชิ้นสุดท้าย — ส่งแล้วระบบจะแจ้งหัวหน้างานให้ตรวจสอบ' : `ส่งแล้วจะแก้ไขชิ้นนี้ไม่ได้ — กลับมาตรวจชิ้น ${stageLabel(cur + 1).short} ได้เมื่อถึงรอบ`)
+      + numNgBlock;
+    const confirmOpts = { confirmLabel: `ส่งข้อมูล ${sl.short}` };
+    if (numNgLines.length) confirmOpts.cancelLabel = 'กลับไปแก้';
+    if (!(await showConfirmModal(confirmMsg, confirmOpts))) return;
 
     // ผ่านทุกเงื่อนไขแล้ว เริ่มขั้นตอนที่ใช้เวลา (GPS/บันทึก/Telegram) — ล็อกปุ่มไว้กันกดซ้ำจนกว่าจะจบ (ดู finally)
     _submitInProgress = true;

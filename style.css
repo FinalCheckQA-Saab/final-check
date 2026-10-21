@@ -930,6 +930,13 @@ h1, h2, h3, h4, label, button, input, select, textarea, p, span, div {
 .rbtn:disabled:hover { border-color: var(--border-input); }
 .check-numeric-input.needs-value { border-color: var(--ng, #e05252); }
 
+/* 🆕 ช่วยกรอกค่าตัวเลข: ข้อความสถานะใต้ช่อง + เตือนค่าห่างเกณฑ์มาก */
+.check-numeric-msg { min-height: 14px; font-size: 10.5px; line-height: 1.3; text-align: center; color: var(--text-muted); }
+.check-numeric-msg.ok  { color: var(--ok); }
+.check-numeric-msg.ng  { color: var(--ng, #e05252); }
+.check-numeric-msg.far { color: var(--ng, #e05252); font-weight: 700; }
+.check-numeric-input.is-far { border-width: 2px; background: var(--ng-bg, rgba(224,82,82,.12)); }
+
 /* NG Detail Zone */
 .ng-zone {
   margin-top: 8px; padding: 10px;
