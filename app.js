@@ -2399,7 +2399,7 @@
             ${head}
             <div class="check-numeric-row">
               ${allowNeg ? `<button type="button" class="check-numeric-sign" id="numsign-${idx}-${p}" title="สลับค่าบวก/ลบ">±</button>` : ''}
-              <input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" class="check-numeric-input" id="numval-${idx}-${p}" placeholder="${escHtml(numSpecHint(item))}" aria-label="ค่าที่วัด เกณฑ์ ${escHtml(numSpecHint(item))}">
+              <input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" class="check-numeric-input" id="numval-${idx}-${p}" placeholder="ค่า" aria-label="ค่าที่วัด เกณฑ์ ${escHtml(numSpecHint(item))}">
             </div>
             <div class="check-numeric-msg" id="nummsg-${idx}-${p}" aria-live="polite"></div>
           </div>`;
