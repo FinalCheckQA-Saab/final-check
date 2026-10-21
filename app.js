@@ -2698,16 +2698,37 @@ ${gpsTelegramLine(record.items[0].pieces[cur].gps)}
   /* ══════════════════════════════════════
      PHOTOS
   ══════════════════════════════════════ */
+  // 🆕 ควบคุมรูปหลักฐาน NG: จำกัดจำนวนต่อหัวข้อ + เพดานขนาดต่อรูป (กัน Supabase Storage/Egress พอง — รูปฝังอยู่ใน history.items)
+  const MAX_EVIDENCE_PHOTOS = 2;                 // รูปสูงสุดต่อหัวข้อ
+  const EVIDENCE_PHOTO_MAX_BYTES = 60 * 1024;    // ~60 KB ต่อรูป (ขนาดไฟล์จริงหลังถอด base64)
+  // ลำดับการบีบ: เริ่มค่าเดิม (600px / 0.60) แล้วลดทีละขั้นเฉพาะเมื่อไฟล์เกินเพดาน
+  const EVIDENCE_PHOTO_STEPS = [[600, 0.60], [600, 0.50], [520, 0.50], [460, 0.45], [400, 0.40]];
+  function dataUrlBytes(u) {
+    const s = String(u || ''), i = s.indexOf(',');
+    const b64 = i >= 0 ? s.slice(i + 1) : s;
+    const pad = b64.endsWith('==') ? 2 : b64.endsWith('=') ? 1 : 0;
+    return Math.max(0, Math.floor(b64.length * 3 / 4) - pad);
+  }
+  function fmtKB(bytes) { return Math.max(1, Math.round(bytes / 1024)) + ' KB'; }
+
   async function handlePhoto(e, idx) {
     const file = e.target.files[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) { toast('กรุณาเลือกไฟล์รูปภาพ', 'ng'); e.target.value = ''; return; }
+    if (checkState[idx].photos.length >= MAX_EVIDENCE_PHOTOS) {
+      toast(`แนบรูปได้สูงสุด ${MAX_EVIDENCE_PHOTOS} รูปต่อหัวข้อ — ลบรูปเดิมก่อนถ้าต้องการเปลี่ยน`, 'ng');
+      e.target.value = ''; return;
+    }
     try {
       // ย่อขนาดรูปก่อนเก็บ (เหมือนรูปพื้นหลัง Part) — ป้องกัน Supabase storage เต็มเร็ว
       // เพราะรูปหลักฐาน NG อาจมีได้หลายรูปต่อ 1 การตรวจ และตรวจหลายรายการ/วัน
-      // ลด maxDim 1000→600px, quality 0.75→0.60 เพื่อประหยัด storage ~70% ของเดิม
-      // (ยังคงชัดพอให้เห็นรายละเอียดบนมือถือ)
-      const dataUrl = await resizeImageToDataURL(file, 600, 0.60);
+      // เริ่ม 600px / quality 0.60 (ชัดพอบนมือถือ) แล้วลดลงทีละขั้นถ้ายังเกิน ~60 KB
+      let dataUrl = null;
+      for (const [maxDim, quality] of EVIDENCE_PHOTO_STEPS) {
+        const out = await resizeImageToDataURL(file, maxDim, quality);
+        if (dataUrlBytes(out) <= EVIDENCE_PHOTO_MAX_BYTES) { dataUrl = out; break; }
+      }
+      if (!dataUrl) { toast('รูปนี้ซับซ้อนเกินไป บีบให้ต่ำกว่า 60 KB ไม่ได้ — ลองถ่ายใหม่ให้ใกล้จุดที่ผิดปกติขึ้น', 'ng'); e.target.value = ''; return; }
       checkState[idx].photos.push(dataUrl);
       renderPhotos(idx);
     } catch (err) {
@@ -2723,13 +2744,26 @@ ${gpsTelegramLine(record.items[0].pieces[cur].gps)}
     checkState[idx].photos.forEach((src, pi) => {
       const wrap = document.createElement('div');
       wrap.className = 'photo-thumb-wrap';
-      wrap.innerHTML = `<img src="${escHtml(src)}" class="photo-thumb"><button class="photo-del" data-pi="${pi}">✕</button>`;
+      wrap.innerHTML = `<img src="${escHtml(src)}" class="photo-thumb"><span class="photo-size">${fmtKB(dataUrlBytes(src))}</span><button class="photo-del" data-pi="${pi}">✕</button>`;
       row.insertBefore(wrap, row.querySelector('.btn-camera'));
       wrap.querySelector('.photo-thumb').addEventListener('click', () => openLightbox(src));
       wrap.querySelector('.photo-del').addEventListener('click', () => {
         checkState[idx].photos.splice(pi, 1); renderPhotos(idx);
       });
     });
+    // 🆕 ครบเพดานแล้ว → ปุ่มถ่ายรูปกดไม่ได้ + บอกจำนวนรูป
+    const cam = row.querySelector('.btn-camera');
+    if (cam) {
+      const full = checkState[idx].photos.length >= MAX_EVIDENCE_PHOTOS;
+      const fi = cam.querySelector('.file-input');
+      cam.classList.toggle('is-full', full);
+      if (fi) fi.disabled = full;
+      cam.title = full ? `ครบ ${MAX_EVIDENCE_PHOTOS} รูปแล้ว — ลบรูปเดิมก่อนถ้าต้องการเปลี่ยน` : `แนบได้สูงสุด ${MAX_EVIDENCE_PHOTOS} รูป`;
+      cam.onclick = full ? (ev) => { ev.preventDefault(); toast(`ครบ ${MAX_EVIDENCE_PHOTOS} รูปแล้ว — ลบรูปเดิมก่อนถ้าต้องการเปลี่ยน`, 'ng'); } : null;
+    }
+    let cnt = row.querySelector('.photo-count');
+    if (!cnt) { cnt = document.createElement('span'); cnt.className = 'photo-count'; row.appendChild(cnt); }
+    cnt.textContent = `${checkState[idx].photos.length}/${MAX_EVIDENCE_PHOTOS} รูป`;
   }
 
   /* ══════════════════════════════════════

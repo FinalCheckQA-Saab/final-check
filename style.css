@@ -976,6 +976,15 @@ h1, h2, h3, h4, label, button, input, select, textarea, p, span, div {
 }
 .btn-camera:hover { background: var(--ng-bg); }
 .file-input { display: none; }
+/* 🆕 ควบคุมรูปหลักฐาน NG: ป้ายขนาดไฟล์ / จำนวนรูป / ปุ่มถ่ายรูปเมื่อครบเพดาน */
+.photo-size {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 1px 0;
+  font-size: 9px; line-height: 1.3; text-align: center; color: #fff;
+  background: rgba(0, 0, 0, .55); border-radius: 0 0 6px 6px; pointer-events: none;
+}
+.photo-count { font-size: 11px; color: var(--text-muted); }
+.btn-camera.is-full { opacity: .45; cursor: not-allowed; }
+.btn-camera.is-full:hover { background: transparent; }
 
 /* ─────────────────────────────
    Notes & Signatures
