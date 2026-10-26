@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TV Diagnostic</title>
+<style>body{margin:0;padding:24px;background:#0a1524;color:#e8eef6;font:20px/1.5 sans-serif}h1{margin:0 0 14px;font-size:28px}
+.r{padding:10px 14px;margin:8px 0;border-radius:10px;background:#16324f;word-break:break-all}.ok{border-left:8px solid #22c55e}.bad{border-left:8px solid #ef4444}.i{border-left:8px solid #38bdf8}b{color:#fde68a}</style></head>
+<body><h1>ทดสอบการเชื่อมต่อ (TV Diagnostic)</h1><div id="o"></div>
+<script>
+var U='https://knzzmurumqrhwotyrooj.supabase.co/rest/v1/departments?select=id&limit=1';
+var K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU';
+var o=document.getElementById('o');
+function add(c,t){var d=document.createElement('div');d.className='r '+c;d.innerHTML=t;o.appendChild(d)}
+function esc(s){return String(s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+var n=new Date();
+add('i','<b>เวลาในเครื่องทีวี:</b> '+esc(n.toString())+'<br><b>เวลาจริงตอนนี้:</b> เทียบกับนาฬิกาข้อมือ/มือถือ');
+add('i','<b>หน้านี้เปิดผ่าน:</b> '+esc(location.protocol+'//'+location.host)+' · <b>online:</b> '+navigator.onLine);
+add('i','<b>เบราว์เซอร์:</b> '+esc(navigator.userAgent));
+// A: fetch แบบง่าย ไม่มี header พิเศษ (ไม่มี preflight)
+try{fetch(U+'&apikey='+K).then(function(r){return r.text().then(function(t){add(r.ok?'ok':'bad','<b>A) fetch แบบง่าย (ไม่มี header):</b> HTTP '+r.status+' '+esc(t.slice(0,120)))})}).catch(function(e){add('bad','<b>A) fetch แบบง่าย:</b> ล้มเหลว — '+esc(e))})}catch(e){add('bad','<b>A)</b> fetch ใช้ไม่ได้: '+esc(e))}
+// B: fetch แบบที่ Supabase ใช้จริง (มี apikey/Authorization → เกิด CORS preflight)
+try{fetch(U,{headers:{apikey:K,Authorization:'Bearer '+K}}).then(function(r){return r.text().then(function(t){add(r.ok?'ok':'bad','<b>B) fetch แบบแอปจริง (มี header):</b> HTTP '+r.status+' '+esc(t.slice(0,120)))})}).catch(function(e){add('bad','<b>B) fetch แบบแอปจริง:</b> ล้มเหลว — '+esc(e))})}catch(e){add('bad','<b>B)</b> '+esc(e))}
+// C: XMLHttpRequest
+try{var x=new XMLHttpRequest();x.open('GET',U);x.setRequestHeader('apikey',K);x.onload=function(){add(x.status<300?'ok':'bad','<b>C) XHR:</b> HTTP '+x.status+' '+esc(x.responseText.slice(0,120)))};x.onerror=function(){add('bad','<b>C) XHR:</b> ล้มเหลว (network/CORS)')};x.send()}catch(e){add('bad','<b>C)</b> '+esc(e))}
+// D: โหลด supabase.min.js
+var s=document.createElement('script');s.src='supabase.min.js';s.onload=function(){add(window.supabase?'ok':'bad','<b>D) supabase.min.js:</b> '+(window.supabase?'โหลดได้':'โหลดแล้วแต่ไม่มี supabase'))};s.onerror=function(){add('bad','<b>D) supabase.min.js:</b> โหลดไม่ได้')};document.head.appendChild(s);
+</script></body></html>
