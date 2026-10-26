@@ -456,6 +456,9 @@ html{--tg-hi:color-mix(in srgb,var(--gold) 45%,#fff);--tg-lt:color-mix(in srgb,v
 .top .logo::before{background:radial-gradient(circle,rgba(255,255,255,.5),transparent 70%)}
 /* โหมดทีวี (lite): ปิดเอฟเฟกต์ที่กินแรม — ไม่กระทบหน้าตาเมื่อเปิดบนคอมพิวเตอร์ */
 html.lite *,html.lite *::before,html.lite *::after{animation:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+/* เปิดกลับเฉพาะวงแหวนกะพริบรอบจุด OK/กำลังตรวจ/NG (เบา — ใช้แค่ transform + opacity) */
+html.lite .mk.ok::after,html.lite .mk.part::after{animation:ring 2.6s ease-out infinite!important}
+html.lite .mk.ng::after{animation:ring 1.2s ease-out infinite!important}
 </style>
 </head>
 <body>
