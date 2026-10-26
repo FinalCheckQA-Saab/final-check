@@ -576,7 +576,18 @@ function adminLogin(){
   });
 }
 // Dashboard นี้ดูเฉพาะ "วันนี้" เสมอ (ไม่มีตัวเลือกวันที่) — คำนวณใหม่ทุกครั้งที่รีเฟรช จอ TV ที่เปิดค้างข้ามเที่ยงคืนจึงขึ้นวันใหม่เอง
-const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+// ⏱ ใช้เวลาจริงจากเซิร์ฟเวอร์ (Date header ของ Supabase) แทนนาฬิกาทีวี — ทีวีที่เวลาเพี้ยน/รีเซ็ตเป็นปี 1970 ก็ใช้งานได้
+let skew=0,timeOk=false,timeBad=false;
+const bkk=()=>new Date(Date.now()+skew+25200000); // ฟิลด์ UTC ของค่านี้ = เวลาไทย (UTC+7)
+const today=()=>bkk().toISOString().slice(0,10);
+async function syncTime(){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/departments?select=id&limit=1&apikey='+SB_KEY,{cache:'no-store'});
+    const d=r.headers.get('Date'),t=d?Date.parse(d):NaN;
+    if(!isNaN(t)){skew=t-Date.now();timeOk=true}
+  }catch(e){}
+  timeBad=!timeOk&&new Date().getFullYear()<2024; // ซิงก์ไม่ได้ และนาฬิกาเครื่องก็ผิดชัดเจน
+}
 
 // ── นาฬิกา วันที่-เวลา (เดินทุกวินาที) — รูปแบบเดียวกับ Dashboard หลัก ──
 function lscStart(){
@@ -584,14 +595,14 @@ function lscStart(){
   if(!clocks.length)return;
   const p2=n=>String(n).padStart(2,'0');
   function tick(){
-    const n=new Date(),h=n.getHours();
-    const day=n.toLocaleDateString('th-TH',{weekday:'long'});
-    const date=n.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'});
+    const n=bkk(),h=n.getUTCHours();
+    const day=n.toLocaleDateString('th-TH',{weekday:'long',timeZone:'UTC'});
+    const date=n.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
     const sky=h<5?['🌙','ดึก',1]:h<12?['🌤️','เช้า',0]:h<17?['☀️','บ่าย',0]:h<19?['🌇','เย็น',0]:['🌙','ค่ำ',1];
     clocks.forEach(c=>{
       c.d.textContent=day;c.dt.textContent=date;
-      c.hm.innerHTML=p2(h)+'<i class="lsc-colon">:</i>'+p2(n.getMinutes());
-      c.ss.textContent=p2(n.getSeconds());c.ss.classList.remove('lsc-ss-tick');void c.ss.offsetWidth;c.ss.classList.add('lsc-ss-tick');
+      c.hm.innerHTML=p2(h)+'<i class="lsc-colon">:</i>'+p2(n.getUTCMinutes());
+      c.ss.textContent=p2(n.getUTCSeconds());c.ss.classList.remove('lsc-ss-tick');void c.ss.offsetWidth;c.ss.classList.add('lsc-ss-tick');
       if(sky[0]+sky[1]!==c.last){c.last=sky[0]+sky[1];c.sky.textContent=sky[0];c.sky.title='ช่วง'+sky[1];c.sky.classList.toggle('night',!!sky[2]);}
     });
   }
@@ -696,7 +707,7 @@ function setNum(id,v){
   const t0=performance.now();(function f(t){const k=Math.min(1,(t-t0)/500);el.textContent=Math.round(from+(v-from)*k);if(k<1)requestAnimationFrame(f)})(t0);
 }
 function render(){
-    $('warn').innerHTML=(tableOk?'':'<div class="warn">ยังไม่ได้สร้างตาราง layout_config ใน Supabase — ให้รันไฟล์ layout_config.sql ก่อน</div>')
+    $('warn').innerHTML=(timeBad?'<div class="warn">⚠ นาฬิกาของทีวีผิดและซิงก์เวลาจากเซิร์ฟเวอร์ไม่ได้ — ข้อมูล "วันนี้" อาจไม่ถูกต้อง กรุณาตั้งเวลาทีวีหรือแจ้ง IT</div>':'')+(tableOk?'':'<div class="warn">ยังไม่ได้สร้างตาราง layout_config ใน Supabase — ให้รันไฟล์ layout_config.sql ก่อน</div>')
     +(statusErr?'<div class="warn">อ่านข้อมูลการตรวจไม่สำเร็จ: '+esc(statusErr)+'</div>':'')
     +(skipErr?'<div class="warn">อ่านรายการ Part ที่ไม่ผลิตวันนี้ไม่สำเร็จ ('+esc(skipErr)+') — ตัวเลขบน Layout อาจรวม Part ที่ไม่ได้ผลิต</div>':'');
   const st=$('stage');st.className=edit?'edit':'';
@@ -784,11 +795,12 @@ $('e-save').onclick=async()=>{
 };
 async function refresh(){
   await loadStatus();render();
-  $('upd').textContent='อัปเดตล่าสุด '+new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})+' · รีเฟรชอัตโนมัติทุก 1 นาที';
+  $('upd').textContent='อัปเดตล่าสุด '+bkk().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'UTC'})+' · รีเฟรชอัตโนมัติทุก 1 นาที';
 }
 $('btn-refresh').onclick=refresh;
+setInterval(syncTime,1800000);
 setInterval(()=>{if(!edit)refresh()},60000); // รีเฟรชอัตโนมัติทุก 1 นาที (เหมาะกับจอ TV)
-(async()=>{await loadMaster();await refresh();if(new URLSearchParams(location.search).get('edit')==='1')enterEdit()})();
+(async()=>{await syncTime();await loadMaster();await refresh();if(new URLSearchParams(location.search).get('edit')==='1')enterEdit()})();
 </script>
 <script>
 /* ── เมนูธีม (สว่าง/มืด + 10 ชุดสี) — ใช้คีย์เดียวกับแอปหลัก: fc_theme / fc_palette ── */
