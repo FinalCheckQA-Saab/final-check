@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TV Check — ตรวจการเชื่อมต่อ</title>
+<style>
+body{margin:0;background:#0f2137;color:#fff;font-family:Tahoma,sans-serif;padding:24px 32px}
+h1{font-size:34px;margin:0 0 6px}
+.sub{font-size:20px;color:#9db0c6;margin-bottom:18px}
+.row{display:flex;align-items:center;gap:16px;padding:12px 16px;margin:8px 0;border-radius:12px;background:#16324f;font-size:26px}
+.ic{width:46px;text-align:center;font-size:32px}
+.nm{flex:1}.nm small{display:block;font-size:17px;color:#9db0c6}
+.st{font-size:22px;font-weight:700;text-align:right;max-width:46%}
+.ok .st{color:#4ade80}.ng .st{color:#f87171}.wait .st{color:#fbbf24}
+.info{font-size:20px;line-height:1.6;background:#16324f;border-radius:12px;padding:12px 16px;margin-top:14px;word-break:break-all}
+button{font-size:26px;padding:12px 30px;margin-top:16px;border-radius:12px;border:0;background:#2f6fd1;color:#fff}
+</style></head><body>
+<h1>TV Check — ตรวจการเชื่อมต่อ</h1>
+<div class="sub">ถ่ายรูปหน้าจอนี้ส่งให้ Javis (รอ 15 วินาทีให้ครบทุกแถว)</div>
+<div id="list"></div>
+<div class="info" id="info"></div>
+<button onclick="run()">ตรวจใหม่</button>
+<script>
+var SB="https://knzzmurumqrhwotyrooj.supabase.co",KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU";
+var tests=[
+ {n:"หน้าเว็บนี้ (github.io)",s:"ไฟล์ในเว็บเดียวกัน",u:location.pathname+"?t="+Date.now(),m:"cors"},
+ {n:"Supabase API",s:"ฐานข้อมูลหลัก — ตัวที่ขึ้น Failed to fetch",u:SB+"/rest/v1/?apikey="+KEY,m:"cors"},
+ {n:"Supabase (ตารางจริง)",s:"อ่านตาราง departments",u:SB+"/rest/v1/departments?select=id&limit=1&apikey="+KEY,m:"cors"},
+ {n:"jsDelivr CDN",s:"cdn.jsdelivr.net",u:"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/package.json",m:"cors"},
+ {n:"cdnjs CDN",s:"cdnjs.cloudflare.com",u:"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",m:"no-cors"},
+ {n:"Google Fonts",s:"fonts.googleapis.com",u:"https://fonts.googleapis.com/css2?family=Noto+Sans+Thai&display=swap",m:"no-cors"}
+];
+function el(id){return document.getElementById(id)}
+function row(i,cls,ic,txt){var r=el("r"+i);r.className="row "+cls;r.querySelector(".ic").textContent=ic;r.querySelector(".st").textContent=txt}
+function withTimeout(p,ms){return new Promise(function(res,rej){var t=setTimeout(function(){rej(new Error("หมดเวลา "+ms/1000+" วินาที"))},ms);p.then(function(v){clearTimeout(t);res(v)},function(e){clearTimeout(t);rej(e)})})}
+function one(i){
+  var t=tests[i];row(i,"wait","⏳","กำลังทดสอบ…");
+  var t0=Date.now();
+  return withTimeout(fetch(t.u,{mode:t.m,cache:"no-store"}),9000).then(function(r){
+    var ms=Date.now()-t0;
+    if(t.m==="no-cors"){row(i,"ok","✅","ติดต่อได้ ("+ms+" ms)")}
+    else if(r.ok){row(i,"ok","✅","ได้ "+r.status+" ("+ms+" ms)")}
+    else{row(i,"ng","⚠️","ตอบกลับ "+r.status)}
+  }).catch(function(e){row(i,"ng","❌",(e&&e.message)||"ล้มเหลว")});
+}
+function run(){
+  var L=el("list");L.innerHTML="";
+  tests.forEach(function(t,i){var d=document.createElement("div");d.id="r"+i;d.className="row wait";d.innerHTML='<div class="ic">⏳</div><div class="nm">'+t.n+'<small>'+t.s+'</small></div><div class="st">…</div>';L.appendChild(d)});
+  var d=new Date();
+  el("info").innerHTML="เวลาของ TV: <b>"+d.toLocaleString("th-TH")+"</b> (โซนเวลา "+(-d.getTimezoneOffset()/60)+") · ออนไลน์: <b>"+(navigator.onLine?"ใช่":"ไม่")+"</b><br>หน้าจอ: "+screen.width+"x"+screen.height+" · เบราว์เซอร์: "+navigator.userAgent;
+  tests.reduce(function(p,t,i){return p.then(function(){return one(i)})},Promise.resolve());
+}
+run();
+</script></body></html>
