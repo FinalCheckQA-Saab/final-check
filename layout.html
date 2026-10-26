@@ -454,6 +454,8 @@ html{--tg-hi:color-mix(in srgb,var(--gold) 45%,#fff);--tg-lt:color-mix(in srgb,v
 /* โลโก้ใน header: สีขาวคงที่ ไม่เปลี่ยนตาม Theme */
 .top .logo{background:linear-gradient(135deg,#fff,#e8eef6);box-shadow:0 6px 18px -4px rgba(0,0,0,.45),inset 0 1px 0 #fff}
 .top .logo::before{background:radial-gradient(circle,rgba(255,255,255,.5),transparent 70%)}
+/* โหมดทีวี (lite): ปิดเอฟเฟกต์ที่กินแรม — ไม่กระทบหน้าตาเมื่อเปิดบนคอมพิวเตอร์ */
+html.lite *,html.lite *::before,html.lite *::after{animation:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 </style>
 </head>
 <body>
@@ -545,6 +547,8 @@ if(typeof supabase==='undefined'){
 const sb=supabase.createClient(SB_URL,SB_KEY);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const IS_TV=/Tizen|SMART-TV|SmartTV|WebOS|NetCast|HbbTV/i.test(navigator.userAgent);
+if(IS_TV)document.documentElement.classList.add('lite');
 const STAGES=['S','M','E'];
 let cfg={title:'Layout ฝ่ายผลิต',image:'',markers:[]}, parts={}, groups={}, status={}, edit=false, creds=null, sel=null, tableOk=true, skips=new Set(), skipErr='', statusErr='';
 let zoom=1, ratio=0;
@@ -706,15 +710,21 @@ function setNum(id,v){
   const el=$(id);if(!el)return;const from=+el.textContent||0;if(from===v){el.textContent=v;return}
   const t0=performance.now();(function f(t){const k=Math.min(1,(t-t0)/500);el.textContent=Math.round(from+(v-from)*k);if(k<1)requestAnimationFrame(f)})(t0);
 }
+function syncStage(mh){
+  const st=$('stage'),k=cfg.image.length+':'+cfg.image.slice(-40);let im=st.querySelector('img');
+  if(!im||im.dataset.k!==k){st.innerHTML='';im=new Image();im.draggable=false;im.dataset.k=k;im.src=cfg.image;st.appendChild(im)}
+  else st.querySelectorAll('.mk').forEach(e=>e.remove());
+  im.insertAdjacentHTML('afterend',mh);
+}
 function render(){
     $('warn').innerHTML=(timeBad?'<div class="warn">⚠ นาฬิกาของทีวีผิดและซิงก์เวลาจากเซิร์ฟเวอร์ไม่ได้ — ข้อมูล "วันนี้" อาจไม่ถูกต้อง กรุณาตั้งเวลาทีวีหรือแจ้ง IT</div>':'')+(tableOk?'':'<div class="warn">ยังไม่ได้สร้างตาราง layout_config ใน Supabase — ให้รันไฟล์ layout_config.sql ก่อน</div>')
     +(statusErr?'<div class="warn">อ่านข้อมูลการตรวจไม่สำเร็จ: '+esc(statusErr)+'</div>':'')
     +(skipErr?'<div class="warn">อ่านรายการ Part ที่ไม่ผลิตวันนี้ไม่สำเร็จ ('+esc(skipErr)+') — ตัวเลขบน Layout อาจรวม Part ที่ไม่ได้ผลิต</div>':'');
   const st=$('stage');st.className=edit?'edit':'';
   if(!cfg.image){st.innerHTML='<div class="empty">ยังไม่มีรูป Layout — กดปุ่ม ✎ เพื่ออัปโหลดรูปและวางจุด (Admin)</div>'}
-  else{st.innerHTML='<img src="'+cfg.image+'" draggable="false">'+cfg.markers.map(m=>{
+  else{const mh=cfg.markers.map(m=>{
     const g=groups[m.lineId]||{name:m.lineId},s=lineStates(m.lineId),o=overall(s);
-    return '<div class="mk '+o+(sel===m.id?' sel':'')+'" data-id="'+m.id+'" style="'+mkCss(m)+'"><div class="n">'+esc(g.name)+'</div><div class="st">'+STAGES.map((l,i)=>'<i class="'+s[i]+'">'+l+'</i>').join('')+'</div></div>'}).join('')}
+    return '<div class="mk '+o+(sel===m.id?' sel':'')+'" data-id="'+m.id+'" style="'+mkCss(m)+'"><div class="n">'+esc(g.name)+'</div><div class="st">'+STAGES.map((l,i)=>'<i class="'+s[i]+'">'+l+'</i>').join('')+'</div></div>'}).join('');syncStage(mh)}
   syncStyleBar();
   const im=st.querySelector('img');if(im){const f=()=>{ratio=im.naturalWidth/im.naturalHeight;fit()};im.complete&&im.naturalWidth?f():im.onload=f}
   const c={ok:0,part:0,ng:0,none:0,off:0};cfg.markers.forEach(m=>c[overall(lineStates(m.lineId))]++);
@@ -741,7 +751,8 @@ $('stage').addEventListener('pointerdown',e=>{
 $('stage').addEventListener('click',e=>{
   if(edit)return;const el=e.target.closest('.mk');if(!el)return;
   const m=cfg.markers.find(x=>x.id===el.dataset.id);if(!m)return;
-  window.open('line.html?line='+encodeURIComponent(m.lineId)+'&date='+today(),'_blank');
+  const u='line.html?line='+encodeURIComponent(m.lineId)+'&date='+today();
+  if(IS_TV)location.href=u;else window.open(u,'_blank');
 });
 // ── โหมดแก้ไข (ต้องล็อกอิน Admin) ──
 async function enterEdit(){
