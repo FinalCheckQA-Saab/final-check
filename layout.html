@@ -688,15 +688,19 @@ function setNum(id,v){
   const el=$(id);if(!el)return;const from=+el.textContent||0;if(from===v){el.textContent=v;return}
   const t0=performance.now();(function f(t){const k=Math.min(1,(t-t0)/500);el.textContent=Math.round(from+(v-from)*k);if(k<1)requestAnimationFrame(f)})(t0);
 }
+let _lastImg=null;
 function render(){
     $('warn').innerHTML=(tableOk?'':'<div class="warn">ยังไม่ได้สร้างตาราง layout_config ใน Supabase — ให้รันไฟล์ layout_config.sql ก่อน</div>')
     +(statusErr?'<div class="warn">อ่านข้อมูลการตรวจไม่สำเร็จ: '+esc(statusErr)+'</div>':'')
     +(skipErr?'<div class="warn">อ่านรายการ Part ที่ไม่ผลิตวันนี้ไม่สำเร็จ ('+esc(skipErr)+') — ตัวเลขบน Layout อาจรวม Part ที่ไม่ได้ผลิต</div>':'');
   const st=$('stage');st.className=edit?'edit':'';
-  if(!cfg.image){st.innerHTML='<div class="empty">ยังไม่มีรูป Layout — กดปุ่ม ✎ เพื่ออัปโหลดรูปและวางจุด (Admin)</div>'}
-  else{st.innerHTML='<img src="'+cfg.image+'" draggable="false">'+cfg.markers.map(m=>{
+  if(!cfg.image){_lastImg=null;st.innerHTML='<div class="empty">ยังไม่มีรูป Layout — กดปุ่ม ✎ เพื่ออัปโหลดรูปและวางจุด (Admin)</div>'}
+  else{const _mk=cfg.markers.map(m=>{
     const g=groups[m.lineId]||{name:m.lineId},s=lineStates(m.lineId),o=overall(s);
-    return '<div class="mk '+o+(sel===m.id?' sel':'')+'" data-id="'+m.id+'" style="'+mkCss(m)+'"><div class="n">'+esc(g.name)+'</div><div class="st">'+STAGES.map((l,i)=>'<i class="'+s[i]+'">'+l+'</i>').join('')+'</div></div>'}).join('')}
+    return '<div class="mk '+o+(sel===m.id?' sel':'')+'" data-id="'+m.id+'" style="'+mkCss(m)+'"><div class="n">'+esc(g.name)+'</div><div class="st">'+STAGES.map((l,i)=>'<i class="'+s[i]+'">'+l+'</i>').join('')+'</div></div>'}).join('');
+  /* กัน TV ค้าง: ถ้ารูปพื้นหลังเป็นรูปเดิม ไม่สร้าง <img> (data URL ขนาดใหญ่) ใหม่ทุกรอบรีเฟรช — เปลี่ยนเฉพาะจุด */
+  if(_lastImg===cfg.image&&st.querySelector('img')){st.querySelectorAll('.mk').forEach(e=>e.remove());st.insertAdjacentHTML('beforeend',_mk)}
+  else{st.innerHTML='<img src="'+cfg.image+'" draggable="false">'+_mk;_lastImg=cfg.image}}
   syncStyleBar();
   const im=st.querySelector('img');if(im){const f=()=>{ratio=im.naturalWidth/im.naturalHeight;fit()};im.complete&&im.naturalWidth?f():im.onload=f}
   const c={ok:0,part:0,ng:0,none:0,off:0};cfg.markers.forEach(m=>c[overall(lineStates(m.lineId))]++);
@@ -780,7 +784,10 @@ async function refresh(){
   $('upd').textContent='อัปเดตล่าสุด '+new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})+' · รีเฟรชอัตโนมัติทุก 1 นาที';
 }
 $('btn-refresh').onclick=refresh;
-setInterval(()=>{if(!edit)refresh()},60000); // รีเฟรชอัตโนมัติทุก 1 นาที (เหมาะกับจอ TV)
+let _refBusy=false; /* กันรีเฟรชซ้อนกันเมื่อเน็ตช้า/หลุด */
+setInterval(async()=>{if(edit||_refBusy)return;_refBusy=true;try{await refresh()}catch(err){console.warn('refresh:',err)}finally{_refBusy=false}},60000); // รีเฟรชอัตโนมัติทุก 1 นาที (เหมาะกับจอ TV)
+/* safety-net กันจอ TV ที่เปิดค้างข้ามวัน (หน่วยความจำสะสม): โหลดหน้าใหม่ทุก 30 นาที — ข้ามถ้ากำลังอยู่โหมดแก้ไข */
+setInterval(()=>{if(!edit)location.reload()},30*60*1000);
 (async()=>{await loadMaster();await refresh();if(new URLSearchParams(location.search).get('edit')==='1')enterEdit()})();
 </script>
 <script>
