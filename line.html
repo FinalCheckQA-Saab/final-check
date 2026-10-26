@@ -8,7 +8,9 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.min.js"></script>
+<script>window.supabase||document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"><\/script>')</script>
+<script>window.supabase||document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"><\/script>')</script>
 <style>
 :root{--brand-navy-900:#0f2137;--brand-navy-800:#16324f;--brand-navy-700:#1e3a5f;--brand-gold:#b8903a;--accent:#2f6fd1;--accent-dim:hsla(213,62%,48%,.1);
 --ok:#16a34a;--ng:#dc2626;--part:#d97706;--fix:#0891b2;--none:#cbd5e1;--ok-t:#166534;--part-t:#92400e;--ng-t:#991b1b;
@@ -305,6 +307,8 @@ html[data-theme=dark] .row{box-shadow:none}
 .ng-lb.open{display:flex}
 .ng-lb img{max-width:100%;max-height:86vh;border-radius:12px;background:#000}
 .ng-lb-close{position:absolute;top:14px;right:14px;width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.95);color:#111;font-size:20px;line-height:1;cursor:pointer}
+/* โหมดทีวี (lite): ปิดเอฟเฟกต์ที่กินแรม — ไม่กระทบหน้าตาบนคอมพิวเตอร์ */
+html.lite *,html.lite *::before,html.lite *::after{animation:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 </style>
 </head>
 <body>
@@ -333,14 +337,31 @@ html[data-theme=dark] .row{box-shadow:none}
 </main>
 <script>
 const SB_URL='https://knzzmurumqrhwotyrooj.supabase.co', SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuenptdXJ1bXFyaHdvdHlyb29qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTYzMzIsImV4cCI6MjEwNjI5MjMzMn0.-lGoef8S7TZ-IDpPyEVzNjWpVcPVjWk3x4pJ3iYk5IU';
+if(typeof supabase==='undefined'){
+  document.body.insertAdjacentHTML('afterbegin','<div style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#0a1524;color:#fff;font-size:28px;text-align:center;padding:40px;font-family:sans-serif">โหลดระบบไม่สำเร็จ (supabase-js)<small style="font-size:18px;margin-top:14px;color:#9fb3c8">กำลังลองใหม่ใน 30 วินาที...</small></div>');
+  setTimeout(function(){location.reload()},30000);
+  throw new Error('supabase-js not loaded');
+}
 const sb=supabase.createClient(SB_URL,SB_KEY);
+const IS_TV=/Tizen|SMART-TV|SmartTV|WebOS|NetCast|HbbTV/i.test(navigator.userAgent);
+if(IS_TV)document.documentElement.classList.add('lite');
 const $=id=>document.getElementById(id);
 const SK='<div class="card"><div class="sk" style="width:38%;height:20px"></div><div class="sum" style="margin-top:14px"><div class="sk" style="height:118px"></div><div class="sk" style="height:118px"></div><div class="sk" style="height:118px"></div></div></div><div class="card"><div class="sk" style="width:28%;height:18px"></div><div class="sk" style="height:62px"></div><div class="sk" style="height:62px"></div></div>';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const STAGES=['S','M','E'];
 const T={off:'ไม่ผลิตวันนี้',none:'ยังไม่ตรวจ',ok:'ผ่าน',ng:'NG',partial:'กำลังตรวจ (ยังไม่ครบ)'};
 const q=new URLSearchParams(location.search), LINE=q.get('line');
-const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+// ⏱ ใช้เวลาจริงจากเซิร์ฟเวอร์ (Date header ของ Supabase) แทนนาฬิกาทีวี — ทีวีที่เวลาเพี้ยนเป็นปี 1970 ก็ใช้งานได้
+let skew=0,timeOk=false;
+const bkk=()=>new Date(Date.now()+skew+25200000); // ฟิลด์ UTC ของค่านี้ = เวลาไทย (UTC+7)
+const today=()=>bkk().toISOString().slice(0,10);
+async function syncTime(){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/departments?select=id&limit=1&apikey='+SB_KEY,{cache:'no-store'});
+    const d=r.headers.get('Date'),t=d?Date.parse(d):NaN;
+    if(!isNaN(t)){skew=t-Date.now();timeOk=true}
+  }catch(e){}
+}
 const opened=new Set(); // Part ที่พี่บีกดขยายเอง (ค่าเริ่มต้น = ยุบทั้งหมด)
 let parts=[], deptList=[], deptMap=Object.create(null), status={}, skipsBy={}, errs=[], mErrs=[], rangeBad=false, loadTk=0;
 const MAXD=62; // เลือกช่วงวันที่ได้ไม่เกิน 62 วัน
@@ -423,9 +444,9 @@ async function loadStatus(){
   if(tk!==loadTk)return false; // มีการเลือกช่วงใหม่ระหว่างโหลด — ทิ้งผลเก่า
   status=st;skipsBy=skp;errs=er;rangeBad=bad;return true;
 }
-const hhmm=ts=>ts?new Date(ts).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})+' น.':'';
+const hhmm=ts=>ts?new Date(ts).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.':'';
 const fmt=v=>v==null||v===''||!isFinite(+v)?'—':String(Number((+v).toFixed(4)));
-const hm=t=>t?new Date(t).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}):'';
+const hm=t=>t?new Date(t).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}):'';
 function pcell(it,pc){
   const has=pc&&(pc.status||pc.value!=null);
   if(!has)return '<td class="pc none">–</td>';
@@ -597,9 +618,9 @@ $('f-dept').onchange=()=>{refreshOpts();render()};
 $('f-model').onchange=render;
 $('f-part').oninput=render;
 // เข้าหน้านี้ = วันที่ปัจจุบันเสมอ (ไม่รับ ?date= จากลิงก์)
-setRange(today(),today());$('f-from').max=$('f-to').max=today();
+setInterval(syncTime,1800000);
 setInterval(()=>{if($('f-to').value>=today())refresh(true)},60000); // รีเฟรชอัตโนมัติเฉพาะเมื่อช่วงที่ดูรวมวันนี้
-(async()=>{await loadMaster();initFilters();await refresh()})();
+(async()=>{await syncTime();setRange(today(),today());$('f-from').max=$('f-to').max=today();await loadMaster();initFilters();await refresh()})();
 // 🎨 ใช้ธีมเดียวกับแอปหลัก/หน้า Layout: fc_theme (สว่าง/มืด) + fc_palette (ชุดสี) + ค่ากลางจาก app_settings
 (function(){const root=document.documentElement;
   const setPal=id=>{if(!id||id==='default')root.removeAttribute('data-palette');else if(/^[a-z]+$/.test(id))root.setAttribute('data-palette',id)};
@@ -613,14 +634,14 @@ function lscStart(){
   if(!clocks.length)return;
   const p2=n=>String(n).padStart(2,'0');
   function tick(){
-    const n=new Date(),h=n.getHours();
-    const day=n.toLocaleDateString('th-TH',{weekday:'long'});
-    const date=n.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'});
+    const n=bkk(),h=n.getUTCHours();
+    const day=n.toLocaleDateString('th-TH',{weekday:'long',timeZone:'UTC'});
+    const date=n.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
     const sky=h<5?['🌙','ดึก',1]:h<12?['🌤️','เช้า',0]:h<17?['☀️','บ่าย',0]:h<19?['🌇','เย็น',0]:['🌙','ค่ำ',1];
     clocks.forEach(c=>{
       c.d.textContent=day;c.dt.textContent=date;
-      c.hm.innerHTML=p2(h)+'<i class="lsc-colon">:</i>'+p2(n.getMinutes());
-      c.ss.textContent=p2(n.getSeconds());c.ss.classList.remove('lsc-ss-tick');void c.ss.offsetWidth;c.ss.classList.add('lsc-ss-tick');
+      c.hm.innerHTML=p2(h)+'<i class="lsc-colon">:</i>'+p2(n.getUTCMinutes());
+      c.ss.textContent=p2(n.getUTCSeconds());c.ss.classList.remove('lsc-ss-tick');void c.ss.offsetWidth;c.ss.classList.add('lsc-ss-tick');
       if(sky[0]+sky[1]!==c.last){c.last=sky[0]+sky[1];c.sky.textContent=sky[0];c.sky.title='ช่วง'+sky[1];c.sky.classList.toggle('night',!!sky[2]);}
     });
   }

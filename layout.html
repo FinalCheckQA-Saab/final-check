@@ -752,7 +752,7 @@ $('stage').addEventListener('click',e=>{
   if(edit)return;const el=e.target.closest('.mk');if(!el)return;
   const m=cfg.markers.find(x=>x.id===el.dataset.id);if(!m)return;
   const u='line.html?line='+encodeURIComponent(m.lineId)+'&date='+today();
-  if(IS_TV)location.href=u;else window.open(u,'_blank');
+  window.open(u,'_blank');
 });
 // ── โหมดแก้ไข (ต้องล็อกอิน Admin) ──
 async function enterEdit(){
