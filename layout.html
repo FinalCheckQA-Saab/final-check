@@ -8,7 +8,10 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- โหลด Supabase: จอ TV (หรือ ?tv=1) ใช้ไฟล์ในเครื่อง supabase-js.umd.js ก่อน เพราะ CDN อาจถูกบล็อก/ช้า · เครื่องปกติใช้ CDN แล้วสำรองด้วยไฟล์ในเครื่อง -->
+<script>(function(){var u=navigator.userAgent||"",q=location.search,tv=/[?&]tv=1/.test(q)||(!/[?&]tv=0/.test(q)&&/Tizen|SMART-TV|SmartTV|Web0S|NetCast|GoogleTV|Android TV|CrKey/i.test(u));document.write('<script src="'+(tv?"supabase-js.umd.js":"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2")+'"><\/script>')})();</script>
+<script>window.supabase||document.write('<script src="supabase-js.umd.js"><\/script>')</script>
+<script>window.supabase||document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>')</script>
 <style>
 :root{--navy:#16324f;--gold:#c9a24a;--ok:#22c55e;--ng:#ef4444;--part:#f59e0b;--fix:#06b6d4;--none:#cbd5e1;--text:#1f2937;--glass:rgba(255,255,255,.07);--line:rgba(255,255,255,.12)}
 *{box-sizing:border-box}
