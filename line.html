@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
-<script src="supabase.min.js?v=2026-10-29a"></script>
+<script src="supabase.min.js?v=2026-10-29b"></script>
 <script>window.supabase||document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"><\/script>')</script>
 <script>window.supabase||document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"><\/script>')</script>
 <style>
@@ -626,7 +626,15 @@ $('f-part').oninput=render;
 setInterval(syncTime,1800000);
 [5000,20000,60000].forEach(ms=>setTimeout(async()=>{if(!timeOk){await syncTime();if(timeOk){setRange(today(),today());$('f-from').max=$('f-to').max=today();refresh()}}},ms));
 setInterval(()=>{if($('f-to').value>=today())refresh(true)},60000); // รีเฟรชอัตโนมัติเฉพาะเมื่อช่วงที่ดูรวมวันนี้
-(async()=>{await syncTime();setRange(today(),today());$('f-from').max=$('f-to').max=today();await loadMaster();initFilters();await refresh()})();
+(async()=>{await syncTime();setRange(today(),today());$('f-from').max=$('f-to').max=today();await loadMaster();initFilters();await refresh();autoRetry()})();
+// ถ้าโหลดข้อมูลไม่สำเร็จ (เน็ต/ฐานข้อมูลสะดุด) → โหลดหน้าใหม่เองใน 30 วินาที (สูงสุด 10 ครั้ง กันวนไม่รู้จบ)
+function autoRetry(){
+  let bad=mErrs.length>0||!deptList.length||errs.length>0,n=0;
+  try{n=+sessionStorage.getItem('fc_retry')||0;if(!bad)sessionStorage.removeItem('fc_retry')}catch(e){}
+  if(!bad||n>=10)return;
+  try{sessionStorage.setItem('fc_retry',String(n+1))}catch(e){}
+  setTimeout(()=>location.reload(),30000);
+}
 // 🎨 ใช้ธีมเดียวกับแอปหลัก/หน้า Layout: fc_theme (สว่าง/มืด) + fc_palette (ชุดสี) + ค่ากลางจาก app_settings
 (function(){const root=document.documentElement;
   const setPal=id=>{if(!id||id==='default')root.removeAttribute('data-palette');else if(/^[a-z]+$/.test(id))root.setAttribute('data-palette',id)};
@@ -655,6 +663,6 @@ function lscStart(){
 }
 lscStart();
 </script>
-<div id="verstamp" style="position:fixed;left:6px;bottom:4px;z-index:50;font:11px/1 monospace;opacity:.45;pointer-events:none;color:#888">v2026-10-29a</div>
+<div id="verstamp" style="position:fixed;left:6px;bottom:4px;z-index:50;font:11px/1 monospace;opacity:.45;pointer-events:none;color:#888">v2026-10-29b</div>
 </body>
 </html>

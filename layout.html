@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
-<script src="supabase.min.js?v=2026-10-29a"></script>
+<script src="supabase.min.js?v=2026-10-29b"></script>
 <script>window.supabase||document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"><\/script>')</script>
 <script>window.supabase||document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"><\/script>')</script>
 <style>
@@ -649,7 +649,9 @@ document.addEventListener('fullscreenchange',()=>setTimeout(fit,150));
 
 // ดึงข้อมูลทีละ 1,000 แถว (Supabase จำกัดแถวต่อครั้ง) — ต้อง order ให้คงที่
 async function fetchAll(mk){const out=[];for(let a=0;;a+=1000){const {data,error}=await mk().range(a,a+999);if(error)return{data:out,error};out.push(...(data||[]));if(!data||data.length<1000)break}return{data:out,error:null}}
+let masterBad=false,masterBusy=false; // masterBad = โหลดรายการ Line/Part/Layout ไม่สำเร็จ → ลองใหม่เองทุก 30 วินาที
 async function loadMaster(){
+  tableOk=true;
   let [j,l,d]=await Promise.all([fetchAll(()=>sb.from('jigs').select('id,name,line_id').order('id')),fetchAll(()=>sb.from('lines').select('id,name,dept_id').order('id')),fetchAll(()=>sb.from('departments').select('id,name,section').order('id'))]);
   if(d.error) d=await fetchAll(()=>sb.from('departments').select('id,name').order('id'));
   const dep={},ln={};(d.data||[]).forEach(x=>dep[x.id]=x);(l.data||[]).forEach(x=>ln[x.id]=x);
@@ -657,6 +659,7 @@ async function loadMaster(){
   parts={};(j.data||[]).forEach(p=>{const m=ln[p.line_id],q=m&&dep[m.dept_id];parts[p.id]={name:p.name,model:m?m.name:'',line:q?q.name:'',section:q&&q.section||'',deptId:q?q.id:''};if(q&&groups[q.id])groups[q.id].parts.push(p.id)});
   const c=await sb.from('layout_config').select('data').eq('id','main').maybeSingle();
   if(c.error){tableOk=false}else if(c.data&&c.data.data){cfg=Object.assign(cfg,c.data.data);cfg.markers=cfg.markers||[]}
+  masterBad=!!(j.error||l.error||d.error||c.error);
   // จุดเดิมที่ผูกกับ Part (เวอร์ชันก่อน) → แปลงเป็นจุดของ Line ที่ Part นั้นอยู่ (1 Line เหลือ 1 จุด)
   const seen=new Set();
   cfg.markers=cfg.markers.map(m=>m.lineId?m:{id:m.id,lineId:(parts[m.jigId]||{}).deptId,x:m.x,y:m.y}).filter(m=>m.lineId&&groups[m.lineId]&&!seen.has(m.lineId)&&seen.add(m.lineId));
@@ -819,6 +822,7 @@ async function refresh(){
 $('btn-refresh').onclick=refresh;
 setInterval(syncTime,1800000);
 [5000,20000,60000].forEach(ms=>setTimeout(async()=>{if(!timeOk){await syncTime();if(timeOk&&!edit)refresh()}},ms));
+setInterval(async()=>{if(edit||!masterBad||masterBusy)return;masterBusy=true;try{await loadMaster();await refresh()}catch(e){}masterBusy=false},30000);
 setInterval(()=>{if(!edit)refresh()},60000); // รีเฟรชอัตโนมัติทุก 1 นาที (เหมาะกับจอ TV)
 (async()=>{await syncTime();await loadMaster();await refresh();if(new URLSearchParams(location.search).get('edit')==='1')enterEdit()})();
 </script>
@@ -885,6 +889,6 @@ setInterval(()=>{if(!edit)refresh()},60000); // รีเฟรชอัตโ�
   }catch(e){}
 })();
 </script>
-<div id="verstamp" style="position:fixed;left:6px;bottom:4px;z-index:50;font:11px/1 monospace;opacity:.45;pointer-events:none;color:#888">v2026-10-29a</div>
+<div id="verstamp" style="position:fixed;left:6px;bottom:4px;z-index:50;font:11px/1 monospace;opacity:.45;pointer-events:none;color:#888">v2026-10-29b</div>
 </body>
 </html>
