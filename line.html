@@ -356,11 +356,16 @@ let skew=0,timeOk=false;
 const bkk=()=>new Date(Date.now()+skew+25200000); // ฟิลด์ UTC ของค่านี้ = เวลาไทย (UTC+7)
 const today=()=>bkk().toISOString().slice(0,10);
 async function syncTime(){
-  try{
-    const r=await fetch(SB_URL+'/rest/v1/departments?select=id&limit=1&apikey='+SB_KEY,{cache:'no-store'});
-    const d=r.headers.get('Date'),t=d?Date.parse(d):NaN;
-    if(!isNaN(t)){skew=t-Date.now();timeOk=true}
-  }catch(e){}
+  // 1) เวลาจาก GitHub Pages (โดเมนเดียวกับหน้านี้ → เบราว์เซอร์ยอมให้อ่าน header Date แน่นอน)
+  // 2) สำรอง: header Date จาก Supabase (บางเบราว์เซอร์ไม่ยอมให้อ่านข้ามโดเมน)
+  const urls=[location.pathname+'?_t='+Math.random(),SB_URL+'/rest/v1/departments?select=id&limit=1&apikey='+SB_KEY];
+  for(let i=0;i<urls.length&&!timeOk;i++){
+    try{
+      const r=await fetch(urls[i],{method:i?'GET':'HEAD',cache:'no-store'});
+      const d=r.headers.get('Date'),t=d?Date.parse(d):NaN;
+      if(!isNaN(t)&&t>1.7e12){skew=t-Date.now();timeOk=true}
+    }catch(e){}
+  }
 }
 const opened=new Set(); // Part ที่พี่บีกดขยายเอง (ค่าเริ่มต้น = ยุบทั้งหมด)
 let parts=[], deptList=[], deptMap=Object.create(null), status={}, skipsBy={}, errs=[], mErrs=[], rangeBad=false, loadTk=0;
@@ -619,6 +624,7 @@ $('f-model').onchange=render;
 $('f-part').oninput=render;
 // เข้าหน้านี้ = วันที่ปัจจุบันเสมอ (ไม่รับ ?date= จากลิงก์)
 setInterval(syncTime,1800000);
+[5000,20000,60000].forEach(ms=>setTimeout(async()=>{if(!timeOk){await syncTime();if(timeOk){setRange(today(),today());$('f-from').max=$('f-to').max=today();refresh()}}},ms));
 setInterval(()=>{if($('f-to').value>=today())refresh(true)},60000); // รีเฟรชอัตโนมัติเฉพาะเมื่อช่วงที่ดูรวมวันนี้
 (async()=>{await syncTime();setRange(today(),today());$('f-from').max=$('f-to').max=today();await loadMaster();initFilters();await refresh()})();
 // 🎨 ใช้ธีมเดียวกับแอปหลัก/หน้า Layout: fc_theme (สว่าง/มืด) + fc_palette (ชุดสี) + ค่ากลางจาก app_settings

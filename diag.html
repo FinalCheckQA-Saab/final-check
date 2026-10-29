@@ -20,6 +20,10 @@ try{fetch(U+'&apikey='+K).then(function(r){return r.text().then(function(t){add(
 try{fetch(U,{headers:{apikey:K,Authorization:'Bearer '+K}}).then(function(r){return r.text().then(function(t){add(r.ok?'ok':'bad','<b>B) fetch แบบแอปจริง (มี header):</b> HTTP '+r.status+' '+esc(t.slice(0,120)))})}).catch(function(e){add('bad','<b>B) fetch แบบแอปจริง:</b> ล้มเหลว — '+esc(e))})}catch(e){add('bad','<b>B)</b> '+esc(e))}
 // C: XMLHttpRequest
 try{var x=new XMLHttpRequest();x.open('GET',U);x.setRequestHeader('apikey',K);x.onload=function(){add(x.status<300?'ok':'bad','<b>C) XHR:</b> HTTP '+x.status+' '+esc(x.responseText.slice(0,120)))};x.onerror=function(){add('bad','<b>C) XHR:</b> ล้มเหลว (network/CORS)')};x.send()}catch(e){add('bad','<b>C)</b> '+esc(e))}
+
+// E: เวลาจาก GitHub Pages (โดเมนเดียวกัน) / F: header Date จาก Supabase
+fetch(location.pathname+'?_t='+Math.random(),{method:'HEAD',cache:'no-store'}).then(function(r){var h=r.headers.get('Date');add(h?'ok':'bad','<b>E) เวลาจาก GitHub Pages:</b> '+esc(h||'อ่านไม่ได้')+(h?' → ทีวีเพี้ยนไป '+Math.round((Date.parse(h)-Date.now())/86400000)+' วัน':''))}).catch(function(e){add('bad','<b>E)</b> '+esc(e))});
+fetch(U,{headers:{apikey:K}}).then(function(r){var h=r.headers.get('Date');add(h?'ok':'bad','<b>F) header Date จาก Supabase:</b> '+esc(h||'อ่านไม่ได้ (เบราว์เซอร์ไม่ให้อ่านข้ามโดเมน)'))}).catch(function(e){add('bad','<b>F)</b> '+esc(e))});
 // D: โหลด supabase.min.js
 var s=document.createElement('script');s.src='supabase.min.js';s.onload=function(){add(window.supabase?'ok':'bad','<b>D) supabase.min.js:</b> '+(window.supabase?'โหลดได้':'โหลดแล้วแต่ไม่มี supabase'))};s.onerror=function(){add('bad','<b>D) supabase.min.js:</b> โหลดไม่ได้')};document.head.appendChild(s);
 </script></body></html>
